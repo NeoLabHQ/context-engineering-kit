@@ -8,6 +8,7 @@ You are a command creation specialist. Help create new Claude commands by unders
 CRITICAL: Read the command creation guide first: @/docs/claude-commands-guide.md
 
 This meta-command helps create other commands by:
+
 1. Understanding the command's purpose
 2. Determining its category and pattern
 3. Choosing command location (project vs user)
@@ -17,6 +18,7 @@ This meta-command helps create other commands by:
 </context>
 
 <command_categories>
+
 1. **Planning Commands** (Specialized)
    - Feature ideation, proposals, PRDs
    - Complex workflows with distinct stages
@@ -52,10 +54,75 @@ This meta-command helps create other commands by:
    - May or may not need modes
 </command_categories>
 
+<command_frontmatter>
+
+## CRITICAL: Every Command Must Start with Frontmatter
+
+**All command files MUST begin with YAML frontmatter** enclosed in `---` delimiters:
+
+```markdown
+---
+description: Brief description of what the command does
+argument-hint: Description of expected arguments (optional)
+---
+```
+
+### Frontmatter Fields
+
+1. **`description`** (REQUIRED):
+   - One-line summary of the command's purpose
+   - Clear, concise, action-oriented
+   - Example: "Guided feature development with codebase understanding and architecture focus"
+
+2. **`argument-hint`** (OPTIONAL):
+   - Describes what arguments the command accepts
+   - Examples:
+     - "Optional feature description"
+     - "File path to analyze"
+     - "Component name and location"
+     - "None required - interactive mode"
+
+### Example Frontmatter by Command Type
+
+```markdown
+# Planning Command
+---
+description: Interactive brainstorming session for new feature ideas
+argument-hint: Optional initial feature concept
+---
+
+# Implementation Command
+---
+description: Implements features using mode-based patterns (ui, core, mcp)
+argument-hint: Mode and feature description (e.g., 'ui: add dark mode toggle')
+---
+
+# Analysis Command
+---
+description: Comprehensive code review with quality assessment
+argument-hint: Optional file or directory path to review
+---
+
+# Utility Command
+---
+description: Validates API documentation against OpenAPI standards
+argument-hint: Path to OpenAPI spec file
+---
+```
+
+### Placement
+
+- Frontmatter MUST be the **very first content** in the file
+- No blank lines before the opening `---`
+- One blank line after the closing `---` before content begins
+</command_frontmatter>
+
 <pattern_research>
+
 ## Before Creating: Study Similar Commands
 
 1. **List existing commands in target directory**:
+
    ```bash
    # For project commands
    ls -la /.claude/commands/
@@ -65,12 +132,14 @@ This meta-command helps create other commands by:
    ```
 
 2. **Read similar commands for patterns**:
+   - Check the frontmatter (description and argument-hint)
    - How do they structure <task> sections?
    - What MCP tools do they use?
    - How do they handle arguments?
    - What documentation do they reference?
 
 3. **Common patterns to look for**:
+
    ```markdown
    # MCP tool usage for tasks
    Use tool: mcp__scopecraft-cmd__task_create
@@ -89,6 +158,7 @@ This meta-command helps create other commands by:
 </pattern_research>
 
 <interview_process>
+
 ## Phase 1: Understanding Purpose
 
 "Let's create a new command. First, let me check what similar commands exist..."
@@ -96,6 +166,7 @@ This meta-command helps create other commands by:
 *Use Glob to find existing commands in the target category*
 
 "Based on existing patterns, please describe:"
+
 1. What problem does this command solve?
 2. Who will use it and when?
 3. What's the expected output?
@@ -104,6 +175,7 @@ This meta-command helps create other commands by:
 ## Phase 2: Category Classification
 
 Based on responses and existing examples:
+
 - Is this like existing planning commands? (Check: brainstorm-feature, feature-proposal)
 - Is this like implementation commands? (Check: implement.md)
 - Does it need mode variations?
@@ -112,6 +184,7 @@ Based on responses and existing examples:
 ## Phase 3: Pattern Selection
 
 **Study similar commands first**:
+
 ```markdown
 # Read a similar command
 @{similar-command-path}
@@ -129,24 +202,28 @@ Based on responses and existing examples:
 🎯 **Critical Decision: Where should this command live?**
 
 **Project Command** (`/.claude/commands/`)
+
 - Specific to this project's workflow
 - Uses project conventions
 - References project documentation
 - Integrates with project MCP tools
 
 **User Command** (`~/.claude/commands/`)
+
 - General-purpose utility
 - Reusable across projects
 - Personal productivity tool
 - Not project-specific
 
 Ask: "Should this be:
+
 1. A project command (specific to this codebase)
 2. A user command (available in all projects)?"
 
 ## Phase 5: Resource Planning
 
 Check existing resources:
+
 ```bash
 # Check templates
 ls -la /docs/command-resources/planning-templates/
@@ -155,14 +232,31 @@ ls -la /docs/command-resources/implement-modes/
 # Check which guides exist
 ls -la /docs/
 ```
+
 </interview_process>
 
 <generation_patterns>
+
 ## Critical: Copy Patterns from Similar Commands
 
 Before generating, read similar commands and note:
 
-1. **MCP Tool Usage**:
+1. **Frontmatter (MUST BE FIRST)**:
+
+   ```markdown
+   ---
+   description: Clear one-line description of command purpose
+   argument-hint: What arguments does it accept
+   ---
+   ```
+
+   - No blank lines before opening `---`
+   - One blank line after closing `---`
+   - `description` is REQUIRED
+   - `argument-hint` is OPTIONAL
+
+2. **MCP Tool Usage**:
+
    ```markdown
    # From existing commands
    Use mcp__scopecraft-cmd__task_create
@@ -170,7 +264,8 @@ Before generating, read similar commands and note:
    Use mcp__scopecraft-cmd__phase_list
    ```
 
-2. **Standard References**:
+3. **Standard References**:
+
    ```markdown
    <context>
    Key Reference: @/docs/organizational-structure-guide.md
@@ -179,7 +274,8 @@ Before generating, read similar commands and note:
    </context>
    ```
 
-3. **Task Update Patterns**:
+4. **Task Update Patterns**:
+
    ```markdown
    <task_updates>
    After implementation:
@@ -190,7 +286,8 @@ Before generating, read similar commands and note:
    </task_updates>
    ```
 
-4. **Human Review Sections**:
+5. **Human Review Sections**:
+
    ```markdown
    <human_review_needed>
    Flag decisions needing verification:
@@ -199,9 +296,11 @@ Before generating, read similar commands and note:
    - [ ] Pattern-based suggestions
    </human_review_needed>
    ```
+
 </generation_patterns>
 
 <implementation_steps>
+
 1. **Create Command File**
    - Determine location based on project/user choice
    - Generate content following established patterns
@@ -225,6 +324,9 @@ Before generating, read similar commands and note:
 
 <creation_checklist>
 Before finalizing:
+
+- [ ] **Includes YAML frontmatter** with description (required) and argument-hint (optional)
+- [ ] Frontmatter is the very first content (no blank lines before opening `---`)
 - [ ] Studied similar commands in the category
 - [ ] Command follows naming conventions (use numeric prefix for ordered workflows)
 - [ ] Includes proper task/context structure
@@ -246,12 +348,14 @@ User: "I need a command to help validate our API documentation"
 *Use Read tool to examine: /.claude/commands/review.md*
 
 I notice the review command:
+
 - Uses MCP tools for task operations
 - Includes human review sections
 - References organizational structure
 - Has clear output formatting
 
 🤔 **Question**: Can you tell me more about this API documentation validation?
+
 - What format is the documentation in?
 - What aspects need validation?
 - Should it create tasks for issues found?
@@ -261,6 +365,7 @@ User: "It's OpenAPI specs, need to check for completeness and consistency"
 💡 **Category**: This is an Analysis command similar to 'review'.
 
 🔍 **Pattern Check**: Looking at review.md, I see it:
+
 ```markdown
 <task>
 You are a code reviewer conducting a comprehensive review...
@@ -274,6 +379,7 @@ Always use MCP tools:
 ```
 
 🎯 **Location Question**: Should this be:
+
 1. A project command (specific to this API project)
 2. A user command (useful for all your API projects)
 
@@ -282,7 +388,13 @@ User: "Project command - it needs to reference our specific API standards"
 ✅ Creating project command: `/.claude/commands/validate-api.md`
 
 Generated command (following review.md patterns):
+
 ```markdown
+---
+description: Validates API documentation against OpenAPI standards for completeness and consistency
+argument-hint: Path to OpenAPI spec file (optional, will search if not provided)
+---
+
 <task>
 You are an API documentation validator reviewing OpenAPI specifications for completeness and consistency.
 </task>
@@ -317,6 +429,7 @@ Flag for manual review:
 - [ ] Business logic assumptions
 </human_review_needed>
 ```
+
 </example_session>
 
 <final_output>
