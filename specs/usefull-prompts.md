@@ -2,55 +2,55 @@
 
 ## frontend-design
 
-[link](https://github.com/anthropics/skills/blob/main/frontend-design/SKILL.md)
+[x][link](https://github.com/anthropics/skills/blob/main/frontend-design/SKILL.md)
 
 Create distinctive, production-grade frontend interfaces with high design quality. Use this skill when the user asks to build web components, pages, or applications. Generates creative, polished code that avoids generic AI aesthetics.
 
 ## feature-dev
 
-- [link](https://github.com/anthropics/claude-code/blob/main/plugins/feature-dev/commands/feature-dev.md)
-- [code-architect](https://github.com/anthropics/claude-code/blob/main/plugins/feature-dev/agents/code-architect.md)
-- [code-explorer](https://github.com/anthropics/claude-code/blob/main/plugins/feature-dev/agents/code-explorer.md)
-- [code-reviewer](https://github.com/anthropics/claude-code/blob/main/plugins/feature-dev/agents/code-reviewer.md)
+[x][link](https://github.com/anthropics/claude-code/blob/main/plugins/feature-dev/commands/feature-dev.md)
+[x][code-architect](https://github.com/anthropics/claude-code/blob/main/plugins/feature-dev/agents/code-architect.md)
+[x][code-explorer](https://github.com/anthropics/claude-code/blob/main/plugins/feature-dev/agents/code-explorer.md)
+[x][code-reviewer](https://github.com/anthropics/claude-code/blob/main/plugins/feature-dev/agents/code-reviewer.md)
 
 The Feature Development Plugin provides a systematic 7-phase approach to building new features. Instead of jumping straight into code, it guides you through understanding the codebase, asking clarifying questions, designing architecture, and ensuring quality—resulting in better-designed features that integrate seamlessly with your existing code.
 
 ## skill-creator
 
-[link](https://github.com/anthropics/skills/blob/main/skill-creator/SKILL.md)
+[x][link](https://github.com/anthropics/skills/blob/main/skill-creator/SKILL.md)
 
 Guide for creating effective skills. This skill should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations.
 
 ## writing-skills
 
-- [link](https://github.com/obra/superpowers/blob/main/skills/writing-skills/SKILL.md)
-- [anthropic-best-practices](https://github.com/obra/superpowers/blob/main/skills/writing-skills/anthropic-best-practices.md)
-- [graphviz-conventions](https://github.com/obra/superpowers/blob/main/skills/writing-skills/graphviz-conventions.dot)
-- [persuasion-principles](https://github.com/obra/superpowers/blob/main/skills/writing-skills/persuasion-principles.md)
+[x][link](https://github.com/obra/superpowers/blob/main/skills/writing-skills/SKILL.md)
+[x][anthropic-best-practices](https://github.com/obra/superpowers/blob/main/skills/writing-skills/anthropic-best-practices.md)
+[x][graphviz-conventions](https://github.com/obra/superpowers/blob/main/skills/writing-skills/graphviz-conventions.dot)
+[x][persuasion-principles](https://github.com/obra/superpowers/blob/main/skills/writing-skills/persuasion-principles.md)
 
 Use when creating new skills, editing existing skills, or verifying skills work before deployment - applies TDD to process documentation by testing with subagents before writing, iterating until bulletproof against rationalization
 
 ## subagent-driven-development
 
-[link](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md)
+[x][link](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md)
 
 Use when executing implementation plans with independent tasks in the current session - dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates
 
 ## test-driven-development
 
-[link](https://github.com/obra/superpowers/blob/main/skills/test-driven-development/SKILL.md)
+[x][link](https://github.com/obra/superpowers/blob/main/skills/test-driven-development/SKILL.md)
 
 Use when implementing any feature or bugfix, before writing implementation code - write the test first, watch it fail, write minimal code to pass; ensures tests actually verify behavior by requiring failure first
 
 ## testing-anti-patterns
 
-[link](https://github.com/obra/superpowers/blob/main/skills/testing-anti-patterns/SKILL.md)
+[x][link](https://github.com/obra/superpowers/blob/main/skills/testing-anti-patterns/SKILL.md)
 
 Use when writing or changing tests, adding mocks, or tempted to add test-only methods to production code - prevents testing mock behavior, production pollution with test-only methods, and mocking without understanding dependencies
 
 ## testing-skills-with-subagents
 
-[link](https://github.com/obra/superpowers/blob/main/skills/testing-skills-with-subagents/SKILL.md)
+[x][link](https://github.com/obra/superpowers/blob/main/skills/testing-skills-with-subagents/SKILL.md)
 
 Use when creating or editing skills, before deployment, to verify they work under pressure and resist rationalization - applies RED-GREEN-REFACTOR cycle to process documentation by running baseline without skill, writing to address failures, iterating to close loopholes
 
@@ -74,6 +74,7 @@ Use when facing 3+ independent failures that can be investigated without shared 
 ## code-review
 
 [link](https://github.com/anthropics/claude-code/blob/main/plugins/code-review/commands/code-review.md)
+[code reviewer agent](https://github.com/obra/superpowers/blob/main/agents/code-reviewer.md)
 
 Performs automated code review on a pull request using multiple specialized agents.
 

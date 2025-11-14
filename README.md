@@ -62,12 +62,12 @@ To view all available plugins:
 - [Reflexion](#reflexion) - Introduce feedback and refinement loops to improve output quality.
 - [Code Review](#code-review) - Introduce codebase and PR review commands and skills using multiple specialized agents.
 - [Git](#git) - Introduces commands for commit and PRs creation.
-- [Test Driven Development](#test-driven-development) - Introduces commands for test-driven development, common anti-patterns and skills for testing using subagents.
-- [Subagent Driven Development](#subagent-driven-development) - Introduces skills for subagent-driven development, dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
-- [Domain Driven Development](#domain-driven-development) - Introduces command to update CLAUDE.md with best practices for domain-driven development, focused on quality of code, includes Clean Architecture, SOLID principles, and other design patterns.
-- [Spec Driven Development](#spec-driven-development) - Introduces skills for specification-driven development, based on Github Spec Kit and OpenSpec.
-- [Debug and Root Cause Analysis](#debug-and-root-cause-analysis) - Introduces commands for analytisis of root cause of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.
-- [Skill and Command Creator](#skill-and-command-creator) - Commands for writing and refining skills and commands for Claude Code, includes Anthropic Best Practices and Persuasion Principles.
+- [Test-Driven Development](#test-driven-development) - Introduces commands for test-driven development, common anti-patterns and skills for testing using subagents.
+- [Subagent-Driven Development](#subagent-driven-development) - Introduces skills for subagent-driven development, dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
+- [Domain-Driven Development](#domain-driven-development) - Introduces command to update CLAUDE.md with best practices for domain-driven development, focused on quality of code, includes Clean Architecture, SOLID principles, and other design patterns.
+- [Spec-Driven Development](#spec-driven-development) - Introduces commands for specification-driven development, based on Github Spec Kit and OpenSpec. Uses specialized agents for effective context management and quality review.
+- [Kaizen](#kaizen) - Inspired by Japanese continuous improvement philosophy, Agile and Lead development practices. Introduces commands for analytisis of root cause of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.
+- [Customaize Agent](#customaize-agent) - Commands and skills for writing and refining commands, hooks, skills for Claude Code, includes Anthropic Best Practices and [Agent Persuasion Principles](https://arxiv.org/abs/2508.00614) that can be usefull for sub-agent workflows.
 - [Docs](#docs) - Commands for analaysing project, writing and refining documentation.
 - [Language and Frameworks Best Practices](#language-and-frameworks-best-practices) - Commands for setup or update of CLAUDE.md file with best practices for specific language and frameworks.
 

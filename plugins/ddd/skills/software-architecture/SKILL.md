@@ -1,8 +1,12 @@
-# Setup Architecture Memory
+---
+name: software-architecture
+description: Guide for quality focused software architecture. This skill should be used when users want to write code, design architecture, analyze code, in any case that relates to software development. 
+---
 
-Create or update CLAUDE.md in with following content, <critical>write it strictly as it is<critical>, do not summaraise or introduce and new additional information:
+# Software Architecture Development Skill
 
-```markdown
+This skill provides guidence for quality focused software development and architecture. It is based on Clean Architecture and Domain Driven Design principles.
+
 ## Code Style Rules
 
 ### General Principles

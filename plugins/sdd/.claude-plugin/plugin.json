@@ -1,0 +1,9 @@
+{
+    "name": "sdd",
+    "version": "1.0.0",
+    "description": "Specification Driven Development workflow for feature development. Introduces commands for specification-driven development, based on Github Spec Kit and OpenSpec. Uses specialized agents for effective context management and quality review.",
+    "author": {
+      "name": "Vlad Goncharov",
+      "email": "vlad.goncharov@neolab.finance"
+    }
+  }
