@@ -71,20 +71,54 @@ Based on changes summary from phase 1, determine which review agents are applica
 - Provide to them full list of modified files and summary of the PR as a context, explicitly highlight which PR they are reviewing, also provide list of files with project guidelines and standards, including README.md, CLAUDE.md and consitution.md if they exist.
 - Results should come back together
 
-### Phase 3: Confidence Scoring
+### Phase 3: Confidence & Impact Scoring
 
-1. For each issue found in Phase 2, launch a parallel Haiku agent that takes the PR, issue description, and list of CLAUDE.md files (from step 2), and returns a score to indicate the agent's level of confidence for whether the issue is real or false positive. To do that, the agent should score each issue on a scale from 0-100, indicating its level of confidence. For issues that were flagged due to CLAUDE.md instructions, the agent should double check that the CLAUDE.md actually calls out that issue specifically. The scale is (give this rubric to the agent verbatim):
+1. For each issue found in Phase 2, launch a parallel Haiku agent that takes the PR, issue description, and list of CLAUDE.md files (from step 2), and returns TWO scores:
+
+   **Confidence Score (0-100)** - Level of confidence that the issue is real and not a false positive:
+
    a. 0: Not confident at all. This is a false positive that doesn't stand up to light scrutiny, or is a pre-existing issue.
    b. 25: Somewhat confident. This might be a real issue, but may also be a false positive. The agent wasn't able to verify that it's a real issue. If the issue is stylistic, it is one that was not explicitly called out in the relevant CLAUDE.md.
    c. 50: Moderately confident. The agent was able to verify this is a real issue, but it might be a nitpick or not happen very often in practice. Relative to the rest of the PR, it's not very important.
    d. 75: Highly confident. The agent double checked the issue, and verified that it is very likely it is a real issue that will be hit in practice. The existing approach in the PR is insufficient. The issue is very important and will directly impact the code's functionality, or it is an issue that is directly mentioned in the relevant CLAUDE.md.
    e. 100: Absolutely certain. The agent double checked the issue, and confirmed that it is definitely a real issue, that will happen frequently in practice. The evidence directly confirms this.
-2. Filter out any issues with a score less than 80. If there are no issues that meet this criteria, do not proceed.
+
+   **Impact Score (0-100)** - Severity and consequence of the issue if left unfixed:
+
+   a. 0-20 (Low): Minor code smell or style inconsistency. Does not affect functionality or maintainability significantly.
+   b. 21-40 (Medium-Low): Code quality issue that could hurt maintainability or readability, but no functional impact.
+   c. 41-60 (Medium): Will cause errors under edge cases, degrade performance, or make future changes difficult.
+   d. 61-80 (High): Will break core features, corrupt data under normal usage, or create significant technical debt.
+   e. 81-100 (Critical): Will cause runtime errors, data loss, system crash, security breaches, or complete feature failure.
+
+   For issues flagged due to CLAUDE.md instructions, the agent should double check that the CLAUDE.md actually calls out that issue specifically.
+
+2. **Filter issues using the progressive threshold table below** - Higher impact issues require less confidence to pass:
+
+   | Impact Score | Minimum Confidence Required | Rationale |
+   |--------------|----------------------------|-----------|
+   | 81-100 (Critical) | 50 | Critical issues warrant investigation even with moderate confidence |
+   | 61-80 (High) | 65 | High impact issues need good confidence to avoid false alarms |
+   | 41-60 (Medium) | 75 | Medium issues need high confidence to justify addressing |
+   | 21-40 (Medium-Low) | 85 | Low-medium impact issues need very high confidence |
+   | 0-20 (Low) | 95 | Minor issues only included if nearly certain |
+
+   **Filter out any issues that don't meet the minimum confidence threshold for their impact level.** If there are no issues that meet this criteria, do not proceed.
 3. Use a Haiku agent to repeat the eligibility check from Phase 1, to make sure that the pull request is still eligible for code review. (In case if there was updates since review started)
-4. Finally, use the gh bash command to comment back on the pull request with the result. When writing your comment, keep in mind to:
-   a. Keep your output brief
-   b. Use emojis
-   c. Link and cite relevant code, files, and URLs
+4. **Post Review Comments**:
+
+   a. First, check if the `git:attach-review-to-pr` command is available by reading it.
+
+   b. If the command is available and issues were found:
+      - **Multiple Issues**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews` to create a review with line-specific comments for each issue. Include the Quality Gate summary, Blocking Issues Count, Security, Test Coverage, and Code Quality scores in the review body, and add each issue as a line-specific comment in the `comments` array.
+      - **Single Issue**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments` to add just one line-specific comment for that issue.
+
+   c. If the command is NOT available, fall back to posting a single comment using `gh pr comment` with the full review report.
+
+   When writing comments, keep in mind to:
+   - Keep your output brief
+   - Use emojis
+   - Link and cite relevant code, files, and URLs
 
 #### Examples of false positives, for Phase 3
 
@@ -103,12 +137,106 @@ Notes:
 - Use `gh` to interact with Github (eg. to fetch a pull request, or to create inline comments), rather than web fetch
 - Make a todo list first
 - You must cite and link each bug (eg. if referring to a CLAUDE.md, you must link it)
+- When using line-specific comments (via `git:attach-review-to-pr`):
+  - Each issue should map to a specific file and line number
+  - For multiple issues: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews` with JSON input containing the review body (Quality Gate summary) and comments array (line-specific issues)
+  - For single issue: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments` to post just one line-specific comment
 
-### Template for reporting comment to pull request
+### Template for line-specific review comments
 
-#### If you found issues
+When using the `git:attach-review-to-pr` command to add line-specific comments, use this template for each issue:
 
-Add a comment to the pull request, follow the following format precisely:
+```markdown
+**[Issue Category]**: [Brief description]
+
+**Evidence**: 
+[Explain what code pattern/behavior was observed that indicates this issue]
+
+**[Impact/Severity]**: [Critical/High/Medium/Low]
+[Explain the consequence if left unfixed]
+
+**Confidence**: [X/100]
+[Brief justification for confidence score]
+
+**Suggested Fix**:
+[Provide actionable guidance on how to resolve this issue]
+```
+
+**Example for Bug Issue**:
+
+```markdown
+**Bug**: Potential null pointer dereference
+
+**Evidence**: 
+Variable `user` is accessed without null check after fetching from database.
+
+**Impact**: High
+Will cause runtime error if user is not found, breaking the user profile feature.
+
+**Confidence**: 85/100
+Verified by tracing data flow - `findUser()` can return null but no guard is present.
+
+**Suggested Fix**:
+Add null check before accessing user properties:
+\`\`\`typescript
+if (!user) {
+  throw new Error('User not found');
+}
+\`\`\`
+```
+
+**Example for Security Issue**:
+
+```markdown
+**Security**: SQL Injection vulnerability
+
+**Evidence**: 
+User input is directly concatenated into SQL query without sanitization.
+
+**Severity**: Critical
+Attackers can execute arbitrary SQL commands, leading to data breach or deletion.
+
+**Confidence**: 95/100
+Direct string concatenation with user input is a well-known SQL injection vector.
+
+**Suggested Fix**:
+Use parameterized queries:
+\`\`\`typescript
+db.query('SELECT * FROM users WHERE id = ?', [userId])
+\`\`\`
+```
+
+### Template for review using GitHub API
+
+#### Multiple Issues (using `/reviews` endpoint)
+
+When using `gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews`, structure your review as:
+
+**Review body format** (Quality Gate summary):
+
+```markdown
+# PR Review Report
+
+**Quality Gate**: ⬜ PASS (Can merge) / ⬜ FAIL (Requires fixes)
+
+**Blocking Issues Count**: X
+- Security: X/Y *(Passed security checks / Total applicable checks)*
+  - Vulnerabilities: Critical: X, High: X, Medium: X, Low: X
+- Test Coverage: X/Y *(Covered scenarios / Total critical scenarios)*
+- Code Quality: X/Y *(Count of checked (correct) items / Total applicable items)*
+```
+
+**Comments array**: Each comment uses the line-specific template above (Issue Category, Evidence, Impact/Severity, Confidence, Suggested Fix).
+
+#### Single Issue (using `/comments` endpoint)
+
+When using `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments`, post just one line-specific comment using the template above.
+
+#### Fallback: Overall review comment (using `gh pr comment`)
+
+This template is used when `git:attach-review-to-pr` command is NOT available.
+
+When posting the overall review comment to the pull request, follow the following format precisely:
 
 ```markdown
 # PR Review Report
@@ -143,7 +271,7 @@ Add a comment to the pull request, follow the following format precisely:
 
 ---
 
-## 🐛 Found Issues & Bugs
+## 🐛 Found Issues & Bugs & Checklist Items
 
 Detailed list of issues and bugs found in the pull request:
 
@@ -172,14 +300,6 @@ Detailed list of security vulnerabilities found in the pull request:
    - **Medium**: May cause issues in edge cases or degrade performance
    - **Low**: Not have real impact on the system, but violates security practices
 
-## 📋 Failed checklist items
-
-Detailed list of failed code quality and test coverage checklist items found in the pull request:
-
-| Link to file | Issue | Description | Fix Required |
-|------|------|-------|-----------|--------------|
-| <link to file> | <brief description of issue> | <description of issue> | <required fix> |
-
 ```
 
 Note:
@@ -204,14 +324,14 @@ Evaluation Instructions
   - Ignore minor naming conventions
   - Prioritize bugs over style
 
-#### if you found no issues
+#### If you found no issues
+
+When no issues are found after filtering, post a comment using `gh pr comment`:
 
 ```markdown
-
 # PR Review Report
 
 No issues found. Checked for bugs and CLAUDE.md compliance.
-
 ```
 
 ## Remember
