@@ -1,6 +1,6 @@
 {
   "name": "code-review",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Introduce codebase and PR review commands and skills using multiple specialized agents.",
   "author": {
     "name": "Vlad Goncharov",

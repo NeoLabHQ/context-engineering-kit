@@ -34,11 +34,7 @@ Run a comprehensive pull request review using multiple specialized agents, each 
    Please return a detailed summary of the change in the pull request, including full list of changed files and their types.
    ```
 
-5. Ask Haiku agent to:
-
-   ```markdown
-   If PR missing description, add a description to the PR with summary of changes in short and concise format.
-   ```
+5. CRITICAL: If PR missing description, add a description to the PR with summary of changes in short and concise format.
 
 ### Phase 2: Searching for Issues
 
