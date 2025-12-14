@@ -16,27 +16,27 @@ Run a comprehensive pull request review using multiple specialized agents, each 
 
 ### Phase 1: Preparation
 
-1. Use a Haiku agent to check if the pull request (a) is closed, (b) is a draft, (c) does not need a code review (eg. because it is an automated pull request, or is very simple and obviously ok), or (d) already has a code review from you from earlier. If so, do not proceed.
+1. If have run not as part of github action/or workflow, but directly from command line on user machine:
+   - Use a Haiku agent to check if the pull request (a) is closed, (b) is a draft, (c) does not need a code review (eg. because it is an automated pull request, or is very simple and obviously ok), or (d) already has a code review from you from earlier. If so, do not proceed.
 2. **Determine Review Scope**
-   - Check git status to identify changed files
+   - Check git status and git diff --stat to identify changed files, use git diff origin/master...HEAD --stat for PR diffs (or origin/main if main is used as default branch)
    - Parse arguments to see if user requested specific review aspects
-3. Use Haiku agent to give you a list of file paths to (but not the contents of) any relevant agent instruction files, if they exist: CLAUDE.md, AGENTS.md, **/consitution.md, the root README.md file, as well as any README.md files in the directories whose files the pull request modified
-4. Use a Haiku agent to view the pull request, ask him following:
+3. Launch up to 5 parallel haiku agents to perform following tasks:
+   - One agent to search and give you a list of file paths to (but not the contents of) any relevant agent instruction files, if they exist: CLAUDE.md, AGENTS.md, **/consitution.md, the root README.md file, as well as any README.md files in the directories whose files the pull request modified
+   - Split files based on amount of lines changes between other 1-4 agents and ask them following:
+      ```markdown
+      **Analyse changes and provide summary**
+         - Run [pass proper git command that he can use] to see changes in files
+         - Analyse following files: [list of files]
 
-   ```markdown
-   **Identify Changed Files**
-      - Run `git diff --name-only` to see modified files
-      - Check if PR already exists: `gh pr view`
-      - Identify file types
+      Please return a detailed summary of the changes in the each file, including types of changes, their complexity, affected classes/functions/variables/etc., and overral describtion of the changes.
+      ```
 
-   Please return a detailed summary of the change in the pull request, including full list of changed files and their types.
-   ```
-
-5. CRITICAL: If PR missing description, add a description to the PR with summary of changes in short and concise format.
+4. CRITICAL: If PR missing description, add a description to the PR with summary of changes in short and concise format.
 
 ### Phase 2: Searching for Issues
 
-Determine Applicable Reviews, then launch up to 6 parallel Sonnet agents to independently code review all changes in the pull request. The agents should do the following, then return a list of issues and the reason each issue was flagged (eg. CLAUDE.md or consitution.md adherence, bug, historical git context, etc.).
+Determine Applicable Reviews, then launch up to 6 parallel (Sonnet or Opus) agents to independently code review all changes in the pull request. The agents should do the following, then return a list of issues and the reason each issue was flagged (eg. CLAUDE.md or consitution.md adherence, bug, historical git context, etc.).
 
 **Available Review Agents**:
 
@@ -51,11 +51,13 @@ Note: Default option is to run **all** applicable review agents.
 
 #### Determine Applicable Reviews
 
-Based on changes summary from phase 1, determine which review agents are applicable:
+Based on changes summary from phase 1 and their complexity, determine which review agents are applicable:
 
-- **Always applicable**: bug-hunter, code-quality-reviewer (general quality), security-auditor, historical-context-reviewer
+- **If code or configuration changes, except purely cosmetic changes**: bug-hunter, security-auditor
+- **if code changes, including business or infrastructure logic, formating, etc.**: code-quality-reviewer (general quality)
 - **If test files changed**: test-coverage-reviewer
 - **If types, API, data modeling changed**: contracts-reviewer
+- **If complexity of changes is high or historical context is needed**: historical-context-reviewer
 
 #### Launch Review Agents
 
@@ -175,13 +177,12 @@ Will cause runtime error if user is not found, breaking the user profile feature
 **Confidence**: 85/100
 Verified by tracing data flow - `findUser()` can return null but no guard is present.
 
-**Suggested Fix**:
+**Suggested Fix**: (if applicable)
 Add null check before accessing user properties:
-\`\`\`typescript
+```suggestion
 if (!user) {
   throw new Error('User not found');
 }
-\`\`\`
 ```
 
 **Example for Security Issue**:
@@ -260,11 +261,6 @@ When posting the overall review comment to the pull request, follow the followin
 
 ### ⚠️ Better to Fix Before Merge
 *(Issues that can be addressed in this or in next PRs)*
-
-1. 
-
-### 💡 Consider for Future
-*(Suggestions for improvement, not blocking)*
 
 1. 
 
