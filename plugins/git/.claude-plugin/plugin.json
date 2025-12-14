@@ -1,9 +1,9 @@
 {
-    "name": "git",
-    "version": "1.0.0",
-    "description": "Introduces commands for commit and PRs creation.",
-    "author": {
-      "name": "Vlad Goncharov",
-      "email": "vlad.goncharov@neolab.finance"
-    }
+  "name": "git",
+  "version": "1.0.1",
+  "description": "Introduces commands for commit and PRs creation.",
+  "author": {
+    "name": "Vlad Goncharov",
+    "email": "vlad.goncharov@neolab.finance"
+  }
 }

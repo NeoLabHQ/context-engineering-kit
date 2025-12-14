@@ -5,7 +5,16 @@ argument-hint: PR number or URL (optional - can work with current branch)
 
 # How to Attach Line-Specific Review Comments to Pull Requests
 
-This guide explains how to add line-specific review comments to pull requests using the GitHub CLI (`gh`) API, similar to how the GitHub UI allows commenting on specific lines of code.
+This guide explains how to add line-specific review comments to pull requests using the GitHub CLI (`gh`) API or `mcp__github_inline_comment__create_inline_comment` if it not available, similar to how the GitHub UI allows commenting on specific lines of code.
+
+## Preferred Approach: Using MCP GitHub Tools
+
+**If available**, use the `mcp__github_inline_comment__create_inline_comment` MCP tool for posting line-specific inline comments on pull requests. This approach provides better integration with GitHub's UI and is the recommended method.
+
+**Fallback**: If the MCP tool is not available, use the GitHub CLI (`gh`) API methods described below:
+
+- For single comments: Use the `/comments` endpoint (see [Adding a Single Line-Specific Comment](#adding-a-single-line-specific-comment))
+- For multiple comments: Use the `/reviews` endpoint (see [Adding Multiple Line-Specific Comments Together](#adding-multiple-line-specific-comments-together))
 
 ## Overview
 

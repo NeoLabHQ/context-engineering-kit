@@ -1,9 +1,9 @@
 {
-    "name": "code-review",
-    "version": "1.0.0",
-    "description": "Introduce codebase and PR review commands and skills using multiple specialized agents.",
-    "author": {
-      "name": "Vlad Goncharov",
-      "email": "vlad.goncharov@neolab.finance"
-    }
+  "name": "code-review",
+  "version": "1.0.1",
+  "description": "Introduce codebase and PR review commands and skills using multiple specialized agents.",
+  "author": {
+    "name": "Vlad Goncharov",
+    "email": "vlad.goncharov@neolab.finance"
+  }
 }

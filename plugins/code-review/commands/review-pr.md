@@ -1,6 +1,6 @@
 ---
 description: Comprehensive pull request review using specialized agents
-allowed-tools: ["Bash", "Glob", "Grep", "Read", "Task", "Bash(gh issue view:*)", "Bash(gh search:*)", "Bash(gh issue list:*)", "Bash(gh pr comment:*)", "Bash(gh pr diff:*)", "Bash(gh pr view:*)", "Bash(gh pr list:*)"]
+allowed-tools: ["Bash", "Glob", "Grep", "Read", "Task", "Bash(gh issue view:*)", "Bash(gh search:*)", "Bash(gh issue list:*)", "Bash(gh pr comment:*)", "Bash(gh pr diff:*)", "Bash(gh pr view:*)", "Bash(gh pr list:*)", "mcp__github_inline_comment__create_inline_comment", "Bash(gh api:*)"]
 disable-model-invocation: false
 argument-hint: "[review-aspects]"
 ---
@@ -107,18 +107,23 @@ Based on changes summary from phase 1, determine which review agents are applica
 3. Use a Haiku agent to repeat the eligibility check from Phase 1, to make sure that the pull request is still eligible for code review. (In case if there was updates since review started)
 4. **Post Review Comments**:
 
-   a. First, check if the `git:attach-review-to-pr` command is available by reading it.
+   a. **Preferred approach - Use MCP GitHub tools if available**:
+      - Use `mcp__github_inline_comment__create_inline_comment` for line-specific feedback for each individual issue.
+      - Use `gh pr comment` for top-level summary feedback and overall review report
+      - This approach is preferred over direct API calls as it provides better integration with GitHub's UI
 
-   b. If the command is available and issues were found:
-      - **Multiple Issues**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews` to create a review with line-specific comments for each issue. Include the Quality Gate summary, Blocking Issues Count, Security, Test Coverage, and Code Quality scores in the review body, and add each issue as a line-specific comment in the `comments` array.
-      - **Single Issue**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments` to add just one line-specific comment for that issue.
-
-   c. If the command is NOT available, fall back to posting a single comment using `gh pr comment` with the full review report.
+   b. Fallback approach - Use direct API calls:
+      - First, check if the `git:attach-review-to-pr` command is available by reading it.
+      - If the command is available and issues were found:
+         - **Multiple Issues**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews` to create a review with line-specific comments for each individual issues.
+         - **Single Issue**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments` to add just one line-specific comment for that issue.
+      - If the command is NOT available, fall back to posting a single comment using `gh pr comment` with the full review report.
 
    When writing comments, keep in mind to:
    - Keep your output brief
    - Use emojis
    - Link and cite relevant code, files, and URLs
+   - For inline comments, include the Quality Gate summary, Blocking Issues Count, Security, Test Coverage, and Code Quality scores in the review body, and add each issue as a line-specific comment in the `comments` array.
 
 #### Examples of false positives, for Phase 3
 
@@ -234,7 +239,7 @@ When using `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments`, post just o
 
 #### Fallback: Overall review comment (using `gh pr comment`)
 
-This template is used when `git:attach-review-to-pr` command is NOT available.
+This template is used when `mcp__github_inline_comment__create_inline_comment` tool and `git:attach-review-to-pr` command is NOT available.
 
 When posting the overall review comment to the pull request, follow the following format precisely:
 
