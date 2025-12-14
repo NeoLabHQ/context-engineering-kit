@@ -31,11 +31,12 @@ code-review, customaize-agent, ddd, docs, git, kaizen, mcp, reflexion, sadd, sdd
 ## Development Commands
 
 ```bash
-make help                    # Show all commands
-make list-plugins            # List plugins with versions
-make sync-docs-to-plugins    # Copy docs/plugins/*/README.md → plugins/*/README.md
-make sync-plugins-to-docs    # Copy plugins/*/README.md → docs/plugins/*/README.md
-make set-version PLUGIN=name VERSION=x.y.z  # Update plugin version
+make help                                       # Show all commands
+make list-plugins                               # List plugins with versions
+make sync-docs-to-plugins                       # Copy docs/plugins/*/README.md → plugins/*/README.md
+make sync-plugins-to-docs                       # Copy plugins/*/README.md → docs/plugins/*/README.md
+make set-version PLUGIN=name VERSION=x.y.z     # Update plugin version
+make set-marketplace-version VERSION=x.y.z     # Update marketplace version
 ```
 
 ## Key Development Rules
@@ -49,7 +50,8 @@ make set-version PLUGIN=name VERSION=x.y.z  # Update plugin version
 
 ### When Creating/Modifying Plugins
 
-- Use `make set-version PLUGIN=<name> VERSION=<x.y.z>` to update versions consistently, do not modify manually.
+- Use `make set-version PLUGIN=<name> VERSION=<x.y.z>` to update plugin versions consistently, do not modify manually.
+- Use `make set-marketplace-version VERSION=<x.y.z>` to update the marketplace version, do not modify manually.
 - Keep README.md in sync between `plugins/<name>/` and `docs/plugins/<name>/` using `make sync-docs-to-plugins` and `make sync-plugins-to-docs` commands. Do not update both manually.
 - Test plugins with Claude Code before committing using `plugins/customaize-agent:test-prompt` and `plugins/customaize-agent:test-skill` commands.
 
