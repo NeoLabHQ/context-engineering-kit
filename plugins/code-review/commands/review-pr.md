@@ -1,7 +1,5 @@
 ---
 description: Comprehensive pull request review using specialized agents
-allowed-tools: ["Bash", "Glob", "Grep", "Read", "Task", "Bash(gh issue view:*)", "Bash(gh search:*)", "Bash(gh issue list:*)", "Bash(gh pr comment:*)", "Bash(gh pr diff:*)", "Bash(gh pr view:*)", "Bash(gh pr list:*)", "mcp__github_inline_comment__create_inline_comment", "Bash(gh api:*)"]
-disable-model-invocation: false
 argument-hint: "[review-aspects]"
 ---
 

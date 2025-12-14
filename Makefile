@@ -4,14 +4,15 @@
 PLUGINS := code-review customaize-agent ddd docs git kaizen mcp reflexion sadd sdd tdd tech-stack
 MARKETPLACE := .claude-plugin/marketplace.json
 
-.PHONY: help sync-docs-to-plugins sync-plugins-to-docs set-version list-plugins
+.PHONY: help sync-docs-to-plugins sync-plugins-to-docs set-version set-marketplace-version list-plugins
 
 help:
 	@echo "Available commands:"
-	@echo "  make sync-docs-to-plugins    - Copy README.md from docs/plugins/* to plugins/*"
-	@echo "  make sync-plugins-to-docs    - Copy README.md from plugins/* to docs/plugins/*"
+	@echo "  make sync-docs-to-plugins            - Copy README.md from docs/plugins/* to plugins/*"
+	@echo "  make sync-plugins-to-docs            - Copy README.md from plugins/* to docs/plugins/*"
 	@echo "  make set-version PLUGIN=name VERSION=x.y.z - Set version for a plugin"
-	@echo "  make list-plugins            - List all available plugins"
+	@echo "  make set-marketplace-version VERSION=x.y.z  - Set version for marketplace"
+	@echo "  make list-plugins                    - List all available plugins"
 
 # Copy README.md files from docs/plugins/ to respective plugins/ folders
 sync-docs-to-plugins:
@@ -63,6 +64,21 @@ endif
 		mv "$(MARKETPLACE).tmp" "$(MARKETPLACE)"
 	@echo "  Updated: $(MARKETPLACE)"
 	@echo "Done. Version set to $(VERSION) for plugin '$(PLUGIN)'"
+
+# Set version for the marketplace
+set-marketplace-version:
+ifndef VERSION
+	$(error VERSION is required. Usage: make set-marketplace-version VERSION=x.y.z)
+endif
+	@if [ ! -f "$(MARKETPLACE)" ]; then \
+		echo "Error: Marketplace file '$(MARKETPLACE)' not found"; \
+		exit 1; \
+	fi
+	@echo "Updating marketplace version to $(VERSION)..."
+	@jq '.version = "$(VERSION)"' "$(MARKETPLACE)" > "$(MARKETPLACE).tmp" && \
+		mv "$(MARKETPLACE).tmp" "$(MARKETPLACE)"
+	@echo "  Updated: $(MARKETPLACE)"
+	@echo "Done. Marketplace version set to $(VERSION)"
 
 # List all available plugins
 list-plugins:
