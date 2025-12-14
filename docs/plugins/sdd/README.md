@@ -543,6 +543,67 @@ Optional focus areas for documentation. Examples: "Include API examples and inte
 
 ---
 
+### /sdd:create-ideas - Idea Generation
+
+Generate ideas in one shot using creative sampling. Based on [Verbalized Sampling](https://arxiv.org/abs/2510.01171) - a training-free prompting strategy to mitigate mode collapse in LLMs by requesting responses with probabilities. Achieves 2-3x diversity improvement while maintaining quality.
+
+Different from `/sdd:brainstorm`, by much simpler and faster approach, but focused on generating ideas in one shot, don't include refinement, focuses on creativity. Can be used for any other purpose that include creative thinking.
+
+- Purpose - Generate responses which require high diversity and creativity, like brainstorming or creative writing
+- Output - List of ideas with text and probability scores
+
+```bash
+/sdd:create-ideas [topic or problem] [optional: number of ideas]
+```
+
+#### Arguments
+
+Topic or problem to generate ideas for. Optionally specify the number of ideas to generate (defaults to 5).
+
+#### How It Works
+
+1. **Creative Sampling**: Uses verbalized probability sampling to generate diverse responses
+   - Requests responses from the full distribution or distribution tails
+   - Each response includes a probability score (< 0.10 for tail sampling)
+   - Reduces mode collapse common in standard LLM generation
+
+2. **Output Format**: Returns a list where each item contains:
+   - Text: The generated idea or response
+   - Probability: Numeric score indicating sampling position
+
+#### Usage Examples
+
+```bash
+# Generate creative ideas for a feature
+/sdd:create-ideas ways to improve user onboarding
+
+# Brainstorm solutions to a problem
+/sdd:create-ideas reduce API response times
+
+# Creative writing prompts
+/sdd:create-ideas write jokes about cats
+
+# Generate more ideas
+/sdd:create-ideas 10 marketing slogans for a fitness app
+
+# Technical alternatives
+/sdd:create-ideas caching strategies for real-time data
+```
+
+#### When to Use
+
+- **Use `/sdd:create-ideas`** when you need quick, diverse ideas without refinement
+- **Use `/sdd:brainstorm`** when you need thorough exploration with validation and documentation
+
+#### Best practices
+
+- Be specific about the domain - "API error handling patterns" vs just "error handling"
+- Use for divergent thinking - Generate many options before converging on solutions
+- Review probability scores - Lower probabilities indicate more creative/unusual ideas
+- Combine with brainstorm - Use create-ideas for initial ideation, then brainstorm to refine
+
+---
+
 ### /sdd:brainstorm - Idea Refinement
 
 Transform rough ideas into fully-formed designs through collaborative dialogue, incremental validation, and design documentation.
@@ -551,7 +612,7 @@ Transform rough ideas into fully-formed designs through collaborative dialogue, 
 - Output - Design document in `docs/plans/YYYY-MM-DD-<topic>-design.md`
 
 ```bash
-/sdd:brainstorm ["initial feature concept"]
+/sdd:brainstorm initial feature concept
 ```
 
 #### Arguments
@@ -651,4 +712,5 @@ The SDD plugin is based on established software engineering methodologies and re
 - **[Test-Driven Development](https://www.agilealliance.org/glossary/tdd/)** - Writing tests before implementation
 - **[Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html)** - Separation of concerns and dependency inversion
 - **[Vertical Slice Architecture](https://jimmybogard.com/vertical-slice-architecture/)** - Feature-based organization for incremental delivery
+- **[Verbalized Sampling](https://arxiv.org/abs/2510.01171)** - Training-free prompting strategy for diverse idea generation. Achieves **2-3x diversity improvement** while maintaining quality. Used for `create-ideas`, `brainstorm` and `plan` commands
 

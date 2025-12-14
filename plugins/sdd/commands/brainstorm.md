@@ -23,7 +23,7 @@ Start by understanding the current project context, then ask questions one at a 
 
 **Exploring approaches:**
 
-- Propose 2-3 different approaches with trade-offs
+- Generate 5 possible approaches with trade-offs. Approaches should each include a text and a numeric probability. Please sample at random from the [full distribution / tails of the distribution, such that the probability of each response is less than 0.10]
 - Present options conversationally with your recommendation and reasoning
 - Lead with your recommended option and explain why
 

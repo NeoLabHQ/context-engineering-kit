@@ -79,6 +79,70 @@ Setting up documentation for: react, @reduxjs/toolkit, express, postgresql, type
 
 ---
 
+### Setting Up Codebase Visualization with Codemap
+
+**Scenario**: You want to visualize your codebase structure, track changes, and enable AI-assisted navigation hooks.
+
+```bash
+# Set up Codemap CLI for codebase visualization
+> /mcp:setup-codemap-cli
+```
+
+**Expected Flow**:
+
+1. Command checks if Codemap is already installed via `codemap --version`
+2. If not installed, detects your OS and provides installation instructions
+3. Fetches latest Codemap documentation from GitHub
+4. Guides through installation (Homebrew for macOS/Linux, Scoop for Windows)
+5. Verifies installation with test commands
+6. Updates CLAUDE.md with usage instructions and hook configuration
+7. Adds `.codemap/` to .gitignore
+
+**Setup Interaction**:
+
+```
+Checking Codemap installation...
+- codemap: Not found
+
+Detected OS: Linux
+
+Installation instructions:
+  brew tap JordanCoin/tap && brew install codemap
+
+Run the above command and then continue.
+```
+
+**After Successful Setup**:
+
+```
+Codemap CLI is now installed!
+
+Testing:
+- codemap --version: 0.1.0
+- codemap .: Working
+
+Updated CLAUDE.md with Codemap usage instructions.
+Updated .gitignore with .codemap/ directory.
+```
+
+**Using Codemap**:
+
+```bash
+# Visualize project structure
+> codemap .
+
+# See what changed vs main branch
+> codemap --diff --ref master
+
+# Understand dependencies
+> codemap --deps .
+
+# Filter by file type
+> codemap --only ts,tsx .
+```
+
+---
+
 ### Setting Up Semantic Code Analysis for a Large Codebase
 
 **Scenario**: You're working on a large monorepo and need better code navigation than grep can provide.
@@ -187,6 +251,76 @@ Key usage points:
 1. When implementing a new GraphQL resolver, Context7 provides current Apollo Client patterns
 2. When refactoring, Serena finds all symbol usages across the codebase
 3. Both tools work together: documentation for "how to do it", semantic analysis for "where to do it"
+
+---
+
+### Setting Up Academic Paper Search via Docker MCP
+
+**Scenario**: You're conducting research and need to search and read academic papers from arXiv, Semantic Scholar, and other sources.
+
+```bash
+# Set up paper search MCP via Docker MCP
+> /mcp:setup-arxiv-mcp
+```
+
+**Expected Flow**:
+
+1. Command checks if Docker MCP is available
+2. If not, guides you through Docker Desktop installation
+3. Searches for and adds `paper-search` MCP server from Docker catalog
+4. Activates the server's tools in your session
+5. Tests the connection with a sample search
+6. Updates CLAUDE.md with usage instructions
+
+**Setup Interaction**:
+
+```
+Checking Docker MCP availability...
+
+Note: The standard arxiv-mcp-server has known initialization issues.
+Using paper-search MCP server instead, which provides access to multiple academic sources.
+
+Adding paper-search MCP server...
+mcp-find query: "paper-search"
+mcp-add name: "paper-search" activate: true
+
+Testing connection...
+search_arxiv query: "test" max_results: 2
+
+Paper Search MCP is now configured!
+```
+
+**Using Paper Search**:
+
+```bash
+# Search arXiv for machine learning papers
+> mcp-exec name: "search_arxiv" arguments: {"query": "transformer attention mechanism", "max_results": 10}
+
+# Search Semantic Scholar with year filter
+> mcp-exec name: "search_semantic" arguments: {"query": "large language models", "year": "2023-", "max_results": 5}
+
+# Search cryptography papers
+> mcp-exec name: "search_iacr" arguments: {"query": "zero knowledge proofs", "max_results": 5}
+
+# Download and read a specific paper
+> mcp-exec name: "read_arxiv_paper" arguments: {"paper_id": "2106.12345"}
+
+# Search by DOI via CrossRef
+> mcp-exec name: "get_crossref_paper_by_doi" arguments: {"doi": "10.1038/nature12373"}
+```
+
+**Available Sources**:
+
+| Tool | Source | Best For |
+|------|--------|----------|
+| `search_arxiv` | arXiv | Physics, Math, CS preprints |
+| `search_pubmed` | PubMed | Biomedical literature |
+| `search_semantic` | Semantic Scholar | AI-powered search with year filters |
+| `search_biorxiv` | bioRxiv | Biology preprints |
+| `search_medrxiv` | medRxiv | Medical preprints |
+| `search_iacr` | IACR ePrint | Cryptography research |
+| `search_crossref` | CrossRef | DOI-based citation metadata |
+| `search_google_scholar` | Google Scholar | Broad academic search |
 
 ---
 
@@ -497,4 +631,22 @@ Try:
 # Semantic analysis aids root cause investigation
 > /mcp:setup-serena-mcp
 > /kaizen:why "Why is the authentication failing?"
+
+# Codemap visualizes codebase for root cause tracing
+> /mcp:setup-codemap-cli
+> /kaizen:root-cause-tracing
+```
+
+### With Feature Development Workflow
+
+```bash
+# Set up complete MCP tooling for a new project
+> /mcp:setup-context7-mcp react, typescript, prisma
+> /mcp:setup-serena-mcp
+> /mcp:setup-codemap-cli
+
+# Now Claude has:
+# - Up-to-date documentation access (Context7)
+# - Semantic code navigation (Serena)
+# - Codebase visualization and change tracking (Codemap)
 ```

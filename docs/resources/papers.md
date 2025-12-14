@@ -7,55 +7,52 @@ Comprehensive documentation of all academic papers that inform the Context Engin
 ### Reflexion Plugin
 
 **Primary Papers**:
-- Self-Refine (arXiv:2303.17651) - Core refinement loop
-- Reflexion (arXiv:2303.11366) - Memory integration
-- Constitutional AI (arXiv:2212.08073) - Principle-based critique
-- LLM-as-a-Judge (arXiv:2306.05685) - Evaluation patterns
-- Multi-Agent Debate (arXiv:2305.14325) - Multiple perspectives
-- Agentic Context Engineering (arXiv:2510.04618) - Memory curation
+- [Self-Refine](https://arxiv.org/abs/2303.17651) - Core refinement loop
+- [Reflexion](https://arxiv.org/abs/2303.11366) - Memory integration
+- [Constitutional AI](https://arxiv.org/abs/2212.08073) - Principle-based critique
+- [LLM-as-a-Judge](https://arxiv.org/abs/2306.05685) - Evaluation patterns
+- [Multi-Agent Debate](https://arxiv.org/abs/2305.14325) - Multiple perspectives
+- [Agentic Context Engineering](https://arxiv.org/abs/2510.04618) - Memory curation
 
 **Supporting Papers**:
-- Chain-of-Verification (arXiv:2309.11495) - Hallucination reduction
-- Tree of Thoughts (arXiv:2305.10601) - Structured exploration
-- Process Reward Models (arXiv:2305.20050) - Step-by-step evaluation
+- [Chain-of-Verification](https://arxiv.org/abs/2309.11495) - Hallucination reduction
+- [Tree of Thoughts](https://arxiv.org/abs/2305.10601) - Structured exploration
+- [Process Reward Models](https://arxiv.org/abs/2305.20050) - Step-by-step evaluation
 
 ### Code Review Plugin
 
 **Primary Papers**:
-- Multi-Agent Debate (arXiv:2305.14325) - Multiple specialized agents
-- LLM-as-a-Judge (arXiv:2306.05685) - Review evaluation
-- Process Reward Models (arXiv:2305.20050) - Step-by-step verification
+- [Multi-Agent Debate](https://arxiv.org/abs/2305.14325) - Multiple specialized agents
+- [LLM-as-a-Judge](https://arxiv.org/abs/2306.05685) - Review evaluation
+- [Process Reward Models](https://arxiv.org/abs/2305.20050) - Step-by-step verification
 
 **Supporting Papers**:
-- Chain-of-Verification (arXiv:2309.11495) - Verification patterns
-- Constitutional AI (arXiv:2212.08073) - Principle-based review
+- [Chain-of-Verification](https://arxiv.org/abs/2309.11495) - Verification patterns
+- [Constitutional AI](https://arxiv.org/abs/2212.08073) - Principle-based review
 
 ### Spec-Driven Development Plugin
 
 **Primary Papers**:
-- Agentic Context Engineering (arXiv:2510.04618) - Constitution management
-- Multi-Agent Debate (arXiv:2305.14325) - Specialized agents
+- [Agentic Context Engineering](https://arxiv.org/abs/2510.04618) - Constitution management
+- [Multi-Agent Debate](https://arxiv.org/abs/2305.14325) - Specialized agents
+- [Verbalized Sampling](https://arxiv.org/abs/2510.01171) - Diverse idea generation with 2-3x improvement
 
 **Supporting Papers**:
-- Tree of Thoughts (arXiv:2305.10601) - Planning exploration
-- Constitutional AI (arXiv:2212.08073) - Project constitution
+- [Tree of Thoughts](https://arxiv.org/abs/2305.10601) - Planning exploration
+- [Constitutional AI](https://arxiv.org/abs/2212.08073) - Project constitution
 
 ### Test-Driven Development Plugin
 
 **Primary Papers**:
-- Process Reward Models (arXiv:2305.20050) - Step verification
-
+- [Process Reward Models](https://arxiv.org/abs/2305.20050) - Step verification
 
 ---
 
 ## Reflection and Iterative Refinement
 
-### Self-Refine: Iterative Refinement with Self-Feedback
+### [Self-Refine: Iterative Refinement with Self-Feedback](https://arxiv.org/abs/2303.17651)
 
-**Citation**: Madaan et al. (2023). "Self-Refine: Iterative Refinement with Self-Feedback." arXiv:2303.17651
-
-**arXiv Link**: https://arxiv.org/abs/2303.17651
-
+**Citation**: Madaan et al. (2023). "Self-Refine: Iterative Refinement with Self-Feedback."
 
 Self-Refine introduces a framework where a single language model iteratively generates outputs, provides feedback on its own generations, and refines them based on this self-feedback. The key insight is that models can act as both generator and critic without requiring additional training or external models.
 
@@ -85,12 +82,9 @@ Core technique underlying the Reflexion plugin. The `/reflexion:reflect` command
 
 ---
 
-### Reflexion: Language Agents with Verbal Reinforcement Learning
+### [Reflexion: Language Agents with Verbal Reinforcement Learning](https://arxiv.org/abs/2303.11366)
 
-**Citation**: Shinn et al. (2023). "Reflexion: Language Agents with Verbal Reinforcement Learning." arXiv:2303.11366
-
-**arXiv Link**: https://arxiv.org/abs/2303.11366
-
+**Citation**: Shinn et al. (2023). "Reflexion: Language Agents with Verbal Reinforcement Learning."
 
 Reflexion extends self-refinement by adding persistent episodic memory. Agents reflect on task feedback, then explicitly store lessons learned in memory for future reference. This creates a form of "verbal reinforcement learning" where the agent improves through textual self-reflection rather than weight updates.
 
@@ -122,12 +116,9 @@ Directly informs both the reflection and memory aspects of the Reflexion plugin.
 
 ## Constitutional and Principle-Based AI
 
-### Constitutional AI: Harmlessness from AI Feedback
+### [Constitutional AI: Harmlessness from AI Feedback](https://arxiv.org/abs/2212.08073)
 
-**Citation**: Bai et al. (2022). "Constitutional AI: Harmlessness from AI Feedback." arXiv:2212.08073
-
-**arXiv Link**: https://arxiv.org/abs/2212.08073
-
+**Citation**: Bai et al. (2022). "Constitutional AI: Harmlessness from AI Feedback."
 
 Constitutional AI (CAI) trains helpful, harmless, and honest AI assistants using AI-generated feedback based on a set of principles (a "constitution"). The method consists of two phases:
 
@@ -160,12 +151,9 @@ Informs the critique-based patterns in the Reflexion plugin and the principle-ba
 
 ## Verification and Evaluation Architectures
 
-### Self-Consistency Improves Chain of Thought Reasoning
+### [Self-Consistency Improves Chain of Thought Reasoning](https://arxiv.org/abs/2203.11171)
 
-**Citation**: Wang et al. (2023). "Self-Consistency Improves Chain of Thought Reasoning in Language Models." arXiv:2203.11171
-
-**arXiv Link**: https://arxiv.org/abs/2203.11171
-
+**Citation**: Wang et al. (2023). "Self-Consistency Improves Chain of Thought Reasoning in Language Models."
 
 Self-consistency generates multiple diverse reasoning paths for the same problem, then selects the most consistent answer through majority voting. This leverages the intuition that correct reasoning is more likely to lead to the same answer through different paths.
 
@@ -195,12 +183,9 @@ Informs the multi-agent debate and consensus-building patterns. While not direct
 
 ---
 
-### LLM-as-a-Judge: Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena
+### [LLM-as-a-Judge: Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena](https://arxiv.org/abs/2306.05685)
 
-**Citation**: Zheng et al. (2023). "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena." arXiv:2306.05685
-
-**arXiv Link**: https://arxiv.org/abs/2306.05685
-
+**Citation**: Zheng et al. (2023). "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena."
 
 This paper validates using strong LLMs as judges to evaluate other LLM outputs, showing high agreement with human preferences. MT-Bench introduces a multi-turn benchmark specifically designed for judge evaluation.
 
@@ -232,12 +217,9 @@ Foundational for all critique and review functionality. Validates the approach o
 
 ---
 
-### Chain-of-Verification Reduces Hallucination in Large Language Models
+### [Chain-of-Verification Reduces Hallucination in Large Language Models](https://arxiv.org/abs/2309.11495)
 
-**Citation**: Dhuliawala et al. (2023). "Chain-of-Verification Reduces Hallucination in Large Language Models." arXiv:2309.11495
-
-**arXiv Link**: https://arxiv.org/abs/2309.11495
-
+**Citation**: Dhuliawala et al. (2023). "Chain-of-Verification Reduces Hallucination in Large Language Models."
 
 CoVe introduces a four-step process to reduce hallucinations in LLM outputs:
 
@@ -272,12 +254,9 @@ Informs the verification patterns in Code Review and Reflexion. The principle of
 
 ## Multi-Agent Systems
 
-### Improving Factuality and Reasoning in Language Models through Multiagent Debate
+### [Improving Factuality and Reasoning in Language Models through Multiagent Debate](https://arxiv.org/abs/2305.14325)
 
-**Citation**: Du et al. (2023). "Improving Factuality and Reasoning in Language Models through Multiagent Debate." arXiv:2305.14325
-
-**arXiv Link**: https://arxiv.org/abs/2305.14325
-
+**Citation**: Du et al. (2023). "Improving Factuality and Reasoning in Language Models through Multiagent Debate."
 
 This paper introduces a multi-agent debate framework where multiple language model instances propose answers, critique each other's proposals, and refine their positions through iterative rounds of debate. The final answer is determined through aggregation of refined positions.
 
@@ -309,12 +288,9 @@ Informs the multi-agent architecture in Code Review and the critique functionali
 
 ---
 
-### Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models
+### [Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models](https://arxiv.org/abs/2510.04618)
 
-**Citation**: Zhang et al. (2025). "Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models." arXiv:2510.04618
-
-**arXiv Link**: https://arxiv.org/abs/2510.04618
-
+**Citation**: Zhang et al. (2025). "Agentic Context Engineering: Evolving Contexts for Self-Improving Language Models."
 
 This paper introduces a framework where LLM agents actively curate their own memory by reflecting on experiences and updating persistent context documents. Unlike passive memory retrieval, agents decide what to remember, how to organize it, and when to update it.
 
@@ -347,12 +323,9 @@ Directly informs the `/reflexion:memorize` command design. This paper validates 
 
 ## Reasoning Enhancement
 
-### Tree of Thoughts: Deliberate Problem Solving with Large Language Models
+### [Tree of Thoughts: Deliberate Problem Solving with Large Language Models](https://arxiv.org/abs/2305.10601)
 
-**Citation**: Yao et al. (2023). "Tree of Thoughts: Deliberate Problem Solving with Large Language Models." arXiv:2305.10601
-
-**arXiv Link**: https://arxiv.org/abs/2305.10601
-
+**Citation**: Yao et al. (2023). "Tree of Thoughts: Deliberate Problem Solving with Large Language Models."
 
 ToT generalizes chain-of-thought prompting by exploring multiple reasoning paths in a tree structure. At each step, the model:
 1. Generates multiple possible next thoughts
@@ -383,12 +356,9 @@ Informs the systematic exploration patterns in Kaizen analysis commands and the 
 
 ---
 
-### Let's Verify Step by Step: Process Reward Models
+### [Let's Verify Step by Step: Process Reward Models](https://arxiv.org/abs/2305.20050)
 
-**Citation**: Lightman et al. (2023). "Let's Verify Step by Step." arXiv:2305.20050
-
-**arXiv Link**: https://arxiv.org/abs/2305.20050
-
+**Citation**: Lightman et al. (2023). "Let's Verify Step by Step."
 
 This paper introduces Process Reward Models (PRMs) that evaluate each step of a reasoning chain rather than just the final answer. PRMs are trained to identify where reasoning goes wrong, enabling more precise feedback and correction.
 
@@ -417,4 +387,40 @@ Informs the step-by-step verification patterns in review commands and the detail
 - Inference can use LLM-as-PRM without training
 - Most effective for problems with verifiable intermediate steps
 - Enables more interpretable feedback than outcome-only evaluation
+
+---
+
+## Diverse Generation
+
+### [Verbalized Sampling: Mitigating Mode Collapse in LLMs](https://arxiv.org/abs/2510.01171)
+
+**Citation**: Zhang et al. (2025). "Verbalized Sampling: Training-free Prompting for LLMs to Mitigate Mode Collapse." | [Github](https://github.com/CHATS-lab/verbalized-sampling)
+
+Verbalized Sampling introduces a training-free prompting strategy to address mode collapse in LLMs - the tendency to generate similar, "safe" responses regardless of sampling parameters. The technique requests models to include probability estimates with their responses, encouraging sampling from the full distribution rather than just high-probability modes.
+
+The approach:
+1. **Request diverse sampling**: Prompt model to generate responses with probability estimates
+2. **Distribution awareness**: Ask for responses from "tails of the distribution" for creative tasks
+3. **Probability verbalization**: Each response includes a numeric probability score
+4. **Natural diversity**: Model naturally produces more varied outputs when probability-aware
+
+**Key Results**:
+- **2-3x diversity improvement** while maintaining output quality
+- Works across creative writing, brainstorming, and problem-solving tasks
+- No additional training or fine-tuning required
+- Compatible with standard LLM APIs
+- Quality maintained despite increased diversity
+
+**Relevance to CEK**:
+Directly informs the idea generation and brainstorming commands in the Spec-Driven Development plugin. The technique enables Claude to generate more diverse and creative ideas during early development phases.
+
+**Used By Plugins**:
+- Spec-Driven Development (`/sdd:create-ideas`, `/sdd:brainstorm`, `/sdd:02-plan`)
+
+**Technical Notes**:
+- Training-free: works with any instruction-following LLM
+- Token overhead minimal (probability scores)
+- Most effective for divergent thinking tasks
+- Probability scores indicate sampling position, not actual confidence
+- Combine with standard sampling parameters (temperature) for additional control
 

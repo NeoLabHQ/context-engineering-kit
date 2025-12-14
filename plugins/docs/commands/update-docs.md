@@ -52,7 +52,7 @@ Ensure all code changes are properly documented with clear, maintainable documen
    - If available, read the SADD skill to understand best practices for managing agents
 
 2. **Discover documentation infrastructure**
-   - Read @README.md and project config (package.json, pyproject.toml, etc.)
+   - CRITICAL: You MUST read root README.md and project config (package.json, pyproject.toml, etc.)
    - Identify existing documentation structure (docs/, README files, JSDoc)
    - Understand project conventions and documentation patterns
    - Check for documentation generation tools (OpenAPI, JSDoc, TypeDoc)
@@ -90,6 +90,7 @@ Do steps 4-5 in parallel using haiku agents:
    - Launch separate haiku agents per changed file to:
      - Analyze the file and its documentation impact
      - Identify what documentation needs to be created/updated
+     - Identify index documents that need updates (see Index Documents section)
      - Prepare short summary of documentation requirements
    - Extract list of documentation tasks
 
@@ -102,6 +103,11 @@ Do steps 4-5 in parallel using haiku agents:
      - **Module READMEs**: Changes in same module → single agent
      - **User Guides**: Related feature changes → single agent
      - **JSDoc/Code Comments**: Complex logic changes → per-file agents
+     - **Index Documents**: Updates to navigation and discovery docs → single agent
+   - Identify index documents requiring updates:
+     - Root `README.md` - if new modules/features affect project overview, High probability of needing update.
+     - Module `README.md` - if module's purpose, exports, or usage changed
+     - `docs/` index files - if documentation structure changed
    - Create documentation task assignments
 
 ### Documentation Writing
@@ -209,16 +215,22 @@ Your task:
    - Existing docs that need updates
    - Code comments or JSDoc needed
    - README updates required
-3. Check existing documentation to avoid duplication
-4. Create prioritized list of documentation tasks:
+3. Identify index documents requiring updates:
+   - Module README.md files affected by changes
+   - Root README.md if features or modules changed
+   - docs/ index files (index.md, SUMMARY.md, guides.md, getting-started.md, references, resources, etc.)
+   - Navigation files (_sidebar.md, mkdocs.yml nav section)
+4. Check existing documentation to avoid duplication
+5. Create prioritized list of documentation tasks:
    - CRITICAL: Breaking changes, new public APIs
-   - IMPORTANT: New features, configuration changes
+   - IMPORTANT: New features, configuration changes, index updates
    - NICE_TO_HAVE: Code comments, minor clarifications
 
 Output format:
 - List of documentation tasks with descriptions
 - Priority level for each
 - Suggested documentation file locations
+- Index documents requiring updates
 - Existing docs to reference for style
 ```
 
@@ -347,13 +359,17 @@ Use Context7 MCP to gather accurate information about:
 
 ```bash
 # Find all documentation files
-find . -name "*.md" -o -name "*.rst" -o -name "*.txt" | grep -E "(README|CHANGELOG|CONTRIBUTING|docs/)" 
+find . -name "*.md" -o -name "*.rst" -o -name "*.txt" | grep -E "(README|CHANGELOG|CONTRIBUTING|docs/)"
+
+# Find index documents specifically
+find . -name "index.md" -o -name "SUMMARY.md" -o -name "_sidebar.md" -o -name "getting-started.md"
+find . -name "mkdocs.yml" -o -name "docusaurus.config.js"
 
 # Check for generated docs
 find . -name "openapi.*" -o -name "*.graphql" -o -name "swagger.*"
 
 # Look for JSDoc/similar
-grep -r "@param\|@returns\|@example" --include="*.js" --include="*.ts" 
+grep -r "@param\|@returns\|@example" --include="*.js" --include="*.ts"
 ```
 
 ### User Journey Mapping
@@ -480,7 +496,7 @@ Brief description (1-2 sentences max).
 
 **Module README Pattern:**
 
-```markdown  
+```markdown
 # Module Name
 
 **Purpose**: One sentence describing why this module exists.
@@ -490,6 +506,63 @@ Brief description (1-2 sentences max).
 **Usage**: One minimal example.
 
 See: [Main documentation](../docs/) for detailed guides.
+```
+
+### Index Documents
+
+Index documents serve as navigation aids and entry points for documentation. When updating documentation, always check if related index documents need updates.
+
+**Common Index Documents to Update:**
+
+| Document | Location | Update When |
+|----------|----------|-------------|
+| `README.md` | Project root | New features, modules, or significant changes |
+| `README.md` | Module directories | Module API, exports, or purpose changes |
+| `index.md` | `docs/` root | New documentation pages or structure changes |
+| `getting-started.md` | `docs/` | Setup steps, prerequisites, or quickstart changes |
+| `guides.md` | `docs/` | New guides added or guide categories change |
+| `reference.md` | `docs/` | New API references or reference structure |
+| `resources.md` | `docs/` | New tools, links, or resources added |
+| `SUMMARY.md` | `docs/` (GitBook) | Any documentation structure changes |
+| `_sidebar.md` | `docs/` (Docsify) | Navigation structure changes |
+| `mkdocs.yml` | Project root (MkDocs) | Documentation navigation changes |
+
+**Index Document Update Checklist:**
+
+When documentation changes affect a module or feature:
+
+1. **Module-level index** - Update the module's `README.md`:
+   - Add/remove exported functions or classes
+   - Update usage examples if API changed
+   - Update purpose statement if scope changed
+
+2. **Section-level index** - Update relevant `docs/` index files:
+   - `docs/guides.md` - if adding new guides
+   - `docs/reference.md` - if adding new API docs
+   - `docs/tutorials.md` - if adding new tutorials
+
+3. **Project-level index** - Update root `README.md`:
+   - Add new features to feature list
+   - Update quick start if entry point changed
+   - Add new modules to project structure
+
+4. **Navigation index** - Update site navigation if present:
+   - `SUMMARY.md` for GitBook projects
+   - `_sidebar.md` for Docsify projects
+   - `mkdocs.yml` nav section for MkDocs projects
+
+**Example: Adding a New Feature**
+
+When adding a new "export" feature to a reporting module:
+
+```text
+Files to update:
+├── src/reporting/README.md      → Add export to key exports
+├── docs/guides/index.md         → Link to new export guide
+├── docs/guides/exporting.md     → Create new guide (main content)
+├── docs/reference/index.md      → Link to export API reference
+├── README.md                    → Mention export in features list
+└── SUMMARY.md                   → Add navigation entries
 ```
 
 ### JSDoc Best Practices
@@ -554,10 +627,20 @@ toLowerCase(str: string): string
 ## Documentation Updates Completed
 
 ### Files Updated
-- [ ] README.md (root/modules)  
+- [ ] README.md (root)
+- [ ] Module README.md files
 - [ ] docs/ directory organization
 - [ ] API documentation (generated/manual)
 - [ ] JSDoc comments for complex logic
+
+### Index Documents Updated
+- [ ] Root README.md - features list, quick start
+- [ ] Module README.md files - exports, usage
+- [ ] docs/index.md or SUMMARY.md - navigation
+- [ ] docs/tutorials.md or getting-started.md - tutorials
+- [ ] docs/guides.md - guides
+- [ ] docs/reference.md - API reference
+- [ ] Other index files: [list any others]
 
 ### Changes Documented
 - [List code changes that were documented]
@@ -567,6 +650,7 @@ toLowerCase(str: string): string
 ### Quality Review
 - [ ] All examples tested and working
 - [ ] Links verified
+- [ ] Index documents link to new content
 - [ ] Follows project conventions
 
 ### Next Steps

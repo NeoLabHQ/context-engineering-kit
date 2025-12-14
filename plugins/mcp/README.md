@@ -10,11 +10,13 @@ Simplify integration of MCP servers into your development workflow.
 
 The MCP (Model Context Protocol) plugin helps you integrate MCP servers into your development environment. MCP is an open protocol that enables AI assistants to interact with external services, databases, and tools through a standardized interface.
 
-This plugin provides three key commands:
+This plugin provides five key commands:
 
 1. **Context7 MCP Setup** - Access up-to-date documentation for any library or framework
 2. **Serena MCP Setup** - Enable semantic code analysis and symbol-based operations
-3. **Build MCP** - Create custom MCP servers for any service or API
+3. **Codemap CLI Setup** - Enable intelligent codebase visualization and navigation
+4. **arXiv/Paper Search MCP Setup** - Search and download academic papers from multiple sources
+5. **Build MCP** - Create custom MCP servers for any service or API
 
 Each command guide through the MCP setup processes and updates your project's CLAUDE.md file to ensure consistent MCP usage across your team.
 
@@ -31,6 +33,9 @@ Open Claude Code in your project directory and run the following commands to set
 
 # Enable semantic code analysis
 > /mcp:setup-serena-mcp
+
+# Set up codebase visualization
+> /mcp:setup-codemap-cli
 ```
 
 [Usage Examples](./usage-examples.md)
@@ -183,6 +188,176 @@ Key usage points:
 - Re-index the project after major structural changes
 - Combine with Context7 for documentation + code understanding
 - Prefer symbol-based navigation over grep for code exploration
+
+---
+
+### /mcp:setup-codemap-cli - Codebase Visualization
+
+Set up Codemap CLI for intelligent codebase visualization and navigation, providing tree views, dependency analysis, and change tracking.
+
+- Purpose - Enable comprehensive codebase understanding and navigation
+- Output - Working Codemap installation with CLAUDE.md configuration
+
+```bash
+/mcp:setup-codemap-cli [OS type or configuration preferences]
+```
+
+#### What is Codemap?
+
+Codemap is a CLI tool that provides intelligent codebase visualization and navigation. It generates tree views, tracks changes, analyzes dependencies, and integrates with Claude Code through hooks.
+
+Benefits:
+- Visualize project structure with smart filtering
+- Track changes vs main branch at a glance
+- Analyze file dependencies and import relationships
+- Integrate with Claude Code through session hooks
+- Generate city skyline visualizations of codebase
+
+#### Arguments
+
+Optional OS type or configuration preferences. The command auto-detects your operating system and provides appropriate installation instructions.
+
+Examples:
+- (no arguments) - Auto-detect OS and install
+- `macos` - macOS-specific instructions
+- `windows` - Windows-specific instructions
+
+#### How It Works
+
+1. **Installation Check**: Verifies if Codemap is already installed via `codemap --version`
+2. **Documentation Loading**: Fetches latest Codemap documentation from GitHub
+3. **Installation Guidance**: Provides OS-specific installation commands (Homebrew for macOS/Linux, Scoop for Windows)
+4. **Verification**: Tests installation with basic commands
+5. **CLAUDE.md Update**: Adds Codemap usage instructions and hook configuration
+6. **.gitignore Update**: Adds `.codemap/` directory to ignore list
+
+#### Usage Examples
+
+```bash
+# Standard setup with auto-detection
+> /mcp:setup-codemap-cli
+
+# Specify your OS
+> /mcp:setup-codemap-cli macos
+> /mcp:setup-codemap-cli windows
+```
+
+After setup, your CLAUDE.md will include:
+
+```markdown
+## Use Codemap CLI for Codebase Navigation
+
+Codemap CLI is available for intelligent codebase visualization and navigation.
+
+### Required Usage
+
+IMPORTANT: Agent MUST run `codemap hook session-start` after first user input.
+
+- **Working State**: Use `codemap --diff --ref master` to research changes.
+
+### Quick Start
+
+codemap .                    # Project tree
+codemap --only md .          # Just Markdown files
+codemap --diff --ref master  # What changed vs master
+codemap --deps .             # Dependency flow
+
+### Available Hooks
+
+| Command | Description |
+|---------|-------------|
+| `codemap hook session-start` | Full tree, hubs, branch diff |
+| `codemap hook pre-edit` | Who imports file being edited |
+| `codemap hook post-edit` | Impact of changes |
+```
+
+#### Best Practices
+
+- Run at project start to establish codebase understanding
+- Use hooks to maintain context during long coding sessions
+- Combine `--diff` with `--ref` to compare against your main branch
+- Use `--deps` to understand module relationships before refactoring
+- Exclude generated files and assets with `--exclude` for cleaner output
+
+---
+
+### /mcp:setup-arxiv-mcp - Academic Paper Search
+
+Set up the Paper Search MCP server via Docker MCP for searching and downloading academic papers from multiple sources including arXiv, PubMed, Semantic Scholar, and more.
+
+- Purpose - Enable academic paper search and retrieval for research workflows
+- Output - Working Paper Search MCP integration with CLAUDE.md configuration
+
+```bash
+/mcp:setup-arxiv-mcp [research topics or configuration]
+```
+
+#### What is Paper Search MCP?
+
+Paper Search MCP is a Docker-based MCP server that provides comprehensive access to academic literature. It aggregates search across multiple academic sources and enables downloading and reading papers directly.
+
+Benefits:
+- Search papers across arXiv, PubMed, bioRxiv, medRxiv, Semantic Scholar, and more
+- Download PDFs and extract text content for analysis
+- Filter by year, author, and other metadata
+- Access cryptography papers via IACR
+- Cross-reference with DOI via CrossRef
+
+#### Arguments
+
+Optional research topics or specific paper sources to configure. The command will guide you through Docker MCP setup if not already available.
+
+Examples:
+- (no arguments) - Standard setup with all paper sources
+- `machine learning, transformers` - Mention specific research areas
+- `cryptography` - Focus on specific domain
+
+#### Prerequisites
+
+- **Docker Desktop** - Required for Docker MCP integration
+- **Docker MCP Toolkit** - For managing MCP servers via Docker
+
+#### How It Works
+
+1. **Docker MCP Check**: Verifies Docker MCP is available
+2. **Server Search**: Finds and adds `paper-search` MCP server from Docker catalog
+3. **Activation**: Enables the server's tools in your session
+4. **Connection Test**: Verifies search functionality works
+5. **CLAUDE.md Update**: Adds paper search usage instructions
+
+#### Available Tools
+
+**Search Tools**:
+- `search_arxiv` - Search arXiv preprints (physics, math, CS, etc.)
+- `search_pubmed` - Search PubMed biomedical literature
+- `search_biorxiv` / `search_medrxiv` - Search biology/medicine preprints
+- `search_semantic` - Search Semantic Scholar with year filters
+- `search_google_scholar` - Broad academic search
+- `search_iacr` - Search cryptography papers (IACR ePrint)
+- `search_crossref` - Search by DOI/citation metadata
+
+**Download and Read Tools**:
+- `download_arxiv` / `read_arxiv_paper` - Download/read arXiv PDFs
+- `download_biorxiv` / `read_biorxiv_paper` - Download/read bioRxiv PDFs
+- `download_semantic` / `read_semantic_paper` - Download/read via Semantic Scholar
+
+#### Usage Examples
+
+```bash
+# Standard setup
+> /mcp:setup-arxiv-mcp
+
+# After setup, search for papers
+> read transformer attention mechanism paper
+
+# Search Semantic Scholar with year filter
+> search large language models papers from 2023
+
+# Download and read a paper
+> read paper 2106.12345
+```
+
+After setup, your CLAUDE.md will include:
 
 ---
 

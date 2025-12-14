@@ -1,144 +1,144 @@
 {
-    "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
-    "name": "context-engineering-kit",
-    "version": "1.1.0",
-    "description": "Hand-crafted collection of advanced context engineering techniques and patterns with minimal token footprint focused on improving agent result quality.",
-    "owner": {
-      "name": "NeoLabHQ",
-      "email": "vlad.goncharov@neolab.finance"
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "context-engineering-kit",
+  "version": "1.2.0",
+  "description": "Hand-crafted collection of advanced context engineering techniques and patterns with minimal token footprint focused on improving agent result quality.",
+  "owner": {
+    "name": "NeoLabHQ",
+    "email": "vlad.goncharov@neolab.finance"
+  },
+  "plugins": [
+    {
+      "name": "reflexion",
+      "description": "Collection of commands that force LLM to reflect on previous response and output. Based on papers like Self-Refine and Reflexion. These techniques improve the output of large language models by introducing feedback and refinement loops.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
+      },
+      "source": "./plugins/reflexion",
+      "category": "productivity"
     },
-    "plugins": [
-      {
-        "name": "reflexion",
-        "description": "Collection of commands that force LLM to reflect on previous response and output. Based on papers like Self-Refine and Reflexion. These techniques improve the output of large language models by introducing feedback and refinement loops.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/reflexion",
-        "category": "productivity"
+    {
+      "name": "code-review",
+      "description": "Introduce codebase and PR review commands and skills using multiple specialized agents.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "code-review",
-        "description": "Introduce codebase and PR review commands and skills using multiple specialized agents.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/code-review",
-        "category": "productivity"
+      "source": "./plugins/code-review",
+      "category": "productivity"
+    },
+    {
+      "name": "git",
+      "description": "Introduces commands for commit and PRs creation.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "git",
-        "description": "Introduces commands for commit and PRs creation.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/git",
-        "category": "productivity"
+      "source": "./plugins/git",
+      "category": "productivity"
+    },
+    {
+      "name": "tdd",
+      "description": "Introduces commands for test-driven development, common anti-patterns and skills for testing using subagents.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "tdd",
-        "description": "Introduces commands for test-driven development, common anti-patterns and skills for testing using subagents.",
-        "version": "1.1.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/tdd",
-        "category": "development"
+      "source": "./plugins/tdd",
+      "category": "development"
+    },
+    {
+      "name": "sadd",
+      "description": "Introduces skills for subagent-driven development, dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "sadd",
-        "description": "Introduces skills for subagent-driven development, dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/sadd",
-        "category": "development"
+      "source": "./plugins/sadd",
+      "category": "development"
+    },
+    {
+      "name": "ddd",
+      "description": "Introduces command to update CLAUDE.md with best practices for domain-driven development, focused on quality of code, includes Clean Architecture, SOLID principles, and other design patterns.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "ddd",
-        "description": "Introduces command to update CLAUDE.md with best practices for domain-driven development, focused on quality of code, includes Clean Architecture, SOLID principles, and other design patterns.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/ddd",
-        "category": "development"
+      "source": "./plugins/ddd",
+      "category": "development"
+    },
+    {
+      "name": "sdd",
+      "description": "Specification Driven Development workflow commands and agents, based on Github Spec Kit and OpenSpec. Uses specialized agents for effective context management and quality review.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "sdd",
-        "description": "Specification Driven Development workflow commands and agents, based on Github Spec Kit and OpenSpec. Uses specialized agents for effective context management and quality review.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/sdd",
-        "category": "development"
+      "source": "./plugins/sdd",
+      "category": "development"
+    },
+    {
+      "name": "kaizen",
+      "description": "Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root cause of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "kaizen",
-        "description": "Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root cause of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/kaizen",
-        "category": "productivity"
+      "source": "./plugins/kaizen",
+      "category": "productivity"
+    },
+    {
+      "name": "customaize-agent",
+      "description": "Commands and skills for writing and refining commands, hooks, skills for Claude Code, includes Anthropic Best Practices and Agent Persuasion Principles that can be useful for sub-agent workflows.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "customaize-agent",
-        "description": "Commands and skills for writing and refining commands, hooks, skills for Claude Code, includes Anthropic Best Practices and Agent Persuasion Principles that can be useful for sub-agent workflows.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/customaize-agent",
-        "category": "development"
+      "source": "./plugins/customaize-agent",
+      "category": "development"
+    },
+    {
+      "name": "docs",
+      "description": "Commands for analysing project, writing and refining documentation.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "docs",
-        "description": "Commands for analysing project, writing and refining documentation.",
-        "version": "1.1.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/docs",
-        "category": "productivity"
+      "source": "./plugins/docs",
+      "category": "productivity"
+    },
+    {
+      "name": "tech-stack",
+      "description": "Commands for setup or update of CLAUDE.md file with best practices for specific language or framework.",
+      "version": "1.0.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "tech-stack",
-        "description": "Commands for setup or update of CLAUDE.md file with best practices for specific language or framework.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/tech-stack",
-        "category": "development"
+      "source": "./plugins/tech-stack",
+      "category": "development"
+    },
+    {
+      "name": "mcp",
+      "description": "Commands for setup well known MCP server integration if needed and update CLAUDE.md file with requirement to use this MCP server for current project.",
+      "version": "1.1.0",
+      "author": {
+        "name": "Vlad Goncharov",
+        "email": "vlad.goncharov@neolab.finance"
       },
-      {
-        "name": "mcp",
-        "description": "Commands for setup well known MCP server integration if needed and update CLAUDE.md file with requirement to use this MCP server for current project.",
-        "version": "1.0.0",
-        "author": {
-          "name": "Vlad Goncharov",
-          "email": "vlad.goncharov@neolab.finance"
-        },
-        "source": "./plugins/mcp",
-        "category": "development"
-      }
-    ]
-  }
+      "source": "./plugins/mcp",
+      "category": "development"
+    }
+  ]
+}

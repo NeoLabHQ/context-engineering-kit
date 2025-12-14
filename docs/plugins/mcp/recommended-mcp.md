@@ -25,4 +25,5 @@ Context Engineering Kit focuses on improving Claude's reasoning and workflow pat
 
 - [Context7](https://github.com/upstash/context7) - Load documentation for specific technologies, frameworks, and libraries directly into Claude's context. Setup using `/mcp:setup-context7-mcp` command.
 - [Serena](https://github.com/oraios/serena) - Semantic code retrieval and intelligent editing capabilities using vector embeddings. Setup using `/mcp:setup-serena-mcp` command.
+- [Paper Search](https://hub.docker.com/extensions/mcp/paper-search) - Search and download academic papers from arXiv, PubMed, Semantic Scholar, bioRxiv, and more via Docker MCP. Setup using `/mcp:setup-arxiv-mcp` command.
 - [Perplexity](https://github.com/perplexityai/modelcontextprotocol) - Enhanced search and research capabilities with access to real-time information and web resources. 

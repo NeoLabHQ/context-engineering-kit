@@ -38,7 +38,7 @@ The plugin is based on foundational works including Kent Beck's *Test-Driven Dev
 
 ### After Implementation
 
-If you implemented new feature, but not written tests, you can use `write-tests` command to cover it.
+If you implemented a new feature but have not written tests, you can use the `write-tests` command to cover it.
 
 ```bash
 > claude "implement email validation for user registration"
@@ -111,7 +111,7 @@ Optional focus area specification. Defaults to all uncommitted changes. If every
 > /tdd:write-tests Focus on error paths and validations
 ```
 
-#### Best Practices
+#### Best practices
 
 - **Run before committing** - Ensure all changes have test coverage before commit
 - **Be specific** - Provide focus areas for more targeted test generation
@@ -180,7 +180,7 @@ Optional specification of which tests or modules to focus on. Defaults to all fa
 > /tdd:fix-tests integration tests only
 ```
 
-#### Best Practices
+#### Best practices
 
 - **Preserve test intent** - Fix assertions, not the behavior being tested
 - **Avoid changing business logic** - Unless you discover an actual bug

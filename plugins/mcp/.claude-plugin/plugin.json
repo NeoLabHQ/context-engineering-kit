@@ -1,9 +1,9 @@
 {
-    "name": "mcp",
-    "version": "1.0.0",
-    "description": "Commands for setup well known MCP server integration if needed and update CLAUDE.md file with requirement to use this MCP server for current project.",
-    "author": {
-      "name": "Vlad Goncharov",
-      "email": "vlad.goncharov@neolab.finance"
-    }
+  "name": "mcp",
+  "version": "1.1.0",
+  "description": "Commands for setup well known MCP server integration if needed and update CLAUDE.md file with requirement to use this MCP server for current project.",
+  "author": {
+    "name": "Vlad Goncharov",
+    "email": "vlad.goncharov@neolab.finance"
+  }
 }

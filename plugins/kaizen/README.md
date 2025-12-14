@@ -15,7 +15,7 @@ The Kaizen plugin implements proven manufacturing problem-solving techniques ada
 
 The plugin is based on methodologies from the **Toyota Production System (TPS)** and **Lean manufacturing**, which have been validated across industries for over 70 years.
 
-They based on idea that most bugs and quality issues are symptoms of deeper systemic problems. Fixing only the symptom leads to recurring issues; finding and addressing the root cause prevents entire classes of problems.
+They are based on the idea that most bugs and quality issues are symptoms of deeper systemic problems. Fixing only the symptom leads to recurring issues; finding and addressing the root cause prevents entire classes of problems.
 
 ## Quick Start
 
@@ -95,7 +95,7 @@ Root Cause: Migration review process doesn't check query performance
 Solution: Add query performance checks to migration PR template
 ```
 
-#### Best practices
+#### Best Practices
 
 - Do not stop at symptoms - Keep asking "why" until you reach systemic causes
 - Explore multiple branches - Complex problems often have multiple contributing factors
@@ -348,7 +348,7 @@ Week 3-4: Evaluate and migrate to better pool library
 ═══════════════════════════════════════════════════════════════
 ```
 
-#### Best practices
+#### Best Practices
 
 - Use for significant issues - A3 is overkill for small bugs or one-line fixes
 - Stick to facts - Current Condition should have data, not opinions
@@ -422,7 +422,7 @@ Optional target description (e.g., code area, workflow, or inefficiencies to inv
 > /kaizen:analyse codebase for inefficiencies
 ```
 
-#### Best practices
+#### Best Practices
 
 - Start with Gemba Walk when unfamiliar - Understand reality before optimizing
 - Use VSM for process improvements - CI/CD, deployment, code review workflows
@@ -521,7 +521,7 @@ ACT:
   → Start CYCLE 2
 ```
 
-#### Best practices
+#### Best Practices
 
 - Start small - Make measurable changes, not big overhauls
 - Expect multiple cycles - PDCA is iterative; 2-3 cycles is normal

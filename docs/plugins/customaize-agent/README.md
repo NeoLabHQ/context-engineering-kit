@@ -103,7 +103,7 @@ Optional command name or description of the command's purpose (e.g., "validate A
 > /customaize-agent:create-command
 ```
 
-#### Best practices
+#### Best Practices
 
 - Research first - Let the assistant examine existing commands before creating new ones
 - Be specific about purpose - Clearly describe what problem the command solves
@@ -170,7 +170,7 @@ Optional skill name (e.g., "image-editor", "pdf-processing", "code-review").
 > /customaize-agent:create-skill
 ```
 
-#### Best practices
+#### Best Practices
 
 - Start with concrete examples - Understand real use cases before writing
 - Apply TDD strictly - No skill without failing tests first
@@ -245,7 +245,7 @@ Optional hook type or description of desired behavior (e.g., "type-check on save
 > /customaize-agent:create-hook
 ```
 
-#### Best practices
+#### Best Practices
 
 - Test both paths - Always verify both success and failure scenarios
 - Use absolute paths - Avoid relative paths in scripts, use `$CLAUDE_PROJECT_DIR`
@@ -314,7 +314,7 @@ Optional path to skill being tested or skill name.
 > /customaize-agent:test-skill
 ```
 
-#### Best practices
+#### Best Practices
 
 - Combine 3+ pressures - Single pressure tests are too weak
 - Document verbatim - Capture exact rationalizations, not summaries
@@ -391,7 +391,7 @@ Optional path to prompt file or inline prompt content to test.
 > /customaize-agent:test-prompt
 ```
 
-#### Best practices
+#### Best Practices
 
 - Use fresh subagents - Always via Task tool for isolated testing
 - Design realistic scenarios - Include constraints, pressures, edge cases
@@ -468,7 +468,7 @@ Optional skill name or path to skill being reviewed.
 > /customaize-agent:apply-anthropic-skill-best-practices
 ```
 
-#### Best practices
+#### Best Practices
 
 - Test with all models - What works for Opus may need more detail for Haiku
 - Iterate with Claude - Use Claude A to design, Claude B to test

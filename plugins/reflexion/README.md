@@ -11,9 +11,9 @@ Focused on:
 
 ## Plugin Target
 
-- Decrease hallucinations - reflection usally allow to get rid of hallucinations by verifying the output
-- Make output quality more predictable - same model usally produces more siumular output after reflection, rather after one shot prompt
-- Improve output quality - reflection usally allow to improve the output by identifying areas that was missed or understanded incorrectly in one shot prompt
+- Decrease hallucinations - reflection usually allows you to get rid of hallucinations by verifying the output
+- Make output quality more predictable - same model usually produces more similar output after reflection, rather than after one shot prompt
+- Improve output quality - reflection usually allows you to improve the output by identifying areas that were missed or misunderstood in one shot prompt
 
 ## Overview
 

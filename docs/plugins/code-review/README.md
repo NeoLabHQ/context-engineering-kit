@@ -98,7 +98,7 @@ Optional review aspects to focus on (e.g., "security", "bugs", "tests")
 > /code-review:review-local-changes
 ```
 
-#### Best practices
+#### Best Practices
 
 - Review before committing - Run review on local changes before `git commit`
 - Address critical issues first - Fix Critical and High priority findings immediately
@@ -153,7 +153,7 @@ PR number (e.g., #123, 123) and/or review aspects to focus on
 > /code-review:review-pr
 ```
 
-#### Best practices
+#### Best Practices
 
 - Review before requesting human review - Address automated findings first
 - Share report with team - Include findings in PR comments

@@ -28,10 +28,10 @@ Most commands require GitHub CLI (`gh`) for full functionality including creatin
 > /git:create-pr
 ```
 
-#### Analyse Open GitHub issues
+#### Analyze Open GitHub issues
 
 ```bash
-# load all open issues
+# Load all open issues
 > /git:load-issues
 
 # Analyze a GitHub issue

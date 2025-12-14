@@ -5,7 +5,7 @@ Language and framework-specific best practices plugin that configures your CLAUD
 Focused on:
 
 - **Standardized Guidelines** - Pre-defined best practices for specific languages and frameworks
-- **Initil context building** - Updates of CLAUDE.md, so it will be loaded during every claude code session
+- **Initial context building** - Updates of CLAUDE.md, so it will be loaded during every claude code session
 
 ## Overview
 

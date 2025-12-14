@@ -25,7 +25,7 @@ The plugin guides you through:
 - **Documentation audit** - Assess existing docs for freshness, accuracy, and value
 - **Gap analysis** - Identify high-impact documentation needs
 - **Smart updates** - Create or update documentation with clear purpose
-- **Quality validation** - Verify examples work and links are valid
+- **Quality validation** - Verify that examples work and links are valid
 
 ## Quick Start
 
