@@ -7,9 +7,9 @@
 
 # [Context Engineering Kit](https://cek.neolab.finance)
 
-Hand-crafted collection of advanced context engineering techniques and patterns with minimal token footprint focused on improving agent result quality.
+Hand-crafted collection of advanced context engineering techniques and patterns with minimal token footprint, focused on improving agent result quality.
 
-Claude Code plugin marketplace is based on prompts used daily by our company developers for a long time, while adding plugins from benchmarked papers and high-quality projects.
+The Claude Code plugin marketplace is based on prompts used daily by our company developers for a long time, while adding plugins from benchmarked papers and high-quality projects.
 
 ## Key Features
 
@@ -62,7 +62,7 @@ Each installed plugin loads only its specific agents, commands, and skills into 
 
 ## Documentation
 
-You can find the complete Context Engineering Kit documentation [there](https://cek.neolab.finance).
+You can find the complete Context Engineering Kit documentation [here](https://cek.neolab.finance).
 
 ## Update Marketplace
 
@@ -88,14 +88,14 @@ To view all available plugins:
 - [Domain-Driven Development](https://cek.neolab.finance/plugins/ddd) - Introduces commands to update CLAUDE.md with best practices for domain-driven development, focused on code quality, and includes Clean Architecture, SOLID principles, and other design patterns.
 - [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd) - Introduces commands for specification-driven development, based on Github Spec Kit, OpenSpec and BMad Method. Uses specialized agents for effective context management and quality review.
 - [Kaizen](https://cek.neolab.finance/plugins/kaizen) - Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root causes of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.
-- [Customaize Agent](https://cek.neolab.finance/plugins/customaize-agent) - Commands and skills for writing and refining commands, hooks, and skills for Claude Code, includes Anthropic Best Practices and [Agent Persuasion Principles](https://arxiv.org/abs/2508.00614) that can be useful for sub-agent workflows.
+- [Customaize Agent](https://cek.neolab.finance/plugins/customaize-agent) - Commands and skills for writing and refining commands, hooks, and skills for Claude Code. Includes Anthropic Best Practices and [Agent Persuasion Principles](https://arxiv.org/abs/2508.00614) that can be useful for sub-agent workflows.
 - [Docs](https://cek.neolab.finance/plugins/docs) - Commands for analyzing projects, writing and refining documentation.
 - [Tech Stack](https://cek.neolab.finance/plugins/tech-stack) - Commands for setting up or updating CLAUDE.md file with best practices for specific languages or frameworks.
 - [MCP](https://cek.neolab.finance/plugins/mcp) - Commands for setting up well-known MCP server integration if needed and updating CLAUDE.md file with requirements to use this MCP server for the current project.
 
 ### Reflexion
 
-Collection of commands that force LLM to reflect on previous response and output.
+Collection of commands that force the LLM to reflect on previous response and output.
 
 **How to install**
 
@@ -106,7 +106,7 @@ Collection of commands that force LLM to reflect on previous response and output
 **Commands**
 
 - `/reflexion:reflect` - Reflect on previous response and output, based on Self-refinement framework for iterative improvement with complexity triage and verification
-- `/reflexion:memorize` - Memorize insights from reflections and updates CLAUDE.md file with this knowledge. Curates insights from reflections and critiques into CLAUDE.md using Agentic Context Engineering
+- `/reflexion:memorize` - Memorize insights from reflections and update the CLAUDE.md file with this knowledge. Curates insights from reflections and critiques into CLAUDE.md using Agentic Context Engineering
 - `/reflexion:critique` - Comprehensive multi-perspective review using specialized judges with debate and consensus building
 
 #### Based on papers
@@ -157,6 +157,73 @@ This plugin uses multiple specialized agents for comprehensive code quality anal
 - **historical-context-reviewer** - Analyzes changes in relation to codebase history and patterns
 - **security-auditor** - Identifies security vulnerabilities and potential attack vectors
 - **test-coverage-reviewer** - Evaluates test coverage and suggests missing test cases
+
+#### Usage in github actions
+
+You can use [anthropics/claude-code-action](https://github.com/marketplace/actions/claude-code-action-official) to run this plugin for PR reviews in github actions.
+
+1. Use `/install-github-app` command to setup workflow and secrets.
+2. Set content of `.github/workflows/claude-code-review.yml` to the following:
+
+```yaml
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: 
+    - opened
+    - synchronize # remove if want to run only, when PR is opened
+    # Uncomment to limit which files can trigger the workflow
+    # paths:
+    #   - "**/*.ts"
+    #   - "**/*.tsx"
+    #   - "**/*.js"
+    #   - "**/*.jsx"
+    #   - "**/*.py"
+    #   - "**/*.sql"
+    #   - "**/*.SQL"
+    #   - "**/*.sh"
+
+jobs:
+  claude-review:
+    name: Claude Code Review
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: write
+      id-token: write
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      
+      - name: Run Claude Code Review
+        id: claude-review
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          track_progress: true # attach tracking comment
+          use_sticky_comment: true
+
+          plugin_marketplaces: https://github.com/NeoLabHQ/context-engineering-kit.git
+          plugins: "code-review@context-engineering-kit\ngit@context-engineering-kit\ntdd@context-engineering-kit\nsadd@context-engineering-kit\nddd@context-engineering-kit\nsdd@context-engineering-kit\nkaizen@context-engineering-kit"
+          
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            CRITICAL: You MUST use SlashCommand tool to read and perform /code-review:review-pr command EXACTLY!
+            Do not analyze or read PR, code or anything else UNTIL you have read the command!
+
+            Note: The PR branch is already checked out in the current working directory.
+          
+          # SlashCommand and Bash(gh pr comment:*) is required for review, the rest is optional, but recommended for better context and quality of the review.
+          claude_args: '--allowed-tools "SlashCommand,Bash,Glob,Grep,Read,Task,mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh api:*)"'
+```
 
 ### Git
 
@@ -242,7 +309,7 @@ Comprehensive specification-driven development workflow using specialized agents
 # start claude code
 claude
 # setup project constitution
-/sdd:00-setup Use NestJS as backend framework, strictly follod SOLID principles and Clean Architecture.
+/sdd:00-setup Use NestJS as backend framework, strictly follow SOLID principles and Clean Architecture.
 
 # Generate new feature specification
 /sdd:01-specify Add user authentication with OAuth
@@ -367,7 +434,11 @@ Commands for setting up language and framework-specific best practices.
 
 ### MCP
 
-Commands for integrating Model Context Protocol servers with your project.
+Commands for integrating Model Context Protocol servers with your project. Each setup command supports configuration at multiple levels:
+
+- **Project level (shared)** - Configuration tracked in git, shared with team via `./CLAUDE.md`
+- **Project level (personal)** - Local configuration in `./CLAUDE.local.md`, not tracked in git
+- **User level (global)** - Configuration in `~/.claude/CLAUDE.md`, applies to all projects
 
 **How to install**
 

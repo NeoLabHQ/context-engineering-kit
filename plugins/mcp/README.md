@@ -18,7 +18,13 @@ This plugin provides five key commands:
 4. **arXiv/Paper Search MCP Setup** - Search and download academic papers from multiple sources
 5. **Build MCP** - Create custom MCP servers for any service or API
 
-Each command guide through the MCP setup processes and updates your project's CLAUDE.md file to ensure consistent MCP usage across your team.
+Each setup command supports configuration at multiple levels:
+
+- **Project level (shared)** - Configuration tracked in git, shared with team via `./CLAUDE.md`
+- **Project level (personal)** - Local configuration in `./CLAUDE.local.md`, not tracked in git
+- **User level (global)** - Configuration in `~/.claude/CLAUDE.md`, applies to all projects
+
+The command guides through the MCP setup process and updates the appropriate CLAUDE.md file based on your choice to ensure consistent MCP usage.
 
 ## Quick Start
 
@@ -249,11 +255,7 @@ After setup, your CLAUDE.md will include:
 
 Codemap CLI is available for intelligent codebase visualization and navigation.
 
-### Required Usage
-
-IMPORTANT: Agent MUST run `codemap hook session-start` after first user input.
-
-- **Working State**: Use `codemap --diff --ref master` to research changes.
+**Required Usage** - You MUST use `codemap --diff --ref master` to research changes different from default branch, and `git diff` + `git status` to research current working state.
 
 ### Quick Start
 
@@ -261,15 +263,9 @@ codemap .                    # Project tree
 codemap --only md .          # Just Markdown files
 codemap --diff --ref master  # What changed vs master
 codemap --deps .             # Dependency flow
-
-### Available Hooks
-
-| Command | Description |
-|---------|-------------|
-| `codemap hook session-start` | Full tree, hubs, branch diff |
-| `codemap hook pre-edit` | Who imports file being edited |
-| `codemap hook post-edit` | Impact of changes |
 ```
+
+The command also configures Claude Code hooks in `.claude/settings.json` for automatic session context.
 
 #### Best Practices
 

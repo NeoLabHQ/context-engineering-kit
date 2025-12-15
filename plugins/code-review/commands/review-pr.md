@@ -16,23 +16,30 @@ Run a comprehensive pull request review using multiple specialized agents, each 
 
 ### Phase 1: Preparation
 
-1. If have run not as part of github action/or workflow, but directly from command line on user machine:
-   - Use a Haiku agent to check if the pull request (a) is closed, (b) is a draft, (c) does not need a code review (eg. because it is an automated pull request, or is very simple and obviously ok), or (d) already has a code review from you from earlier. If so, do not proceed.
-2. **Determine Review Scope**
-   - Check git status and git diff --stat to identify changed files, use git diff origin/master...HEAD --stat for PR diffs (or origin/main if main is used as default branch)
+Run following commands in order:
+
+1. **Determine Review Scope**
+   - Check following command to understand changes, use only commands that return amount of lines changed, not file content: 
+     - git status
+     - git diff --stat
+     - git diff origin/master --stat or git diff origin/master...HEAD --stat for PR diffs
+       - change to origin/main if main is used as default branch
    - Parse arguments to see if user requested specific review aspects
-3. Launch up to 5 parallel haiku agents to perform following tasks:
+2. Launch up to 6 parallel Haiku agents to perform following tasks:
+   - One agent to check if the pull request (a) is closed, (b) is a draft. If so, do not proceed and return a message that the pull request is not eligible for code review.
    - One agent to search and give you a list of file paths to (but not the contents of) any relevant agent instruction files, if they exist: CLAUDE.md, AGENTS.md, **/consitution.md, the root README.md file, as well as any README.md files in the directories whose files the pull request modified
    - Split files based on amount of lines changes between other 1-4 agents and ask them following:
       ```markdown
-      **Analyse changes and provide summary**
+      GOAL: Analyse PR changes in following files and provide summary
+      
+      Perform following steps:
          - Run [pass proper git command that he can use] to see changes in files
          - Analyse following files: [list of files]
 
-      Please return a detailed summary of the changes in the each file, including types of changes, their complexity, affected classes/functions/variables/etc., and overral describtion of the changes.
+      Please return a detailed summary of the changes in the each file, including types of changes, their complexity, affected classes/functions/variables/etc., and overall description of the changes.
       ```
 
-4. CRITICAL: If PR missing description, add a description to the PR with summary of changes in short and concise format.
+3. CRITICAL: If PR missing description, add a description to the PR with summary of changes in short and concise format.
 
 ### Phase 2: Searching for Issues
 

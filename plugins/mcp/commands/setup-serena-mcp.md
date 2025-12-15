@@ -12,13 +12,31 @@ $ARGUMENTS
 
 # Guide for setup Serena MCP server
 
-## 1. Check if Serena MCP server is already setup
+## 1. Determine setup context
+
+Ask the user where they want to store the configuration:
+
+**Options:**
+
+1. **Project level (shared via git)** - Configuration tracked in version control, shared with team
+   - CLAUDE.md updates go to: `./CLAUDE.md`
+
+2. **Project level (personal preferences)** - Configuration stays local, not tracked in git
+   - CLAUDE.md updates go to: `./CLAUDE.local.md`
+   - Verify these files are listed in `.gitignore`, add them if not
+
+3. **User level (global)** - Configuration applies to all projects for this user
+   - CLAUDE.md updates go to: `~/.claude/CLAUDE.md`
+
+Store the user's choice and use the appropriate paths in subsequent steps.
+
+## 2. Check if Serena MCP server is already setup
 
 Check whether you have access to Serena MCP server by attempting to use one of its tools (e.g., `find_symbol` or `list_symbols`).
 
 If no access, proceed with setup.
 
-## 2. Load Serena documentation
+## 3. Load Serena documentation
 
 Read the following documentation to understand Serena's capabilities and setup process:
 
@@ -27,7 +45,7 @@ Read the following documentation to understand Serena's capabilities and setup p
 - Load <https://oraios.github.io/serena/02-usage/030_clients.html> to learn how to configure your MCP client
 - Load <https://oraios.github.io/serena/02-usage/040_workflow.html> to learn how to setup Serena for your project
 
-## 3. Guide user through setup process
+## 4. Guide user through setup process
 
 Based on the loaded documentation:
 
@@ -42,9 +60,9 @@ Based on the loaded documentation:
    2. Check if onboarding was performered, if not then run it.
    3. Then try to read any file
 
-## 4. Update CLAUDE.md file
+## 5. Update CLAUDE.md file
 
-Once Serena is successfully set up, update CLAUDE.md file with the following content:
+Use the path determined in step 1. Once Serena is successfully set up, update the appropriate CLAUDE.md file with the following content:
 
 ```markdown
 ### Use Serena MCP for Semantic Code Analysis instead of regular code search and editing
@@ -58,7 +76,7 @@ Key usage points from initial_instructions:
 - // Write here list of key usage points from initial_instructions
 ```
 
-## 5. Project initialization (if needed)
+## 6. Project initialization (if needed)
 
 If this is a new project or Serena hasn't been initialized:
 

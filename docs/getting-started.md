@@ -93,6 +93,7 @@ Claude will provide an initial response. Now, use Reflexion to ask it to reitera
   * [Feature Development](guides/feature-development.md)
   * [Spec-Driven Development](guides/spec-driven-development.md)
   * [PR Review](guides/pr-review.md)
+  * [CI/CD Integration](guides/ci-integration.md) - Automate code reviews with GitHub Actions
 
 ### Viewing Available Plugins
 

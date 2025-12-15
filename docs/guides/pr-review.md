@@ -2,7 +2,11 @@
 
 Comprehensive pull request review using specialized agents to catch issues before merging code.
 
-For pre-commit local review, use `/code-review:review-local-changes` command directly.
+Other types of reviews:
+
+- Local changes only - For pre-commit local review, use `/code-review:review-local-changes` command directly.
+- CI Integration - You can automate PR reviews using GitHub Actions. See the [CI/CD Integration guide](./ci-integration.md) for setup instructions.
+
 
 ## When to Use
 
@@ -165,3 +169,4 @@ After LLM completes, your CLAUDE.md file is updated with learnings from this rev
 **Learn from patterns**: Use `/reflexion:memorize` to capture recurring issues as project guidelines to prevent them in future PRs.
 
 **Combine perspectives**: The six review agents and reflexion critique provide complementary views - consider all perspectives before marking issues as resolved.
+

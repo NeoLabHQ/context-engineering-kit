@@ -12,7 +12,25 @@ $ARGUMENTS
 
 # Guide for setup arXiv MCP server via Docker MCP
 
-## 1. Check if Docker MCP is available
+## 1. Determine setup context
+
+Ask the user where they want to store the configuration:
+
+**Options:**
+
+1. **Project level (shared via git)** - Configuration tracked in version control, shared with team
+   - CLAUDE.md updates go to: `./CLAUDE.md`
+
+2. **Project level (personal preferences)** - Configuration stays local, not tracked in git
+   - CLAUDE.md updates go to: `./CLAUDE.local.md`
+   - Verify these files are listed in `.gitignore`, add them if not
+
+3. **User level (global)** - Configuration applies to all projects for this user
+   - CLAUDE.md updates go to: `~/.claude/CLAUDE.md`
+
+Store the user's choice and use the appropriate paths in subsequent steps.
+
+## 2. Check if Docker MCP is available
 
 First, verify that Docker MCP (MCP_DOCKER) is accessible by attempting to use `mcp-find` tool to search for servers.
 
@@ -22,7 +40,7 @@ If Docker MCP is NOT available:
 2. After Docker Desktop is installed, guide user to connect MCP using: <https://docs.docker.com/ai/mcp-catalog-and-toolkit/get-started/#claude-code>
 3. Once configured, ask user to restart Claude Code and run "continue" to resume setup
 
-## 2. Search and add paper-search MCP server
+## 3. Search and add paper-search MCP server
 
 Write to user that regular `arxiv-mcp-server` is known to have issues, specifically is failing to initialize (EOF error during init). So we will use `paper-search` MCP server instead.
 
@@ -43,7 +61,7 @@ This server provides access to multiple academic sources:
 - **IACR** - cryptography research
 - **CrossRef** - DOI-based citation database
 
-## 3. Test the setup
+## 4. Test the setup
 
 Verify the server is working by searching for papers:
 
@@ -51,7 +69,9 @@ Verify the server is working by searching for papers:
 mcp-exec name: "search_arxiv" arguments: {"query": "test query", "max_results": 2}
 ```
 
-## 4. Update CLAUDE.md file
+## 5. Update CLAUDE.md file
+
+Use the path determined in step 1:
 
 Once the paper-search MCP server is successfully set up, update CLAUDE.md file with the following content:
 
@@ -83,7 +103,7 @@ Paper Search MCP is available via Docker MCP for searching and downloading acade
 - For Semantic Scholar, supports multiple ID formats: DOI, ARXIV, PMID, etc.
 ```
 
-## 5. Alternative: arxiv-mcp-server
+## 6. Alternative: arxiv-mcp-server
 
 If you specifically need the dedicated arXiv MCP server with additional features (deep analysis prompts, local storage management), you can try:
 
