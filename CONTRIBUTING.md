@@ -104,3 +104,7 @@ Your PR should include:
 ## Questions?
 
 Open an issue with the `question` label or start a discussion.
+
+## Tips
+
+- Use the `--plugin-dir` flag to test plugins during development. This loads your plugin directly without requiring installation. Example `claude --plugin-dir ./plugin-one --plugin-dir ./plugin-two`

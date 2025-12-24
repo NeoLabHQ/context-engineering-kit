@@ -1,0 +1,26 @@
+{
+    "hooks": {
+        "Stop": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/src/index.ts Stop"
+                    }
+                ]
+            }
+        ],
+        "UserPromptSubmit": [
+            {
+                "matcher": "",
+                "hooks": [
+                    {
+                        "type": "command",
+                        "command": "bun ${CLAUDE_PLUGIN_ROOT}/hooks/src/index.ts UserPromptSubmit"
+                    }
+                ]
+            }
+        ]
+    }
+}
