@@ -47,3 +47,7 @@ claude --agents '{
 [x][Agent Skills for Context Engineering](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering)
 [][Agent search MCP](https://github.com/exa-labs/exa-mcp-server)
 [][First Principles Framework](https://github.com/m0n0x41d/quint-code)
+[] Think about way to make reflection work as continues-learning agent. It can trigger on words like "You absolutily right", analyse it and save to CLAUDE.md file correction that user provided.
+[][Hookify](https://github.com/anthropics/claude-code/tree/main/plugins/hookify) - advanced hook configuration, that using python skills.
+[][Ralph](https://github.com/anthropics/claude-code/tree/main/plugins/ralph-wiggum) - continus iteration plugin and orcestrator verision https://github.com/mikeyobrien/ralph-orchestrator
+[][Security Reminder](https://github.com/anthropics/claude-code/tree/main/plugins/security-guidance/hooks) - hook that reminds about security best practices.

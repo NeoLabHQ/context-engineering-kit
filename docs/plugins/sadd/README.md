@@ -18,11 +18,17 @@ Focused on:
 
 ## Overview
 
-The SADD plugin provides a skill for executing implementation plans through coordinated subagents. Instead of executing all tasks in a single long session where context accumulates and quality degrades, SADD dispatches a fresh subagent for each task with mandatory code review between tasks.
+The SADD plugin provides skills and commands for executing work through coordinated subagents. Instead of executing all tasks in a single long session where context accumulates and quality degrades, SADD dispatches fresh subagents with quality gates.
 
-This approach solves the "context pollution" problem - when an agent accumulates confusion, outdated assumptions, or implementation drift over long sessions. Each fresh subagent reads the plan, implements its specific task, and reports back. A code reviewer then validates the work before proceeding.
+**Core capabilities:**
 
-The plugin supports both sequential execution (for dependent tasks) and parallel execution (for independent tasks), with built-in quality gates that ensure code review happens at appropriate checkpoints.
+- **Sequential/Parallel Execution** - Execute implementation plans task-by-task with code review gates
+- **Competitive Execution** - Generate multiple solutions, evaluate with judges, synthesize best elements
+- **Work Evaluation** - Assess completed work using LLM-as-Judge with structured rubrics
+
+This approach solves the "context pollution" problem - when an agent accumulates confusion, outdated assumptions, or implementation drift over long sessions. Each fresh subagent starts clean, implements its specific scope, and reports back for quality validation.
+
+The plugin supports multiple execution strategies based on task characteristics, all with built-in quality gates.
 
 ## Quick Start
 
@@ -30,14 +36,130 @@ The plugin supports both sequential execution (for dependent tasks) and parallel
 # Install the plugin
 /plugin install sadd@NeoLabHQ/context-engineering-kit
 
-# Use the skill when you have an implementation plan
-> I have a plan in specs/feature/plan.md with 5 tasks. Please use subagent-driven development to implement it.
+# Use competitive execution for high-stakes tasks
+/do-competitively "Design and implement authentication middleware with JWT support"
 
-# Or when facing multiple independent issues
-> We have 4 failing test files in different areas. Use subagent-driven development to fix them in parallel.
 ```
 
 [Usage Examples](./usage-examples.md)
+
+## Commands Overview
+
+### do-competitively - Competitive Multi-Agent Synthesis
+
+Execute tasks through competitive generation, multi-judge evaluation, and evidence-based synthesis to produce superior results.
+
+- Purpose - Generate multiple solutions competitively, evaluate with independent judges, synthesize best elements
+- Pattern - Generate-Critique-Synthesize (GCS) with self-critique, verification loops, and adaptive strategy selection
+- Output - Superior solution combining best elements from all candidates
+- Cost - Variable (6-7 agents depending on strategy: 3 generators + 3 judges + 0-1 synthesizer/polish agent)
+- Quality - Enhanced with Constitutional AI self-critique, Chain of Verification, and intelligent strategy selection
+- Efficiency - 15-20% average cost savings through adaptive strategy (polish clear winners, redesign failures)
+
+## Pattern: Generate-Critique-Synthesize (GCS)
+
+This command implements a four-phase adaptive competitive orchestration pattern with quality enhancement loops:
+
+```
+Phase 1: Competitive Generation with Self-Critique
+         ┌─ Agent 1 → Draft → Self-Critique → Revise → Solution A ─┐
+Task ───┼─ Agent 2 → Draft → Self-Critique → Revise → Solution B ─┼─┐
+         └─ Agent 3 → Draft → Self-Critique → Revise → Solution C ─┘ │
+                                                                  │
+Phase 2: Multi-Judge Evaluation with Verification                │
+         ┌─ Judge 1 → Evaluate → Verify → Revise → Report A ─┐  │
+         ├─ Judge 2 → Evaluate → Verify → Revise → Report B ─┼──┤
+         └─ Judge 3 → Evaluate → Verify → Revise → Report C ─┘  │
+                                                                  │
+Phase 2.5: Adaptive Strategy Selection                           │
+         Analyze Consensus ──────────────────────────────────────┤
+                ├─ Clear Winner? → SELECT_AND_POLISH             │
+                ├─ All Flawed (<3.0)? → REDESIGN (return Phase 1)│
+                └─ Split Decision? → FULL_SYNTHESIS              │
+                                          │                       │
+Phase 3: Evidence-Based Synthesis        │                       │
+         (Only if FULL_SYNTHESIS)         │                       │
+         Synthesizer ─────────────────────┴───────────────────────┴─→ Final Solution
+```
+
+#### When to Use
+
+Use this command when:
+
+- **Quality is critical** - Multiple perspectives catch flaws single agents miss
+- **Novel/ambiguous tasks** - No clear "right answer", exploration needed
+- **High-stakes decisions** - Architecture choices, API design, critical algorithms
+- **Learning/evaluation** - Compare approaches to understand trade-offs
+- **Avoiding local optima** - Competitive generation explores solution space better
+
+Do NOT use when:
+
+- Simple, well-defined tasks with obvious solutions
+- Time-sensitive changes
+- Trivial bug fixes or typos
+- Tasks with only one viable approach
+
+#### Usage
+
+```bash
+# Basic usage
+/do-competitively <task-description>
+
+# With explicit output specification
+/do-competitively "Create authentication middleware" --output "src/middleware/auth.ts"
+
+# With specific evaluation criteria
+/do-competitively "Design user schema" --criteria "scalability,security,developer-experience"
+```
+
+#### Quality Enhancement Techniques
+
+Techniques that were used to enhance the quality of the competitive execution pattern.
+
+| Phase | Technique | Benefit |
+|-------|-----------|---------|
+| **Phase 1** | Constitutional AI Self-Critique | Generators review and fix their own solutions before submission, catching 40-60% of issues |
+| **Phase 2** | Chain of Verification | Judges verify their evaluations with structured questions, improving calibration and reducing bias |
+| **Phase 2.5** | Adaptive Strategy Selection | Orchestrator parses structured judge outputs (VOTE+SCORES) to select optimal strategy, saving 15-20% cost on average |
+| **Phase 3** | Evidence-Based Synthesis | Combines proven best elements rather than creating new solutions (only when needed) |
+
+
+#### Theoretical Foundation
+
+The competitive execution pattern combines insights from:
+
+**Academic Research:**
+- Multi-Agent Debate (Du et al., 2023) - Diverse perspectives improve reasoning
+- Self-Consistency with CoT (Wang et al., 2022) - Multiple reasoning paths improve reliability
+- Tree of Thoughts (Yao et al., 2023) - Exploration of solution branches before commitment
+- Constitutional AI (Bai et al., 2022) - Self-critique loops catch 40-60% of issues before review
+- Chain-of-Verification (Dhuliawala et al., 2023) - Structured verification reduces bias
+- LLM-as-a-Judge (Zheng et al., 2023) - Structured evaluation rubrics
+
+**Engineering Practices:**
+- Design Studio Method - Parallel design, critique, synthesis
+- Spike Solutions (XP/Agile) - Explore approaches, combine best
+- A/B Testing - Compare alternatives with clear metrics
+- Ensemble Methods - Combining multiple models improves performance
+
+
+
+### judge - Single-Agent Work Evaluation
+
+Evaluate completed work using LLM-as-Judge with structured rubrics and evidence-based scoring.
+
+- Purpose - Assess quality of work produced earlier in conversation
+- Output - Evaluation report with scores, evidence, improvements
+- Pattern - Single judge with multi-dimensional rubric
+
+#### Usage
+
+```bash
+> Write new controller for the user model
+
+# Evaluate completed work
+/judge
+```
 
 ## Skills Overview
 
@@ -66,9 +188,21 @@ Use when executing implementation plans with independent tasks or facing multipl
 - Exploratory work where scope is undefined
 - You need human-in-the-loop feedback between every step
 
+#### Usage
+
+```bash
+
+# Use the skill when you have an implementation plan
+> I have a plan in specs/feature/plan.md with 5 tasks. Please use subagent-driven development to implement it.
+
+# Or when facing multiple independent issues
+> We have 4 failing test files in different areas. Use subagent-driven development to fix them in parallel.
+```
+
+
 ## How It Works
 
-SADD supports three execution modes based on task relationships:
+SADD supports four execution strategies based on task characteristics:
 
 **Sequential Execution**
 
@@ -103,7 +237,7 @@ Identify Domains → Fix ─┼─ Domain 2 (Agent) ─┼─ Review & Integrate
 
 ### Multi-Agent Analysis Orchestration
 
-Command often orchestrate multiple agents to provide comprehensive analysis:
+Commands often orchestrate multiple agents to provide comprehensive analysis:
 
 **Sequential Analysis:**
 
@@ -231,9 +365,27 @@ Key Insight: Sub-agents exist to isolate context, not to anthropomorphize roles
 
 ## Foundation
 
-The SADD plugin is based on the following foundation:
+The SADD plugin is based on the following foundations:
 
 ### Agent Skills for Context Engineering
 
-- [Agent Skills for Context Engineering project](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) by Murat Can Koylan.
+- [Agent Skills for Context Engineering project](https://github.com/muratcankoylan/Agent-Skills-for-Context-Engineering) by Murat Can Koylan
+
+### Research Papers
+
+**Multi-Agent Patterns:**
+- Du, Y., et al. (2023). "Improving Factuality and Reasoning in Language Models through Multiagent Debate"
+- Wang, X., et al. (2022). "Self-Consistency Improves Chain of Thought Reasoning in Language Models"
+- Yao, S., et al. (2023). "Tree of Thoughts: Deliberate Problem Solving with Large Language Models"
+
+**Evaluation and Critique:**
+- Bai, Y., et al. (2022). "Constitutional AI: Harmlessness from AI Feedback" - Self-critique loops
+- Zheng, L., et al. (2023). "Judging LLM-as-a-Judge with MT-Bench and Chatbot Arena" - Structured evaluation
+- Dhuliawala, S., et al. (2023). "Chain-of-Verification Reduces Hallucination in Large Language Models" - Verification loops
+
+### Engineering Methodologies
+
+- **Design Studio Method** - Parallel design exploration with critique and synthesis
+- **Spike Solutions** (Extreme Programming) - Time-boxed exploration of multiple approaches
+- **Ensemble Methods** (Machine Learning) - Combining multiple models for improved performance
 

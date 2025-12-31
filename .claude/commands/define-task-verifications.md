@@ -117,9 +117,9 @@ Is artifact type Directory/Deletion/Config?
 | Level | When to Use | Configuration |
 |-------|-------------|---------------|
 | ❌ None | Simple operations (mkdir, delete, JSON update) | Skip verification |
-| ✅ Single Judge | Non-critical single artifacts | 1 judge, threshold 4.0/5.0 |
-| ✅ Panel (2) | Critical single artifacts | 2 judges, median voting, threshold 4.0/5.0 |
-| ✅ Per-Item | Multiple similar items | 1 judge per item, parallel, threshold 4.0/5.0 |
+| ✅ Single Judge | Non-critical single artifacts | 1 evaluation, threshold 4.0/5.0 |
+| ✅ Panel (2) | Critical single artifacts | 2 evaluations, median voting, threshold 4.0/5.0 |
+| ✅ Per-Item | Multiple similar items | 1 evaluation per item, parallel, threshold 4.0/5.0 |
 
 ## Phase 4: Define Rubrics
 
@@ -289,7 +289,6 @@ For each step, add `#### Verification` section after `#### Success Criteria`:
 **Level:** ✅ Single Judge
 **Artifact:** `[path/to/artifact.md]`
 **Threshold:** 4.0/5.0
-**Judge Agent:** `.claude/agents/judge.md`
 
 **Rubric:**
 
@@ -310,7 +309,6 @@ For each step, add `#### Verification` section after `#### Success Criteria`:
 **Level:** ✅ CRITICAL - Panel of 2 Judges with Aggregated Voting
 **Artifact:** `[path/to/artifact.md]`
 **Threshold:** 4.0/5.0
-**Judge Agent:** `.claude/agents/judge.md`
 
 **Rubric:**
 
@@ -328,10 +326,9 @@ For each step, add `#### Verification` section after `#### Success Criteria`:
 ```markdown
 #### Verification
 
-**Level:** ✅ Per-[Item Type] Judges ([N] separate judges in parallel)
+**Level:** ✅ Per-[Item Type] Judges ([N] separate evaluations in parallel)
 **Artifacts:** `[path/to/items/{item1,item2,...}.md]`
 **Threshold:** 4.0/5.0
-**Judge Agent:** `.claude/agents/judge.md`
 
 **Rubric (per [item type]):**
 
@@ -342,8 +339,6 @@ For each step, add `#### Verification` section after `#### Success Criteria`:
 | ... | ... | ... |
 
 **Reference Pattern:** `[path/to/reference.md]` (if applicable)
-
-**Execution:** Launch [N] judge agents in parallel (one per [item type]).
 ```
 
 ## Phase 6: Add Verification Summary
@@ -362,9 +357,8 @@ After all steps, add a summary table before `## Blockers`:
 | 2b | ✅ Per-Item | N | 4.0/5.0 | [Brief description] |
 | ... | ... | ... | ... | ... |
 
-**Total Judge Invocations:** [Calculate total]
-**Judge Agent:** `.claude/agents/judge.md`
-**Implementation Command:** `.claude/commands/implement-task.md`
+**Total Evaluations:** [Calculate total]
+**Implementation Command:** `/implement-task $TASK_ID`
 
 ---
 ```
@@ -428,7 +422,7 @@ Before completing verification definition:
 - [ ] **Reference patterns specified** where applicable
 - [ ] **Per-Item count matches actual items**
 - [ ] **Verification Summary table added**
-- [ ] **Total judge invocations calculated**
+- [ ] **Total evaluations calculated**
 
 </checklist>
 
@@ -478,7 +472,7 @@ Step 3 rubric (Auth Service - using Source Code rubric with security emphasis):
 - Code Quality (0.15): Follows project patterns
 - Performance (0.10): Efficient token validation
 
-**Total Judge Invocations:** 16
+**Total Evaluations:** 16
 
 ---
 
@@ -528,7 +522,7 @@ Step 2a rubric (Agent Definition):
 - Hypothesis File Format (0.15): Documents hypothesis file format clearly
 - RFC 2119 Bindings (0.15): Uses MUST/SHOULD/MAY for file operations
 
-**Total Judge Invocations:** 24
+**Total Evaluations:** 24
 
 </example_session>
 
@@ -538,10 +532,10 @@ After defining verifications, report:
 1. **Task Updated**: $TASK_ID
 2. **Steps with Verification**: X of Y steps
 3. **Verification Breakdown**:
-   - Panel (2 judges): X steps
-   - Per-Item judges: X steps (Y total judges)
+   - Panel (2 evaluations): X steps
+   - Per-Item evaluations: X steps (Y total evaluations)
    - No verification: X steps
-4. **Total Judge Invocations**: X
+4. **Total Evaluations**: X
 
 Suggest:
 

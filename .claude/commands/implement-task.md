@@ -20,6 +20,16 @@ Task ID: $ARGUMENTS
 
 **Your role is DISPATCH and AGGREGATE. You do NOT do the work.**
 
+Properly build context of sub agents!
+
+CRITICAL: For each sub-agent (implementation and evaluation), you need to provide:
+
+- Task file path
+- Reference file path (if applicable)
+- Step number
+- Item number (if applicable)
+- Artifact path (if applicable)
+
 ### What You DO
 
 - Read the task file ONCE (Phase 1 only)
@@ -146,9 +156,7 @@ When complete, report:
 
 ---
 
-### Pattern B: Critical Step (Panel of 2 Judges)
-
-**⚠️ MANDATORY: This pattern requires launching judge agents. You MUST NOT skip this or verify yourself.**
+### Pattern B: Critical Step (Panel of 2 Evaluations)
 
 **1. Launch Implementation Agent:**
 
@@ -188,57 +196,33 @@ When complete, report:
 - Note the artifact path(s) from the report
 - **DO NOT read the artifact yourself**
 
-**3. Launch 2 Judge Agents in Parallel (MANDATORY):**
+**3. Launch 2 Evaluation Agents in Parallel (MANDATORY):**
 
-**You MUST launch these judges. Do NOT skip. Do NOT verify yourself.**
+**⚠️ MANDATORY: This pattern requires launching evaluation agents. You MUST launch these evaluations. Do NOT skip. Do NOT verify yourself.**
 
-**Judge 1:**
+**Use the SAME agent type as implementation**
+
+**Evaluation 1 & 2** (launch both in parallel with same prompt structure):
 
 ```
-Read .claude/agents/judge.md
+Read .claude/tasks/judge.md for evaluation methodology.
 
-Evaluate artifact at: [artifact_path]
+Evaluate artifact at: [artifact_path from implementation agent report]
 
 **Chain-of-Thought Requirement:** Justification MUST be provided BEFORE score for each criterion.
 
-Use this rubric:
-[paste rubric from #### Verification section in task file]
+Rubric:
+[paste rubric table from #### Verification section]
 
 Context:
-- This is Step [N]: [Step Title]
-- Passing threshold: [threshold from task file]
-- Reference pattern: [if applicable]
+- Read .beads/issues/$TASK_ID.md
+- Verify Step [N] ONLY: [Step Title]
+- Threshold: [from #### Verification section]
+- Reference pattern: [if specified in #### Verification section]
 
-Return structured evaluation report with:
-- Score per criterion with evidence
-- Overall weighted score
-- PASS/FAIL determination
-- Improvement suggestions if FAIL
-```
+You can verify the artifact works - run tests, check imports, validate syntax.
 
-**Judge 2:**
-
-```
-Read .claude/agents/judge.md
-
-Evaluate artifact at: [artifact_path]
-
-**Chain-of-Thought Requirement:** Justification MUST be provided BEFORE score for each criterion.
-
-Use this rubric:
-[paste rubric from #### Verification section in task file]
-
-Context:
-- This is Step [N]: [Step Title]
-- Passing threshold: [threshold from task file]
-- Reference pattern: [if applicable]
-
-Return structured evaluation report with:
-- Score per criterion with evidence
-- Overall weighted score
-- PASS/FAIL determination
-- Improvement suggestions if FAIL
-
+Return: scores per criterion with evidence, overall weighted score, PASS/FAIL, improvements if FAIL.
 ```
 
 **4. Aggregate Results:**
@@ -256,9 +240,7 @@ Return structured evaluation report with:
 
 ---
 
-### Pattern C: Multi-Item Step (Per-Item Judges)
-
-**⚠️ MANDATORY: Each item requires its own judge agent. You MUST NOT skip or verify yourself.**
+### Pattern C: Multi-Item Step (Per-Item Evaluations)
 
 For steps that create multiple similar items:
 
@@ -296,28 +278,33 @@ When complete, report:
 - Note all artifact paths
 - **DO NOT read any of the created files yourself**
 
-**3. Launch Judge Agents in Parallel (one per item) - MANDATORY:**
+**3. Launch Evaluation Agents in Parallel (one per item)**
 
-**You MUST launch a judge for EACH item. Do NOT skip any. Do NOT verify yourself.**
+**⚠️ MANDATORY: This pattern requires launching evaluation agents. You MUST launch these evaluations. Do NOT skip. Do NOT verify yourself.**
+
+**Use the SAME agent type as implementation**
 
 For each item, use Task tool:
 
 ```
-Read .claude/agents/judge.md
+Read .claude/tasks/judge.md for evaluation methodology.
 
-Evaluate artifact at: [item_path]
+Evaluate artifact at: [item_path from implementation agent report]
 
 **Chain-of-Thought Requirement:** Justification MUST be provided BEFORE score for each criterion.
 
-Use this rubric:
-[paste item-specific rubric from #### Verification section]
+Rubric:
+[paste rubric from #### Verification section]
 
 Context:
-- This is Step [N]: [Step Title], Item: [Item Name]
-- Passing threshold: [threshold]
+- Read .beads/issues/$TASK_ID.md
+- Verify Step [N]: [Step Title]
+- Verify ONLY this Item: [Item Name]
+- Threshold: [from #### Verification section]
 
-Return structured evaluation report.
+You can verify the artifact works - run tests, check syntax, confirm dependencies.
 
+Return: scores with evidence, overall score, PASS/FAIL, improvements if FAIL.
 ```
 
 **4. Collect All Results**
@@ -340,7 +327,7 @@ Return structured evaluation report.
 Before moving to Phase 3, verify you followed the rules:
 
 - [ ] Did you launch sub-agents for ALL implementations?
-- [ ] Did you launch judge agents for ALL verifications (not skip any)?
+- [ ] Did you launch evaluation agents for ALL verifications?
 - [ ] Did you avoid reading ANY artifact files yourself?
 
 **If you read files other than the task file, you are doing it wrong. STOP and restart.**
@@ -353,10 +340,11 @@ Task files define verification in `#### Verification` sections with:
 
 ### Required Elements
 
-1. **Level**: None / Single Judge / Panel (2) / Per-Item
+1. **Level**: None / Single / Panel (2) / Per-Item
 2. **Artifact(s)**: Path(s) to file(s) being verified
 3. **Threshold**: Passing score (typically 3.0/5.0 or 3.5/5.0)
 4. **Rubric**: Table with criteria, weights, and descriptions
+5. **Reference Pattern**: (Optional) Path to example of good implementation
 
 ### Rubric Format
 
@@ -376,59 +364,49 @@ Weights MUST sum to 1.0.
 For each criterion:
 
 - **1 (Poor)**: Does not meet requirements
+- **2 (Below Average)**: Multiple issues, partially meets requirements
 - **3 (Adequate)**: Meets basic requirements
+- **4 (Good)**: Meets all requirements, few minor issues
 - **5 (Excellent)**: Exceeds requirements
 
-### Judge Prompt Construction
+### Evaluation Prompt Construction
 
 Extract from task file's `#### Verification` section:
 
-1. Rubric table → Convert to judge prompt format
+1. Rubric table → Include in prompt
 2. Threshold → Include in context
-3. Artifact path → Include in prompt
+3. Artifact path → From implementation agent's report
 4. Reference patterns → Include if specified
-
-### Chain-of-Thought Enforcement
-
-Every judge prompt MUST include:
-
-```
-**Chain-of-Thought Requirement:** Justification MUST be provided BEFORE score for each criterion.
-```
-
-This improves evaluation reliability by 15-25%.
-
----
 
 ## Phase 4: Aggregation and Reporting
 
 ### Panel Voting Algorithm
 
-When using 2+ judges, follow these manual computation steps:
+When using 2+ evaluations, follow these manual computation steps:
 
 - Think in steps, output each step result separately!
 - Do not skip steps!
 
 #### Step 1: Collect Scores per Criterion
 
-Create a table with each criterion and scores from all judges:
+Create a table with each criterion and scores from all evaluations:
 
-| Criterion | Judge 1 | Judge 2 | Median | Difference |
-|-----------|---------|---------|--------|------------|
-| [Name 1]  | X.X     | X.X     | ?      | ?          |
-| [Name 2]  | X.X     | X.X     | ?      | ?          |
+| Criterion | Eval 1 | Eval 2 | Median | Difference |
+|-----------|--------|--------|--------|------------|
+| [Name 1]  | X.X    | X.X    | ?      | ?          |
+| [Name 2]  | X.X    | X.X    | ?      | ?          |
 
 #### Step 2: Calculate Median for Each Criterion
 
-For 2 judges: **Median = (Score1 + Score2) / 2**
+For 2 evaluations: **Median = (Score1 + Score2) / 2**
 
-For 3+ judges: Sort scores, take middle value (or average of two middle values if even count)
+For 3+ evaluations: Sort scores, take middle value (or average of two middle values if even count)
 
 #### Step 3: Check for High Variance
 
-**High variance** = judges disagree significantly (difference > 2.0 points)
+**High variance** = evaluators disagree significantly (difference > 2.0 points)
 
-Formula: `|Judge1 - Judge2| > 2.0` → Flag as high variance
+Formula: `|Eval1 - Eval2| > 2.0` → Flag as high variance
 
 #### Step 4: Calculate Weighted Overall Score
 
@@ -449,7 +427,7 @@ Compare overall score to threshold:
 
 #### Worked Example
 
-**Scenario**: 2 judges evaluated an artifact with threshold 4.0/5.0
+**Scenario**: 2 evaluations of an artifact with threshold 4.0/5.0
 
 **Rubric**:
 
@@ -459,10 +437,10 @@ Compare overall score to threshold:
 | Completeness | 0.40 |
 | Correctness | 0.30 |
 
-**Judge Scores**:
+**Evaluation Scores**:
 
-| Criterion | Judge 1 | Judge 2 |
-|-----------|---------|---------|
+| Criterion | Eval 1 | Eval 2 |
+|-----------|--------|--------|
 | Clarity | 4.0 | 4.5 |
 | Completeness | 3.0 | 3.5 |
 | Correctness | 4.0 | 3.0 |
@@ -501,19 +479,19 @@ Overall = (4.25 × 0.30) + (3.25 × 0.40) + (3.5 × 0.30)
 
 | Calculation | Formula |
 |-------------|---------|
-| Median (2 judges) | (J1 + J2) / 2 |
-| Median (3 judges) | Middle value when sorted |
-| High variance check | \|J1 - J2\| > 2.0 |
+| Median (2 evaluations) | (E1 + E2) / 2 |
+| Median (3 evaluations) | Middle value when sorted |
+| High variance check | \|E1 - E2\| > 2.0 |
 | Weighted score | Σ(Median × Weight) |
 | Pass condition | Overall ≥ Threshold |
 
 ### Handling Disagreement
 
-If judges significantly disagree (std > 1.5 on any criterion):
+If evaluations significantly disagree (std > 1.5 on any criterion):
 
 1. Flag the criterion
-2. Present both judges' reasoning
-3. Ask user: "Judges disagree on [criterion]. Review manually?"
+2. Present both evaluators' reasoning
+3. Ask user: "Evaluators disagree on [criterion]. Review manually?"
 4. If yes: present evidence, get user decision
 5. If no: use median (conservative approach)
 
@@ -538,8 +516,8 @@ After all steps complete:
 - Required revision: Z
 - Final pass rate: W%
 
-### High-Variance Criteria (Judges Disagreed)
-- [Criterion] in [Step]: Judge 1 scored X, Judge 2 scored Y
+### High-Variance Criteria (Evaluators Disagreed)
+- [Criterion] in [Step]: Eval 1 scored X, Eval 2 scored Y
 
 ### Recommendations
 1. [Any follow-up actions]
@@ -568,8 +546,8 @@ After all steps complete:
 │  │  For each step (parallel where allowed):                 │ │
 │  │                                                           │ │
 │  │  ┌─────────────┐    ┌──────────────┐    ┌────────────┐  │ │
-│  │  │ Implement   │───▶│ Verify?      │───▶│ Pass?      │  │ │
-│  │  │ (sub-agent) │    │ (judge(s))   │    │            │  │ │
+│  │  │ Implement   │───▶│ Evaluate?    │───▶│ Pass?      │  │ │
+│  │  │ (sub-agent) │    │ (sub-agent)  │    │            │  │ │
 │  │  └─────────────┘    └──────────────┘    └────────────┘  │ │
 │  │                                               │    │     │ │
 │  │                                              Yes   No    │ │
@@ -606,13 +584,13 @@ Steps identified: 7 main steps
 
 Verification plan (from #### Verification sections):
 - Step 1: No verification (directory creation)
-- Step 2a: Panel of 2 judges (agent definition)
-- Step 2b: Panel of 2 judges (workflow command)
-- Step 3: 5 separate judges (utility commands)
-- Step 4: 7 separate judges (task files)
+- Step 2a: Panel of 2 evaluations (agent definition)
+- Step 2b: Panel of 2 evaluations (workflow command)
+- Step 3: 5 per-item evaluations (utility commands)
+- Step 4: 7 per-item evaluations (task files)
 - Step 5: No verification (plugin manifest)
-- Step 6a: Panel of 2 judges (plugin README)
-- Step 6b: 6 separate judges (documentation files)
+- Step 6a: Panel of 2 evaluations (plugin README)
+- Step 6b: 6 per-item evaluations (documentation files)
 - Step 7: No verification (file deletion)
 
 Phase 2: Executing...
@@ -624,13 +602,13 @@ Step 1: Launching implementation agent...
 Step 2a, 2b, 3: Launching parallel implementation agents...
   [3 agents working simultaneously]
 
-Step 2a Implementation complete. Launching verification...
-  Judge 1 prompt: "Evaluate artifact at: plugins/fpf/agents/fpf-agent.md..."
-  Judge 2 prompt: "Evaluate artifact at: plugins/fpf/agents/fpf-agent.md..."
-  
+Step 2a Implementation complete. Launching evaluation (same agent type)...
+  Eval 1: "Read .claude/tasks/judge.md. Evaluate artifact at: plugins/fpf/agents/fpf-agent.md..."
+  Eval 2: "Read .claude/tasks/judge.md. Evaluate artifact at: plugins/fpf/agents/fpf-agent.md..."
+
 Step 2a Verification:
-  Judge 1: 4.1/5.0 - PASS
-  Judge 2: 4.3/5.0 - PASS
+  Eval 1: 4.1/5.0 - PASS
+  Eval 2: 4.3/5.0 - PASS
   Panel Result: 4.2/5.0 ✅
 
 [Continue for all steps...]
@@ -648,12 +626,12 @@ Implementation complete.
 
 ```
 Step 4 Implementation (generate-hypotheses.md) complete.
-Launching verification...
+Launching evaluation (same agent type as implementation)...
 
-Judge prompt: "Evaluate artifact at: plugins/fpf/tasks/generate-hypotheses.md
+Evaluation prompt: "Read .claude/tasks/judge.md. Evaluate artifact at: plugins/fpf/tasks/generate-hypotheses.md
 **Chain-of-Thought Requirement:** Justification MUST be provided BEFORE score..."
 
-Judge result: 2.8/5.0 - FAIL
+Evaluation result: 2.8/5.0 - FAIL
 
 Issues found:
 - Self-Containment: 2/5
@@ -673,8 +651,8 @@ Issues to address:
 1. Self-Containment: Add context from .fpf/context.md inline
 2. Success Criteria: Convert to checkbox format..."
 
-Re-verification:
-  Judge: 4.0/5.0 - PASS ✅
+Re-evaluation:
+  Evaluation: 4.0/5.0 - PASS ✅
 ```
 
 ---
@@ -692,7 +670,7 @@ Before completing implementation:
 ### Delegation
 
 - [ ] ALL implementations done by sub-agents via Task tool
-- [ ] ALL verifications done by judge agents via Task tool
+- [ ] ALL evaluations done by sub-agents via Task tool
 - [ ] Did NOT perform any verification yourself
 - [ ] Did NOT skip any verification steps
 
@@ -701,9 +679,9 @@ Before completing implementation:
 - [ ] All steps executed in dependency order
 - [ ] Parallel steps launched simultaneously (not sequentially)
 - [ ] Each implementation agent received focused prompt with exact step
-- [ ] All critical artifacts verified by judges
+- [ ] All critical artifacts evaluated
 - [ ] Panel voting used for high-stakes artifacts
-- [ ] Chain-of-thought requirement included in all judge prompts
-- [ ] Failed verifications addressed
+- [ ] Chain-of-thought requirement included in all evaluation prompts
+- [ ] Failed evaluations addressed
 - [ ] Final report generated
-- [ ] User informed of any judge disagreements
+- [ ] User informed of any evaluator disagreements
