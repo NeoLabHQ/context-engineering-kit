@@ -33,16 +33,18 @@ export const stop: StopHandler = async (payload, sessionData) => {
       return {debug: '⚠️ Reflect word not found in the user prompt, skipping reflection'}
     }
 
-    return { decision: "block", reason: DEFAULT_REFLECT_PROMPT }
+    return { decision: "block", reason: DEFAULT_REFLECT_PROMPT, debug: invocations }
 }
 
-// TODO: add exception for slash commands, like /reflexion:reflect. Should not trigger if `:` or `/` is present before `reflect`
 /**
  * Check if prompt contains word as a standalone word (not part of another word).
  * Uses word boundary regex to avoid matching "reflective" or "reflection" when looking for "reflect".
+ * Uses negative lookbehind to exclude slash commands (e.g., /reflect, :reflect, /reflexion:reflect).
  */
 export const isContainsWord = (prompt: string, word: string) => {
     const sanitized = prompt.toLowerCase().trim()
-    const wordBoundaryRegex = new RegExp(`\\b${word}\\b`)
+    // Negative lookbehind (?<![:/]) ensures the word is not preceded by / or :
+    // This prevents triggering on slash commands like /reflect or /reflexion:reflect
+    const wordBoundaryRegex = new RegExp(`(?<![:/])\\b${word}\\b`)
     return wordBoundaryRegex.test(sanitized)
 }

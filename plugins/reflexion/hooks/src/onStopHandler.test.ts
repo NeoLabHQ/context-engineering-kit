@@ -108,6 +108,42 @@ describe('isContainsWord', () => {
       expect(isContainsWord('', 'reflect')).toBe(false)
     })
   })
+
+  describe('slash command exclusion - should NOT match when preceded by / or :', () => {
+    it('should NOT match "/reflect" (direct slash command)', () => {
+      expect(isContainsWord('/reflect', 'reflect')).toBe(false)
+    })
+
+    it('should NOT match "/reflexion:reflect" (namespaced slash command)', () => {
+      expect(isContainsWord('/reflexion:reflect', 'reflect')).toBe(false)
+    })
+
+    it('should NOT match ":reflect" (colon prefix)', () => {
+      expect(isContainsWord(':reflect', 'reflect')).toBe(false)
+    })
+
+    it('should NOT match "/reflect on this" (slash command in sentence)', () => {
+      expect(isContainsWord('/reflect on this', 'reflect')).toBe(false)
+    })
+
+    it('should NOT match "run /reflect" (slash command after other text)', () => {
+      expect(isContainsWord('run /reflect', 'reflect')).toBe(false)
+    })
+
+    it('should NOT match "run /reflexion:reflect and continue"', () => {
+      expect(isContainsWord('run /reflexion:reflect and continue', 'reflect')).toBe(false)
+    })
+
+    it('should NOT match "execute :reflect now"', () => {
+      expect(isContainsWord('execute :reflect now', 'reflect')).toBe(false)
+    })
+
+    it('should still match "reflect" when slash command AND normal word both present', () => {
+      // If user says "run /reflexion:reflect and then reflect on it", we SHOULD trigger
+      // because there's a standalone "reflect" at the end
+      expect(isContainsWord('run /reflexion:reflect and then reflect on it', 'reflect')).toBe(true)
+    })
+  })
 })
 
 describe('onStopHandler', () => {
@@ -273,6 +309,47 @@ describe('onStopHandler', () => {
         createUserPromptSession('fix the bug'),
         createStopSession(),
         createUserPromptSession('now reflect on the changes'),  // last prompt with "reflect"
+        createStopSession(),
+      ]
+
+      const result = await stop(payload, sessionData)
+
+      expect(result).toEqual({
+        decision: 'block',
+        reason: 'You MUST use SlashCommand tool to execute the command /reflexion:reflect',
+      })
+    })
+  })
+
+  describe('slash command exclusion in prompts', () => {
+    it('should NOT trigger when prompt is a slash command "/reflexion:reflect"', async () => {
+      const payload = createMockPayload()
+      const sessionData: SessionData[] = [
+        createUserPromptSession('/reflexion:reflect'),
+        createStopSession(),
+      ]
+
+      const result = await stop(payload, sessionData)
+
+      expect(result).toEqual({ debug: '⚠️ Reflect word not found in the user prompt, skipping reflection' })
+    })
+
+    it('should NOT trigger when prompt contains slash command "run /reflexion:reflect"', async () => {
+      const payload = createMockPayload()
+      const sessionData: SessionData[] = [
+        createUserPromptSession('run /reflexion:reflect'),
+        createStopSession(),
+      ]
+
+      const result = await stop(payload, sessionData)
+
+      expect(result).toEqual({ debug: '⚠️ Reflect word not found in the user prompt, skipping reflection' })
+    })
+
+    it('should trigger when prompt has both slash command and standalone reflect', async () => {
+      const payload = createMockPayload()
+      const sessionData: SessionData[] = [
+        createUserPromptSession('run /reflexion:reflect and then reflect on it'),
         createStopSession(),
       ]
 
