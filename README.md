@@ -282,13 +282,20 @@ Commands and skills for test-driven development with anti-pattern detection.
 
 ### Subagent-Driven Development
 
-Skills for subagent-driven development with quality gates between tasks.
+Execution framework for competitive generation, multi-agent evaluation, and subagent-driven development with quality gates.
 
 **How to install**
 
 ```bash
 /plugin install sadd@NeoLabHQ/context-engineering-kit
 ```
+
+**Commands**
+
+- `/sadd:do-competitively` - Execute tasks through competitive generation, multi-judge evaluation, and evidence-based synthesis to produce superior results
+- `/sadd:tree-of-thoughts` - Execute complex reasoning through systematic exploration of solution space, pruning unpromising branches, and synthesizing the best solution
+- `/sadd:judge-with-debate` - Evaluate solutions through iterative multi-judge debate with consensus building or disagreement reporting
+- `/sadd:judge` - Evaluate completed work using LLM-as-Judge with structured rubrics and evidence-based scoring
 
 **Skills**
 

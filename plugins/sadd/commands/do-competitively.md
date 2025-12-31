@@ -148,6 +148,8 @@ Evaluation criteria (with weights):
 2. {criterion_2} ({weight_2}%)
 ...
 
+Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology and execute using following criteria.
+
 Instructions:
 1. For each criterion, analyze ALL solutions
 2. Write a combined report:

@@ -154,6 +154,8 @@ Evaluation criteria (with weights):
 3. Potential (30%): Likelihood of producing a high-quality, robust solution?
 4. Risk (15%): How manageable are the identified risks and failure modes?
 
+Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology and execute using following criteria.
+
 Instructions:
 1. For each proposal, score on each criterion (1-5)
 2. Provide specific evidence from the proposal for each score
@@ -310,6 +312,8 @@ Evaluation criteria (with weights):
 2. {criterion_2} ({weight_2}%)
 3. {criterion_3} ({weight_3}%)
 ...
+
+Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology and execute using following criteria.
 
 Instructions:
 1. For each criterion, analyze ALL solutions

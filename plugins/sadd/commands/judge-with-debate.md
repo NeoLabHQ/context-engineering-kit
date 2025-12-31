@@ -81,6 +81,8 @@ You are Judge {N} evaluating a solution independently.
 report.{N}.md
 </output_file>
 
+Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology and execute using following criteria.
+
 Instructions:
 1. Read the solution thoroughly
 2. For each criterion:
@@ -162,6 +164,8 @@ Judge 1: report.1.md
 <output_file>
 report.{N}.md (append to existing file)
 </output_file>
+
+Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology principles.
 
 Instructions:
 1. Read your previous assessment from {your_previous_report}
