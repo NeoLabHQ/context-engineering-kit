@@ -1,7 +1,7 @@
 # Makefile for Context Engineering Kit
 # Plugin management commands
 
-PLUGINS := code-review customaize-agent ddd docs git kaizen mcp reflexion sadd sdd tdd tech-stack
+PLUGINS := code-review customaize-agent ddd docs git kaizen mcp reflexion sadd sdd tdd tech-stack fpf
 MARKETPLACE := .claude-plugin/marketplace.json
 
 .PHONY: help sync-docs-to-plugins sync-plugins-to-docs set-version set-marketplace-version list-plugins

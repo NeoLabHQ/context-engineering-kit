@@ -492,11 +492,16 @@ After all agents complete, aggregate results:
 - **Run tests after:** Parallel changes may have subtle interactions
 - **Commit atomically:** All changes from one batch = one commit
 
-### Error Handling
+#### Error Handling
 
-When some agents fail:
-1. Report partial success in summary
-2. Identify failed targets clearly
-3. Suggest re-running failed targets with `/launch-sub-agent`
-4. Do NOT retry automatically (let user decide)
+| Failure Type | Description | Recovery Action |
+|--------------|-------------|-----------------|
+| **Recoverable** | Sub-agent made a mistake but approach is sound | Retry step with corrected prompt (max 1 retry) |
+| **Approach Failure** | The approach for this step is wrong | Escalate to user with options |
+| **Foundation Issue** | Previous step output is insufficient | May need to revisit earlier step |
 
+**Critical Rules:**
+- NEVER continue past a failed step
+- NEVER try to "fix forward" without addressing the failure
+- NEVER retry more than once without user input
+- STOP and report if context is missing (don't guess)

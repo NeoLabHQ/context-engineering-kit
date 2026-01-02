@@ -144,40 +144,94 @@ Specify where results should be written:
 
 ### /do-in-parallel
 
-Execute tasks in parallel across multiple targets.
+Execute tasks in parallel across multiple targets with intelligent model selection, independence validation, and quality-focused prompting.
 
-- Purpose - Execute the same task across multiple targets in parallel
-- Pattern - Parallel execution of the same task across multiple targets
-- Output - Multiple solutions, one for each target
-- Quality - Enhanced with Constitutional AI self-critique, Chain of Verification, and intelligent strategy selection
-- Efficiency - 15-20% average cost savings through adaptive strategy (polish clear winners, redesign failures)
+- Purpose - Execute the same task across multiple independent targets in parallel
+- Pattern - Supervisor/Orchestrator with parallel dispatch and context isolation
+- Output - Multiple solutions, one per target, with aggregated summary
+- Quality - Enhanced with Zero-shot CoT, Constitutional AI self-critique, and intelligent model selection
+- Efficiency - Dramatic time savings through concurrent execution of independent work
+
+#### Pattern: Parallel Orchestration with Independence Validation
+
+This command implements a six-phase parallel orchestration pattern:
+
+```
+Phase 1: Parse Input and Identify Targets
+                     │
+Phase 2: Task Analysis with Zero-shot CoT
+         ┌─ Task Type Identification ─────────────────┐
+         │ (transformation, analysis, documentation)  │
+         ├─ Per-Target Complexity Assessment ─────────┤
+         │ (high/medium/low)                          │
+         ├─ Independence Validation ──────────────────┤
+         │ ⚠️ CRITICAL: Must pass before proceeding   │
+         └────────────────────────────────────────────┘
+                     │
+Phase 3: Model and Agent Selection
+         Is task COMPLEX? → Opus
+         Is task SIMPLE/MECHANICAL? → Haiku
+         Otherwise → Opus (default for balanced work)
+                     │
+Phase 4: Construct Per-Target Prompts
+         [CoT Prefix] + [Task Body] + [Self-Critique Suffix]
+         (Same structure for ALL agents, customized per target)
+                     │
+Phase 5: Parallel Dispatch (ALL agents in SINGLE response)
+         ┌─ Agent 1 (target A) ─┐
+         ├─ Agent 2 (target B) ─┼─→ Concurrent Execution
+         └─ Agent 3 (target C) ─┘
+                     │
+Phase 6: Collect and Summarize Results
+         Aggregate outcomes, report failures, suggest remediation
+```
 
 #### Usage
 
 ```bash
-# Basic usage
-/do-in-parallel <task-description>
-
-# With explicit output specification
-/do-in-parallel "Create authentication middleware" --output "src/middleware/auth.ts"
+# Inferred targets from task description
+/do-in-parallel "Apply consistent logging format to src/handlers/user.ts, src/handlers/order.ts, and src/handlers/product.ts"
 ```
 
-#### When to Use 
+#### Advanced Options
+
+```bash
+# Basic usage with file targets
+/do-in-parallel "Simplify error handling to use early returns" \
+  --files "src/services/user.ts,src/services/order.ts,src/services/payment.ts"
+
+# With named targets
+/do-in-parallel "Generate unit tests achieving 80% coverage" \
+  --targets "UserService,OrderService,PaymentService"
+
+# With model override
+/do-in-parallel "Security audit for injection vulnerabilities" \
+  --files "src/db/queries.ts,src/api/search.ts" \
+  --model opus
+```
+
+#### When to Use
 
 **Good use cases:**
-- Same operation across multiple files
-- Independent transformations
-- Batch documentation generation
-- Parallel analysis tasks
-- Multi-file refactoring
+- Same operation across multiple files (refactoring, formatting)
+- Independent transformations (each file stands alone)
+- Batch documentation generation (API docs per module)
+- Parallel analysis tasks (security audit per component)
+- Multi-file code generation (tests per service)
 
 **Do NOT use when:**
-- Only one target (use `/launch-sub-agent` instead)
-- Targets have dependencies on each other
-- Tasks require sequential ordering
-- Shared state needed between executions
-- Complex coordination required
-- Quality-critical tasks needing comparison (use `/do-competitively` instead)
+- Only one target → use `/launch-sub-agent` instead
+- Targets have dependencies → use `/do-in-steps` instead
+- Tasks require sequential ordering → use `/do-in-steps` instead
+- Shared state needed between executions → use `/do-in-steps` instead
+- Quality-critical tasks needing comparison → use `/do-competitively` instead
+
+#### Context Isolation Best Practices
+
+- **Minimal context**: Each sub-agent receives only what it needs for its target
+- **No cross-references**: Don't tell Agent A about Agent B's target
+- **Let them discover**: Sub-agents read files to understand local patterns
+- **File system as truth**: Changes are coordinated through the filesystem
 
 #### Theoretical Foundation
 
@@ -191,37 +245,81 @@ Execute tasks in parallel across multiple targets.
 - Catches issues without coordinator overhead
 - Reference: [Constitutional AI](https://arxiv.org/abs/2212.08073)
 
+**Multi-Agent Context Isolation** (Multi-agent architecture patterns)
+- Fresh context prevents accumulated confusion
+- Focused tasks produce better results than context-polluted sessions
+- Reference: [Multi-Agent Debate](https://arxiv.org/abs/2305.14325) (Du et al., 2023)
+
 ### /do-in-steps
 
-Execute tasks in steps, passing relevant context forward.
+Execute complex tasks through sequential sub-agent orchestration with automatic decomposition, intelligent model selection, context passing between steps, and mandatory self-critique verification.
 
-- Purpose - Execute a complex task in steps, passing relevant context forward
-- Pattern - Sequential execution of steps, passing relevant context forward
-- Output - A comprehensive report of the task completion
-- Quality - Enhanced with Constitutional AI self-critique, Chain of Verification, and intelligent strategy selection
+- Purpose - Execute dependent tasks sequentially where each step builds on previous outputs
+- Pattern - Supervisor/Orchestrator with sequential dispatch and context accumulation
+- Output - Comprehensive report with all step results and integration summary
+- Quality - Enhanced with Zero-shot CoT, Constitutional AI self-critique, and per-step model optimization
+- Key Benefit - Prevents context pollution while maintaining necessary continuity between dependent steps
 
 #### Usage
 
 ```bash
-# Basic usage
-/do-in-steps <task-description>
+# Interface change with consumer updates
+/do-in-steps "Change return type of UserService.getUser() from User to UserDTO and update all consumers"
 
-# With explicit output specification
-/do-in-steps "Create authentication middleware" --output "src/middleware/auth.ts"
+# Feature addition across layers
+/do-in-steps "Add email notification capability to the order processing system"
+
+# Multi-file refactoring with breaking changes
+/do-in-steps "Rename 'userId' to 'accountId' across the codebase - affects interfaces, implementations, and callers"
+
+# With output specification
+/do-in-steps "Refactor UserService class and update all consumers" --output "src/services/"
 ```
 
-#### Theoretical Foundation
+#### Pattern: Sequential Orchestration with Context Passing
 
-The sequential orchestration pattern combines insights from:
+This command implements a four-phase sequential orchestration pattern:
 
-**Academic Research:**
-- [Chain-of-Thought Prompting](https://arxiv.org/abs/2201.11903) (Wei et al., 2022) - Step-by-step reasoning improves task completion accuracy by 20-60%
-- [Zero-shot Chain of Thought](https://arxiv.org/abs/2205.11916) (Kojima et al., 2022) - "Let's think step by step" triggers systematic reasoning without examples
-- [Constitutional AI](https://arxiv.org/abs/2212.08073) (Bai et al., 2022) - Self-critique loops catch 40-60% of issues before delivery
-- [Multi-Agent Patterns](https://arxiv.org/abs/2305.14325) (Du et al., 2023) - Supervisor/orchestrator patterns for distributed task execution
+```
+Phase 1: Task Analysis and Decomposition
+         ┌─ Task Understanding ───────────────────────┐
+         │ "What is the overall objective?"           │
+         ├─ Identify Natural Boundaries ──────────────┤
+         │ Database → Interface → Implementation →    │
+         │ Integration → Testing → Documentation      │
+         ├─ Dependency Identification ────────────────┤
+         │ "What must happen before what?"            │
+         └─ Define Clear Boundaries ──────────────────┘
+                     │
+                     ▼
+         Decomposition Output:
+         | Step | Subtask | Depends On | Complexity | Output |
+         |------|---------|------------|------------|--------|
+         | 1    | ...     | -          | High       | ...    |
+         | 2    | ...     | Step 1     | Medium     | ...    |
+         | 3    | ...     | Steps 1,2  | Low        | ...    |
+                     │
+Phase 2: Model Selection for Each Subtask
+         For each step: Assess Complexity + Scope + Risk
+                     │
+         | Step | Model  | Agent     | Rationale              |
+         |------|--------|-----------|------------------------|
+         | 1    | opus   | developer | High risk, core change |
+         | 2    | sonnet | developer | Medium, follows pattern|
+         | 3    | haiku  | -         | Simple transformation  |
+                     │
+Phase 3: Sequential Execution with Context Passing
+         Step 1 ──→ Context 1 ──→ Step 2 ──→ Context 1+2 ──→ Step 3 ──→ ...
+           │                        │                          │
+           ▼                        ▼                          ▼
+         [Sub-agent]            [Sub-agent]              [Sub-agent]
+         Fresh context          + Step 1 context         + Steps 1,2 context
+                     │
+Phase 4: Final Summary and Report
+         Aggregate all step results, files modified, decisions made
+```
 
-
-### When to Use `/do-in-steps`
+#### When to Use
 
 **Good use cases:**
 - Changes that cascade through multiple files/layers
@@ -231,11 +329,32 @@ The sequential orchestration pattern combines insights from:
 - Refactoring with dependency chains
 - Any task where "Step N depends on Step N-1"
 
-**Poor use cases:**
-- Independent tasks that could run in parallel (use `/do-in-parallel`)
-- Single-step tasks (use `/launch-sub-agent`)
-- Tasks needing exploration before commitment
-- High-stakes tasks needing multiple approaches (use `/do-competitively`)
+**Do NOT use when:**
+- Independent tasks that could run in parallel → use `/do-in-parallel`
+- Single-step tasks → use `/launch-sub-agent`
+- Tasks needing exploration before commitment → use `/tree-of-thoughts`
+- High-stakes tasks needing multiple approaches → use `/do-competitively`
+
+#### Theoretical Foundation
+
+**Chain-of-Thought Prompting** (Wei et al., 2022)
+- Step-by-step reasoning improves task completion accuracy by 20-60%
+- Applied to both decomposition and sub-agent execution
+- Reference: [Chain-of-Thought Prompting](https://arxiv.org/abs/2201.11903)
+
+**Zero-shot Chain of Thought** (Kojima et al., 2022)
+- "Let's think step by step" triggers systematic reasoning without examples
+- Reference: [Large Language Models are Zero-Shot Reasoners](https://arxiv.org/abs/2205.11916)
+
+**Constitutional AI / Self-Critique** (Bai et al., 2022)
+- Self-critique loops catch 40-60% of issues before delivery
+- Each sub-agent verifies integration with previous steps
+- Reference: [Constitutional AI](https://arxiv.org/abs/2212.08073)
+
+**Multi-Agent Context Isolation** (Du et al., 2023)
+- Fresh context per sub-agent prevents accumulated confusion
+- Context passing maintains necessary continuity without pollution
+- Reference: [Multi-Agent Debate](https://arxiv.org/abs/2305.14325)
 
 
 ### do-competitively - Competitive Multi-Agent Synthesis

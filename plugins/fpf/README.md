@@ -1,75 +1,256 @@
-# FPF - First Principles Framework
+# First Principles Framework (FPF) Plugin
 
-Implementation of structured reasoning using the First Principles Framework (FPF) methodology developed by Anatoly Levenchuk. Based on [quint-code](https://github.com/m0n0x41d/quint-code) by m0n0x41d.
+Structured reasoning plugin that makes AI decision-making transparent and auditable through hypothesis generation, logical verification, and evidence-based validation.
 
-> **Warning:** This plugin loads core part of [FPF specification](https://github.com/ailev/FPF) into context, which is huge. Total size of this part is more than 600k tokens. As a result it will be loaded into context of subagent with Sonnet[1m] model. This can eat up your token limit very quickly.
+Focused on:
+
+- **Transparent reasoning** - All decisions documented with full audit trails
+- **Hypothesis-driven analysis** - Generate competing alternatives before evaluating
+- **Evidence-based validation** - Computed reliability scores, not estimates
+- **Human-in-the-loop** - AI generates options; humans decide (Transformer Mandate)
+
+## Plugin Target
+
+- Make AI reasoning auditable - full trail from hypothesis to decision
+- Prevent premature conclusions - enforce systematic evaluation of alternatives
+- Build project knowledge over time - decisions become reusable knowledge
+- Enable informed decision-making - trust scores based on evidence quality
 
 ## Overview
 
-FPF addresses a fundamental challenge in AI-assisted development: making decision-making processes transparent and auditable. Rather than having AI jump to solutions, FPF enforces generating competing hypotheses, checking them logically, testing against evidence, then letting developers choose the path forward.
+The FPF plugin implements structured reasoning using [the First Principles Framework](https://github.com/ailev/FPF) methodology developed by Anatoly Levenchuk a methodology for rigorous, auditable reasoning. The killer feature is turning the black box of AI reasoning into a transparent, evidence-backed audit trail. 
 
-### Key Features
+The core cycle follows three modes of inference:
 
-- **Decision Preservation** - All decisions stored in `.fpf/` directory for audit
-- **Structured Reasoning** - ADI cycle (Abduction-Deduction-Induction)
-- **Trust Calculus** - Computed reliability scores, not estimates
-- **Transformer Mandate** - AI generates options; humans decide
+- Abduction — Generate competing hypotheses (don't anchor on the first idea).
+- Deduction — Verify logic and constraints (does the idea make sense?).
+- Induction — Gather evidence through tests or research (does the idea work in reality?).
 
+Then, audit for bias, decide, and document the rationale in a durable record.
 
-## Commands
+The framework addresses a fundamental challenge in AI-assisted development: making decision-making processes transparent and auditable. Rather than having AI jump to solutions, FPF enforces generating competing hypotheses, checking them logically, testing against evidence, then letting developers choose the path forward.
 
-| Command | Description |
-|---------|-------------|
-| `/fpf:propose-hypotheses` | Execute complete FPF cycle from hypothesis to decision |
-| `/fpf:status` | Show current FPF phase and hypothesis counts |
-| `/fpf:query` | Search knowledge base with assurance info |
-| `/fpf:decay` | Manage evidence freshness (refresh/deprecate/waive) |
-| `/fpf:actualize` | Reconcile knowledge with codebase changes |
-| `/fpf:reset` | Archive session and return to IDLE |
+> **Warning:** This plugin loads the core FPF specification into context, which is large (~600k tokens). As a result it loaded into a subagent with Sonnet[1m] model. But it can consume your token limit quickly.
 
-### /fpf:query
+Implementation based on [quint-code](https://github.com/m0n0x41d/quint-code) by m0n0x41d.
 
-#### Examples
+## Quick Start
 
-**Search by keyword:**
-```markdown
-User: /fpf:query caching
+```bash
+# Install the plugin
+/plugin install fpf@NeoLabHQ/context-engineering-kit
 
-Results:
-| Hypothesis | Layer | R_eff |
-|------------|-------|-------|
-| redis-caching | L2 | 0.85 |
-| cdn-edge-cache | L2 | 0.72 |
-| lru-cache | invalid | N/A |
+# Start a decision process
+/fpf:propose-hypotheses What caching strategy should we use?
+
+# Commad will perform majority of orcestration and launch subagents to perform the work.
+# Additionaly you will be asked to add your own hypotheses and review the results.
 ```
 
-**Query specific hypothesis:**
-```markdown
-User: /fpf:query redis-caching
+## Workflow Diagram
 
-# redis-caching (L2)
-
-Title: Use Redis for Caching
-Kind: system
-Scope: High-load systems
-R_eff: 0.85
-Evidence: 2 files
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ 1. Initialize Context                                           │
+│    /fpf:propose-hypotheses <problem>                            │
+│    (create .fpf/ directory structure)                           │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         │ problem context captured
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 2. Abduction: Generate Hypotheses                               │ ◀── add your own ───┐
+│    (create L0 hypothesis files)                                 │                     │
+└────────────────────────┬────────────────────────────────────────┘                     │
+                         │                                                              │
+                         │ 3-5 competing hypotheses                                     │
+                         ▼                                                              │
+┌─────────────────────────────────────────────────────────────────┐                     │
+│ 3. User Input                                                   │                     │
+│    (present summary, allow additions)                           │─────────────────────┘
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         │ all hypotheses collected
+                         ▼ 
+┌─────────────────────────────────────────────────────────────────┐
+│ 4. Deduction: Verify Logic (Parallel)                           │
+│    (check constraints, promote to L1 or invalidate)             │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         │ logically valid hypotheses (L1)
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 5. Induction: Validate Evidence (Parallel)                      │
+│    (gather empirical evidence, promote L1 to L2)                │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         │ evidence-backed hypotheses (L2)
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 6. Audit Trust (Parallel)                                       │
+│    (compute R_eff using Weakest Link principle)                 │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         │ trust scores computed
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 7. Decision                                                     │
+│    (present comparison, user selects winner, create DRR)        │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+                         │ decision recorded
+                         ▼
+┌─────────────────────────────────────────────────────────────────┐
+│ 8. Summary                                                      │
+│    (DRR, winner rationale, next steps)                          │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
-**Query decisions:**
-```markdown
-User: /fpf:query DRR
+## Commands Overview
 
-# Design Rationale Records
+### /fpf:propose-hypotheses - Decision Cycle
 
-| DRR | Date | Winner | Rejected |
-|-----|------|--------|----------|
-| DRR-2025-01-15-caching | 2025-01-15 | redis-caching | cdn-edge |
+Execute the complete FPF cycle from hypothesis generation through evidence validation to decision.
+
+- Purpose - Make architectural decisions with full audit trail
+- Output - `.fpf/decisions/DRR-<date>-<topic>.md` with winner and rationale
+
+```bash
+/fpf:propose-hypotheses [problem or decision to make]
 ```
 
-### /fpf:status
+#### Arguments
 
-#### Example Output
+Natural language description of the decision or problem. Examples: "What caching strategy should we use?" or "How should we deploy our application?"
+
+#### How It Works - ADI Cycle
+
+The workflow follows three inference modes:
+
+1. **Initialize Context** - Creates `.fpf/` directory structure and captures problem constraints
+
+2. **Abduction: Generate Hypotheses** - FPF agent generates 3-5 generate plausible, diverse, and competing hypotheses in L0 folder.
+   **How it works:**
+   - You pose a problem or question
+   - The AI (as *Abductor* persona) generates 3-5 candidate explanations or solutions
+   - Each hypothesis is stored in `L0/` (unverified observations)
+   - No hypothesis is privileged — anchoring bias is the enemy
+
+   **Output:** Multiple L0 claims, each with:
+   - Clear statement of the hypothesis
+   - Initial reasoning for plausibility
+   - Identified assumptions and constraints
+
+3. **User Input** - Presents hypothesis table, allows user to add alternatives
+
+4. **Deduction: Verify Logic (Parallel)** - Checks each hypothesis against constraints and typing, promotes to L1 or invalidates
+   **How it works:**
+   - The AI (as *Verifier* persona) checks each L0 hypothesis for:
+   - Internal logical consistency
+   - Compatibility with known constraints
+   - Type correctness (does the solution fit the problem shape?)
+   - Hypotheses that pass are promoted to `L1/`
+   - Hypotheses that fail are moved to `invalid/` with explanation
+
+   **Output:** L1 claims (logically sound) or invalidation records.
+
+5. **Induction: Validate Evidence (Parallel)** - Gather empirical evidence through tests or research, promotes L1 hypotheses to L2
+   **How it works:**
+   - For **internal** claims: run tests, measure performance, verify behavior
+   - For **external** claims: research documentation, benchmarks, case studies
+   - Evidence is attached with:
+   - Source and date (for decay tracking)
+   - Congruence rating (how well does external evidence match our context?)
+   - Claims that pass validation are promoted to `L2/`
+
+   **Output:** L2 claims (empirically verified) with evidence chain.
+
+6. **Audit(Parallel)** - Compute trust score R_eff using 
+   - **WLNK (Weakest Link):** Assurance = min(evidence levels)
+   - **Congruence Check:** Is external evidence applicable to our context?
+   - **Bias Detection:** Are we anchoring on early hypotheses?
+
+7. **Make Decision**: Presents comparison table, selects winner, creates Design Rationale Record (DRR) which captures:
+   - decision
+   - alternatives considered
+   - evidence
+   - expiry conditions
+
+8. **Present Summary**: Shows DRR, winner rationale, and next steps
+
+#### Usage Examples
+
+```bash
+# Caching strategy decision
+/fpf:propose-hypotheses What caching strategy should we use?
+
+# Deployment approach
+/fpf:propose-hypotheses How should we deploy our application?
+
+# Architecture decision
+/fpf:propose-hypotheses Should we use microservices or monolith?
+
+# Technology selection
+/fpf:propose-hypotheses Which database should we use for high-write workloads?
+```
+
+#### When to Use
+
+**Use it for:**
+
+- Architectural decisions with long-term consequences
+- Multiple viable approaches requiring systematic evaluation
+- Decisions that need an auditable reasoning trail
+- Building up project knowledge over time
+Skip it for:
+
+Quick fixes with obvious solutions
+Easily reversible decisions
+Time-critical situations where the overhead isn't justified
+
+#### Best practices
+
+- Frame as decisions - "What X should we use?" or "How should we Y?"
+- Be specific about constraints - Include performance, cost, or time requirements
+- Add your own hypotheses - Don't rely only on AI-generated options
+- Review verification failures - Failed hypotheses reveal hidden constraints
+- Document for future reference - DRRs become project knowledge
+
+---
+
+### /fpf:status - Check Progress
+
+Show current FPF phase, hypothesis counts, and any warnings about stale evidence.
+
+- Purpose - Understand current state of reasoning process
+- Output - Status table with phase, counts, and warnings
+
+```bash
+/fpf:status
+```
+
+#### Arguments
+
+None required.
+
+#### How It Works
+
+1. **Phase Detection**: Identifies current ADI cycle phase (IDLE, ABDUCTION, DEDUCTION, INDUCTION, DECISION)
+
+2. **Hypothesis Count**: Reports counts per knowledge layer (L0, L1, L2, Invalid)
+
+3. **Evidence Status**: Lists evidence files and their freshness
+
+4. **Warning Detection**: Identifies stale evidence, orphaned hypotheses, or incomplete cycles
+
+#### Usage Examples
+
+```bash
+# Check current status
+/fpf:status
+```
+
+**Example Output:**
 
 ```markdown
 ## FPF Status
@@ -97,29 +278,231 @@ No evidence files yet (hypotheses not validated).
 All systems nominal.
 ```
 
+#### Best practices
 
-### /fpf:reset
+- Check before continuing - Know your current phase before proceeding
+- Address warnings - Stale evidence affects trust scores
+- Review invalid hypotheses - Understand why they failed
 
-#### Example
+---
+
+### /fpf:query - Search Knowledge Base
+
+Search the FPF knowledge base for hypotheses, evidence, or decisions with assurance information.
+
+- Purpose - Find and review stored knowledge with trust scores
+- Output - Search results with layer, R_eff, and evidence counts
+
+```bash
+/fpf:query [keyword or hypothesis name]
+```
+
+#### Arguments
+
+Keyword to search for, specific hypothesis name, or "DRR" to list decisions.
+
+#### How It Works
+
+1. **Keyword Search**: Searches hypothesis titles, descriptions, and evidence
+
+2. **Hypothesis Details**: Returns full hypothesis info including layer, kind, scope, and R_eff
+
+3. **DRR Listing**: Shows all Design Rationale Records with winner and rejected alternatives
+
+#### Usage Examples
+
+```bash
+# Search by keyword
+/fpf:query caching
+
+# Query specific hypothesis
+/fpf:query redis-caching
+
+# List all decisions
+/fpf:query DRR
+```
+
+**Example Output (keyword search):**
 
 ```markdown
-User: /fpf:reset
+Results:
+| Hypothesis | Layer | R_eff |
+|------------|-------|-------|
+| redis-caching | L2 | 0.85 |
+| cdn-edge-cache | L2 | 0.72 |
+| lru-cache | invalid | N/A |
+```
 
-Agent: What type of reset would you like?
+**Example Output (specific hypothesis):**
 
-1. **Soft Reset** - Archive current session, start fresh
-2. **Hard Reset** - Delete all FPF data (cannot be undone)
-3. **Decision Reset** - Keep hypotheses, re-evaluate from earlier phase
+```markdown
+# redis-caching (L2)
 
-User: Soft reset please
+Title: Use Redis for Caching
+Kind: system
+Scope: High-load systems
+R_eff: 0.85
+Evidence: 2 files
+```
 
-Agent: Creating session archive...
-       [Creates .fpf/sessions/session-2025-01-15-reset.md]
+**Example Output (DRR listing):**
 
-       Session archived. Knowledge directories cleared.
+```markdown
+# Design Rationale Records
 
-       Ready for new reasoning cycle.
-       Next step: Run `/fpf:propose-hypotheses` to start.
+| DRR | Date | Winner | Rejected |
+|-----|------|--------|----------|
+| DRR-2025-01-15-caching | 2025-01-15 | redis-caching | cdn-edge |
+```
+
+#### Best practices
+
+- Search before starting new decisions - Reuse existing knowledge
+- Check R_eff scores - Higher scores indicate more reliable hypotheses
+- Review DRRs - Past decisions inform future choices
+
+---
+
+### /fpf:decay - Manage Evidence Freshness
+
+Check for stale evidence and choose how to handle it: refresh, deprecate, or waive.
+
+- Purpose - Maintain evidence validity over time
+- Output - Updated evidence status and trust scores
+
+Evidence expires. A benchmark from six months ago might not reflect current performance. `/fpf:decay` shows you what's stale and gives you three options:
+
+- Refresh — Re-run tests to get fresh evidence
+- Deprecate — Downgrade the hypothesis if the decision needs rethinking
+- Waive — Accept the risk temporarily with documented rationale
+
+```bash
+/fpf:decay waive the benchmark until February, we'll re-test after launch
+```
+
+#### Arguments
+
+None required. Command is interactive.
+
+#### How It Works
+
+1. **Staleness Check**: Identifies evidence files past their freshness threshold
+
+2. **Options Presented**: For each stale evidence:
+   - **Refresh**: Re-run tests for fresh evidence
+   - **Deprecate**: Downgrade hypothesis, flag decision for review
+   - **Waive**: Accept risk temporarily with documented rationale
+
+3. **Trust Recalculation**: Updates R_eff scores based on evidence changes
+
+#### Usage Examples
+
+```bash
+# Check for stale evidence
+/fpf:decay
+
+# Natural language waiver
+# User: Waive the benchmark until February, we'll re-run after migration.
+
+# Agent response:
+# Waiver recorded:
+# - Evidence: ev-benchmark-2024-06-15
+# - Until: 2025-02-01
+# - Rationale: Will re-run after migration
+```
+
+#### Best practices
+
+- Run periodically - Evidence expires; benchmarks from 6 months ago may not reflect current performance
+- Document waivers - Always include rationale and expiration date
+- Refresh critical evidence - High-impact decisions deserve fresh data
+
+---
+
+### /fpf:actualize - Reconcile with Codebase
+
+Update the knowledge base to reflect codebase changes that may affect existing hypotheses.
+
+- Purpose - Keep knowledge synchronized with implementation
+- Output - Updated hypothesis validity and evidence relevance
+
+This command serves as the Observe phase of the FPF's Canonical Evolution Loop (B.4). It reconciles your documented knowledge with the current state of the codebase by:
+
+- Detecting Context Drift: Checks if project files (like package.json) have changed, potentially making your context.md stale.
+- Finding Stale Evidence: Finds evidence whose carrier_ref (the file it points to) has been modified in git.
+- Flagging Outdated Decisions: Identifies decisions whose underlying evidence chain has been impacted by recent code changes.
+
+```bash
+/fpf:actualize
+```
+
+#### How It Works
+
+1. **Change Detection**: Identifies code changes since last actualization
+2. **Impact Analysis**: Determines which hypotheses and evidence are affected
+3. **Validity Update**: Marks affected hypotheses for re-verification if needed
+4. **Report Generation**: Summarizes changes and recommended actions
+
+#### Usage Examples
+
+```bash
+# After major refactoring
+/fpf:actualize
+
+# After dependency updates
+/fpf:actualize
+```
+
+#### Best practices
+
+- Run after major changes - Refactoring may invalidate previous assumptions
+- Review impact report - Some hypotheses may need re-evaluation
+- Update evidence - Changed code may need new benchmarks
+
+---
+
+### /fpf:reset - Start Fresh
+
+Archive the current session and return to IDLE state for a new reasoning cycle.
+
+- Purpose - Clear current state while preserving history
+- Output - Archived session in `.fpf/sessions/`
+
+```bash
+/fpf:reset
+```
+
+#### Arguments
+
+None required. Command is interactive.
+
+#### How It Works
+
+1. **Reset Type Selection**:
+   - **Soft Reset**: Archive current session, start fresh (recommended)
+   - **Hard Reset**: Delete all FPF data (cannot be undone)
+   - **Decision Reset**: Keep hypotheses, re-evaluate from earlier phase
+
+2. **Session Archive**: Creates timestamped archive in `.fpf/sessions/`
+
+3. **State Clear**: Clears knowledge directories based on reset type
+
+#### Usage Examples
+
+```bash
+/fpf:reset
+
+# Agent: What type of reset would you like?
+# 1. Soft Reset - Archive current session, start fresh
+# 2. Hard Reset - Delete all FPF data (cannot be undone)
+# 3. Decision Reset - Keep hypotheses, re-evaluate from earlier phase
+
+# User: Soft reset please
+
+# Agent: Creating session archive...
+#        [Creates .fpf/sessions/session-2025-01-15-reset.md]
+#        Session archived. Knowledge directories cleared.
+#        Ready for new reasoning cycle.
 ```
 
 #### When to Reset
@@ -132,11 +515,21 @@ Agent: Creating session archive...
 | Re-evaluate with new info | Decision reset |
 | Context changed significantly | Soft reset + update context |
 
-## Agent
+#### Best practices
+
+- Prefer soft reset - Always preserve history for reference
+- Hard reset only for testing - Production knowledge is valuable
+- Decision reset for pivots - When new information changes the equation
+
+---
+
+## Available Agents
+
+| Agent | Description | Used By |
+|-------|-------------|---------|
+| `fpf-agent` | FPF reasoning specialist for hypothesis generation, verification, validation, and trust calculus using the ADI cycle | All commands |
 
 ### fpf-agent
-
-FPF reasoning specialist for hypothesis generation, verification, validation, and trust calculus using the ADI cycle and knowledge layer progression.
 
 **Purpose**: Executes FPF reasoning tasks with file operations for persisting knowledge state.
 
@@ -147,34 +540,6 @@ FPF reasoning specialist for hypothesis generation, verification, validation, an
 - Move files between L0/L1/L2/invalid directories
 - Create evidence files and audit reports
 - Generate Design Rationale Records (DRRs)
-
-## Workflow: propose-hypotheses
-
-The `/fpf:propose-hypotheses` command executes the complete FPF cycle:
-
-### Workflow Steps
-
-| Step | Phase | Description |
-|------|-------|-------------|
-| 1 | Setup | Initialize context and `.fpf/` directory structure |
-| 2 | Abduction | Generate L0 hypotheses for the problem |
-| 3 | User Input | Present summary and allow user to add hypotheses |
-| 4 | Deduction | Verify logic for all hypotheses (parallel) |
-| 5 | Induction | Validate evidence for verified hypotheses (parallel) |
-| 6 | Audit | Compute R_eff trust scores (parallel) |
-| 7 | Decision | Create DRR with user approval |
-| 8 | Summary | Present final results and next steps |
-
-### Detailed Workflow
-
-1. **Initialize Context** - Create `.fpf/` directory structure and capture problem context
-2. **Generate Hypotheses** - FPF agent generates 3-5 competing L0 hypotheses
-3. **Present Summary + User Loop** - Show hypothesis table, allow user additions
-4. **Verify Logic (Parallel)** - Check each hypothesis against constraints, promote to L1 or invalidate
-5. **Validate Evidence (Parallel)** - Gather empirical evidence, promote L1 to L2
-6. **Audit Trust (Parallel)** - Compute R_eff using Weakest Link principle
-7. **Make Decision** - Present comparison table, user selects winner, create DRR
-8. **Present Final Summary** - Show DRR, winner rationale, and next steps
 
 ## Key Concepts
 
@@ -204,79 +569,7 @@ The `/fpf:propose-hypotheses` command executes the complete FPF cycle:
 | CL2 | Similar (related project) | Minor |
 | CL1 | Different (external docs) | Significant |
 
-## Example Usage
-
-### Basic Decision Flow
-
-```
-/fpf:propose-hypotheses What caching strategy should we use?
-```
-
-This will:
-1. Initialize FPF context for caching strategy decision
-2. Generate hypotheses (e.g., Redis, Memcached, in-memory)
-3. Allow you to add your own alternatives
-4. Verify each against project constraints
-5. Gather evidence through tests/research
-6. Compute trust scores
-7. Present comparison for your decision
-
-### CI/CD Strategy Example
-
-```
-User: /fpf:propose-hypotheses How should we deploy our application?
-
--> Generated hypotheses:
-   - H1: GitHub Actions + ECS
-   - H2: Docker Swarm + ECR
-   - H3: Kamal deployment
-
--> Verification results:
-   - H1: PASS (meets constraints)
-   - H2: PASS (meets constraints)
-   - H3: FAIL (requires Ruby runtime)
-
--> Validation results:
-   - H1: R=0.75 (external docs, CL1)
-   - H2: R=0.85 (internal test)
-
--> Audit summary:
-   | Hypothesis | R_eff | Weakest Link |
-   |------------|-------|--------------|
-   | ECS | 0.75 | external docs |
-   | Docker Swarm | 0.85 | internal test |
-
--> User selects: Docker Swarm + ECR
--> DRR created with full audit trail
-```
-
-## Evidence Freshness
-
-Evidence expires. A benchmark from 6 months ago may not reflect current performance.
-
-### Managing Stale Evidence
-
-```
-/fpf:decay                    # Check what's stale
-
-Three options:
-- Refresh: Re-run tests for fresh evidence
-- Deprecate: Downgrade hypothesis if decision needs rethinking
-- Waive: Accept risk temporarily with documented rationale
-```
-
-### Natural Language Usage
-
-```
-User: Waive the benchmark until February, we'll re-run after migration.
-
-Agent: Waiver recorded:
-       - Evidence: ev-benchmark-2024-06-15
-       - Until: 2025-02-01
-       - Rationale: Will re-run after migration
-```
-
-## The Transformer Mandate
+### The Transformer Mandate
 
 A core FPF principle: **A system cannot transform itself.**
 
@@ -294,10 +587,10 @@ The FPF plugin creates and manages this directory structure:
 .fpf/
 ├── context.md              # Problem context and constraints
 ├── knowledge/
-│   ├── L0/                 # Candidate hypotheses
-│   ├── L1/                 # Substantiated hypotheses
-│   ├── L2/                 # Validated hypotheses
-│   └── invalid/            # Rejected hypotheses
+│   ├── L0/                 # Candidate hypotheses (Conjecture)
+│   ├── L1/                 # Substantiated hypotheses (Passed logic)
+│   ├── L2/                 # Validated hypotheses (Evidence-backed)
+│   └── invalid/            # Rejected hypotheses (Failed verification)
 ├── evidence/               # Evidence files and audit reports
 ├── decisions/              # DRR files
 └── sessions/               # Archived sessions
@@ -316,7 +609,15 @@ The FPF plugin creates and manages this directory structure:
 - Easily reversible decisions
 - Time-critical situations
 
-## Related Resources
+## Theoretical Foundation
 
-- [FPF Repository](https://github.com/ailev/FPF) - Original methodology by Anatoly Levenchuk
-- [quint-code](https://github.com/m0n0x41d/quint-code) - Implementation this plugin is based on
+### Core Methodology
+
+- **[First Principles Framework (FPF)](https://github.com/ailev/FPF)** - Original methodology by Anatoly Levenchuk for structured epistemic reasoning
+- **[quint-code](https://github.com/m0n0x41d/quint-code)** - Implementation this plugin is based on
+
+### Supporting Concepts
+
+- **Abduction-Deduction-Induction Cycle** - Classical scientific reasoning methodology
+- **Weakest Link Principle** - Trust computation based on minimum evidence quality
+- **Design Rationale** - Documenting not just decisions but the reasoning behind them
