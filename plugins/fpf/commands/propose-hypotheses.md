@@ -189,6 +189,7 @@ Launch fpf-agent with sonnet[1m] model:
    - Implement the selected hypothesis
    - Use `/fpf:status` to check FPF state
    - Use `/fpf:actualize` if codebase changes
+4. Ask user if he agree with the decision, if not launch fpf-agent at step 8 with instruction to modify the decision as user wants.
 
 ---
 
