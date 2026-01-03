@@ -79,7 +79,8 @@ Phases 2-4 are sequential - each depends on the previous phase's output AND judg
 
 ### Phase 1: Create Task
 
-**Agent:** `opus`
+**Model:** `sonnet`
+**Agent:** `sonnet`
 **Depends on:** None
 **Purpose:** Analyze user input, estimate complexity, and generate initial task file
 
@@ -117,7 +118,8 @@ Launch agent:
 
 ### Phase 2: Refine Task
 
-**Agent:** `opus`
+**Model:** `opus`
+**Agent:** `sdd:software-architect` or `sdd:tech-lead` based on type of task and complexity. If you task relates to 1-5 files, you should use `sdd:tech-lead`. If you task can affect more than 5 files, you should use `sdd:software-architect`.
 **Depends on:** Phase 1
 **Purpose:** Add detailed specification, affected files, implementation resources
 
@@ -146,7 +148,8 @@ Launch agent:
 
 ### Judge 2: Validate Task Refinement
 
-**Agent:** `opus`
+**Model:** `opus`
+**Agent:** same like implementation agent
 **Depends on:** Phase 2 completion
 **Purpose:** Validate specification completeness and implementation readiness
 
@@ -230,7 +233,8 @@ Re-launch Phase 2 agent with:
 
 ### Phase 3: Parallelize Steps
 
-**Agent:** `opus`
+**Model:** `opus`
+**Agent:** `sdd:team-lead`
 **Depends on:** Phase 2 + Judge 2 PASS
 **Purpose:** Reorganize implementation steps for maximum parallel execution
 
@@ -255,7 +259,8 @@ Launch agent:
 
 ### Judge 3: Validate Parallelization
 
-**Agent:** `opus`
+**Model:** `opus`
+**Agent:** `sdd:team-lead`
 **Depends on:** Phase 3 completion
 **Purpose:** Validate dependency accuracy and parallelization optimization
 
@@ -341,6 +346,7 @@ Re-launch Phase 3 agent with:
 
 ### Phase 4: Define Verifications
 
+**Model:** `opus`
 **Agent:** `opus`
 **Depends on:** Phase 3 + Judge 3 PASS
 **Purpose:** Add LLM-as-Judge verification sections with rubrics
@@ -366,6 +372,7 @@ Launch agent:
 
 ### Judge 4: Validate Verifications
 
+**Model:** `opus`
 **Agent:** `opus`
 **Depends on:** Phase 4 completion
 **Purpose:** Validate verification rubrics and thresholds

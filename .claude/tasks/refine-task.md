@@ -200,10 +200,14 @@ plugins/
 [List of expected output]
 
 #### Success criteria
-[List of success criteria]
+[] [success criteria description]
+[] [success criteria description]
+[] [success criteria description]
 
 #### Subtasks
-[List of subtasks]
+[] [subtask description]
+[] [subtask description]
+[] [subtask description]
 
 #### Blockers
 [List of blockers]

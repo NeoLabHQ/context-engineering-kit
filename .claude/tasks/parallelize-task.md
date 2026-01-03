@@ -101,6 +101,7 @@ Rewrite each step with the following structure:
 ```markdown
 ### Step N: [Title]
 
+**Model:** [Model type - see Model Selection Guide below]
 **Agent:** [Agent type - see Agent Selection Guide below]
 **Depends on:** [List of step numbers, or "None"]
 **Parallel with:** [List of step numbers that share same dependencies]
@@ -115,8 +116,20 @@ Rewrite each step with the following structure:
 
 #### Success Criteria
 
-- [Criterion 1]
-- [Criterion 2]
+[] [success criteria description]
+[] [success criteria description]
+[] [success criteria description]
+
+#### Subtasks
+[] [subtask description]
+[] [subtask description]
+[] [subtask description]
+
+#### Blockers
+[List of blockers]
+
+#### Risks
+[List of risks]
 
 ---
 ```
@@ -175,7 +188,9 @@ Use only agents that are available in the project. There are examples of agents 
 | `code-review:code-reviewer` | Code review feedback | Code changes |
 | `code-review:bug-hunter` | Bug analysis reports | Bug fixes (code) |
 
-### General Agents (USE FOR EVERYTHING ELSE)
+## Model Selection Guide 
+
+Also can be used as general agents for any task, when you are unsure about the special agent to use.
 
 | Agent | When to Use | Examples |
 |-------|-------------|----------|
