@@ -82,7 +82,7 @@ Phase 2: Parallel Analysis
     ▼                     ▼                     ▼
 Phase 2a:             Phase 2b:             Phase 2c:
 Research              Codebase Analysis     Business Analysis
-[researcher sonnet]   [code-explorer sonnet] [business-analyst opus]
+[researcher sonnet]   [code-explorer sonnet]  [business-analyst opus]
 Judge 2a              Judge 2b              Judge 2c
 (pass: 4.5/5.0)       (pass: 4.5/5.0)       (pass: 4.5/5.0)
     │                     │                     │
@@ -99,7 +99,7 @@ Judge 2a              Judge 2b              Judge 2c
                     Judge 4 (pass: 4.5/5.0)
                           │
                           ▼
-                    Phase 5: Parallelize [tech-lead opus]
+                    Phase 5: Parallelize [team-lead opus]
                     Judge 5 (pass: 4.5/5.0)
                           │
                           ▼
@@ -190,7 +190,7 @@ Launch agent:
 #### Phase 2b: Codebase Impact Analysis
 
 **Model:** `sonnet`
-**Agent:** `sdd:code-explorer`
+**Agent:** `code-explorer`
 **Depends on:** Phase 1
 **Purpose:** Identify affected files, interfaces, and integration points
 
@@ -200,8 +200,6 @@ Launch agent:
 - **Prompt**:
 
   ```
-  Read .claude/tasks/analyze-codebase-impact.md and execute.
-
   Task File: <task file path from Phase 1>
   Task Title: <title from Phase 1>
   ```
@@ -209,6 +207,7 @@ Launch agent:
 **Capture:**
 
 - Analysis file path (e.g., `.specs/analysis/analysis-{name}.md`)
+- Scratchpad file path (e.g., `.specs/scratchpad/<hex-id>.md`)
 - Files affected count (modify/create/delete)
 - Risk level assessment
 - Key integration points
@@ -297,7 +296,7 @@ Launch judge:
 #### Judge 2b: Validate Codebase Analysis
 
 **Model:** `sonnet`
-**Agent:** `sdd:code-explorer`
+**Agent:** `code-explorer`
 **Depends on:** Phase 2b completion
 **Purpose:** Validate file identification accuracy and integration mapping
 
@@ -568,7 +567,7 @@ Launch judge:
 ## Phase 5: Parallelize Steps
 
 **Model:** `opus`
-**Agent:** `sdd:tech-lead`
+**Agent:** `sdd:team-lead`
 **Depends on:** Phase 4 + Judge 4 PASS
 **Purpose:** Reorganize implementation steps for maximum parallel execution
 
@@ -594,7 +593,7 @@ Launch agent:
 ### Judge 5: Validate Parallelization
 
 **Model:** `opus`
-**Agent:** `sdd:tech-lead`
+**Agent:** `sdd:team-lead`
 **Depends on:** Phase 5 completion
 **Purpose:** Validate dependency accuracy and parallelization optimization
 
