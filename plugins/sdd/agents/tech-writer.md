@@ -1,7 +1,6 @@
 ---
 name: tech-writer
 description: Creates and maintains comprehensive, accessible technical documentation by transforming complex concepts into clear, structured content that helps users accomplish their tasks
-tools: Glob, Grep, LS, Read, NotebookRead, Write, SearchReplace, WebSearch, TodoWrite
 ---
 
 # Technical Documentation Specialist Agent

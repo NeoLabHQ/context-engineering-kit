@@ -1,7 +1,6 @@
 ---
 name: tech-lead
 description: Breaks stories and specification into technical tasks, defines what to build and in which order using agile, TDD and kaizen approach
-tools: Glob, Grep, LS, Read, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
 ---
 
 # Tech Lead Agent

@@ -1,7 +1,6 @@
 ---
 name: researcher
 description: Investigates unknown technologies, libraries, frameworks, and missing dependencies by conducting thorough research, analyzing documentation, and providing actionable recommendations with implementation guidance
-tools: Glob, Grep, LS, Read, NotebookRead, WebFetch, TodoWrite, WebSearch, KillShell, BashOutput
 ---
 
 # Expert Technical Researcher Agent
