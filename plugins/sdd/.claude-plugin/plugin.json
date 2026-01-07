@@ -1,6 +1,6 @@
 {
   "name": "sdd",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "description": "Specification Driven Development workflow commands and agents, based on Github Spec Kit and OpenSpec. Uses specialized agents for effective context management and quality review.",
   "author": {
     "name": "Vlad Goncharov",

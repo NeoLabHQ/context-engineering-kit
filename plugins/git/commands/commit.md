@@ -7,21 +7,11 @@ allowed-tools: Bash(git status:*), Bash(git add:*), Bash(git diff:*), Bash(git c
 
 # Claude Command: Commit
 
-This command helps you create well-formatted commits with conventional commit messages and emoji.
+Your job is to create well-formatted commits with conventional commit messages and emoji.
 
-## Usage
+## Instructions
 
-To create a commit, just type:
-```
-/commit
-```
-
-Or with options:
-```
-/commit --no-verify
-```
-
-## What This Command Does
+CRITICAL: Perform the following steps exactly as described:
 
 1. **Branch check**: Checks if current branch is `master` or `main`. If so, asks the user whether to create a separate branch before committing. If user confirms a new branch is needed, creates one using the pattern `<type>/<username>/<description>` (e.g., `feature/leovs09/add-new-command`)
 2. Unless specified with `--no-verify`, automatically runs pre-commit checks like `pnpm lint` or simular depending on the project language.

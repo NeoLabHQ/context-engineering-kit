@@ -1,6 +1,6 @@
 {
   "name": "git",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Introduces commands for commit and PRs creation.",
   "author": {
     "name": "Vlad Goncharov",
