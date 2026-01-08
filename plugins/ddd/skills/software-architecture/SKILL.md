@@ -5,7 +5,7 @@ description: Guide for quality focused software architecture. This skill should 
 
 # Software Architecture Development Skill
 
-This skill provides guidence for quality focused software development and architecture. It is based on Clean Architecture and Domain Driven Design principles.
+This skill provides guidance for quality focused software development and architecture. It is based on Clean Architecture and Domain Driven Design principles.
 
 ## Code Style Rules
 
