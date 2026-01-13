@@ -3,13 +3,34 @@
     <img src="docs/assets/CEK-header.png" alt="Context Engineering Kit - advanced context engineering techniques" />
 </picture>
 
+<div align="center">
+
+[![License](https://img.shields.io/badge/license-GPL%203.0-blue.svg)](LICENSE)
+[![agentskills.io](https://img.shields.io/badge/format-agentskills.io-purple.svg)](https://agentskills.io)
 [![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
+
+[Install](#quick-start) · [Plugins](#plugins-list) · [Github Action](#usage-in-github-actions) · [Docs](https://cek.neolab.finance/)
+
+</div>
 
 # [Context Engineering Kit](https://cek.neolab.finance)
 
 Hand-crafted collection of advanced context engineering techniques and patterns with minimal token footprint, focused on improving agent result quality and predictability.
 
-The Claude Code plugin marketplace is based on prompts used daily by our company developers for a long time, while adding plugins from benchmarked papers and high-quality projects.
+Marketplace is based on prompts used daily by our company developers for a long time, while adding plugins from benchmarked papers and high-quality projects.
+
+## Supported Agents
+
+Universal support based on <agentskills.io> and [openskills](https://github.com/numman-ali/openskills) standards.
+
+| Agent | How it works | Status |
+|:------|:-------------|:------:|
+| **Claude Code** | Native plugin system | ✅ Native |
+| **Cursor** | openskills → AGENTS.md | ✅ Universal |
+| **Windsurf** | openskills → AGENTS.md | ✅ Universal |
+| **Cline** | openskills → AGENTS.md | ✅ Universal |
+| **OpenCode** | Native skill support | ✅ Native |
+| **Amp Code** | openskills → AGENTS.md | ✅ Universal |
 
 ## Key Features
 
@@ -21,23 +42,17 @@ The Claude Code plugin marketplace is based on prompts used daily by our company
 
 ## Quick Start
 
-### Step 1: Add the Marketplace
+### Step 1: Install Marketplaces and Plugin
 
-Open Claude Code
+#### Claude Code
 
-```bash
-claude
-```
-
-Add the Context Engineering Kit marketplace
+Open Claude Code and add the Context Engineering Kit marketplace
 
 ```bash
 /plugin marketplace add NeoLabHQ/context-engineering-kit
 ```
 
 This makes all plugins available for installation, but does not load any agents or skills into your context.
-
-### Step 2: Install Plugin
 
 Install any plugins, for example reflexion
 
@@ -47,7 +62,16 @@ Install any plugins, for example reflexion
 
 Each installed plugin loads only its specific agents, commands, and skills into Claude's context.
 
-### Step 3: Use Plugin
+#### Cursor, Windsurf, Cline, OpenCode, and anything that reads AGENTS.md file
+
+Uses [OpenSkills](https://github.com/numman-ali/openskills) to install marketplace into project.
+
+```bash
+npx openskills install NeoLabHQ/context-engineering-kit
+npx openskills sync
+```
+
+### Step 2: Use Plugin
 
 ```bash
 > claude "implement user authentication"
@@ -77,14 +101,6 @@ In order to use this hook, need to have `bun` installed. But for overral command
 ## Documentation
 
 You can find the complete Context Engineering Kit documentation [here](https://cek.neolab.finance).
-
-## Update Marketplace
-
-To get the latest plugin listings and updates from the marketplace:
-
-```bash
-/plugin marketplace update NeoLabHQ/context-engineering-kit
-```
 
 ## Plugins List
 
