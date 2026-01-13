@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
 # Context Engineering Kit - Commands Installer
 # 
-# Install for Cursor (default):
-#   curl -fsSL https://raw.githubusercontent.com/neolab-io/context-engineering-kit/main/.bin/install-commands.sh | bash
+# Install for Cursor (default, project-level):
+#   curl -fsSL https://raw.githubusercontent.com/NeoLabHQ/context-engineering-kit/main/.bin/install-commands.sh | bash
+#
+# Install for Cursor globally (user-level):
+#   curl -fsSL https://raw.githubusercontent.com/NeoLabHQ/context-engineering-kit/main/.bin/install-commands.sh | bash -s -- --global
 #
 # Install for OpenCode:
-#   curl -fsSL https://raw.githubusercontent.com/neolab-io/context-engineering-kit/main/.bin/install-commands.sh | bash -s -- --agent opencode
+#   curl -fsSL https://raw.githubusercontent.com/NeoLabHQ/context-engineering-kit/main/.bin/install-commands.sh | bash -s -- --agent opencode
 #
-# Install for Claude Code:
-#   curl -fsSL https://raw.githubusercontent.com/neolab-io/context-engineering-kit/main/.bin/install-commands.sh | bash -s -- --agent claude
+# Install for OpenCode globally:
+#   curl -fsSL https://raw.githubusercontent.com/NeoLabHQ/context-engineering-kit/main/.bin/install-commands.sh | bash -s -- --agent opencode --global
 #
 # This script downloads all plugin commands from the Context Engineering Kit
 # and installs them to the appropriate commands directory.
@@ -16,13 +19,16 @@
 set -euo pipefail
 
 # Configuration
-REPO_OWNER="neolab-io"
+REPO_OWNER="NeoLabHQ"
 REPO_NAME="context-engineering-kit"
 BRANCH="master"
-BASE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/${BRANCH}"
+BASE_URL="https://raw.githubusercontent.com/${REPO_OWNER}/${REPO_NAME}/refs/heads/${BRANCH}"
 
 # Default agent
 AGENT="cursor"
+
+# Global installation flag
+GLOBAL=false
 
 # Colors for output
 RED='\033[0;31m'
@@ -41,11 +47,21 @@ error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
 # Agent configurations
 # Format: install_dir:display_name
 declare -A AGENT_CONFIG=(
-    ["cursor"]=".cursor/commands:Cursor"
+    ["cursor"]=".claude/commands:Cursor" # Cursor uses claude code commands folder by some reason
     ["opencode"]=".opencode/commands:OpenCode"
     ["claude"]=".claude/commands:Claude Code"
     ["windsurf"]=".windsurf/commands:Windsurf"
     ["cline"]=".cline/commands:Cline"
+)
+
+# Global agent configurations (user-level installation)
+# Format: install_dir:display_name
+declare -A AGENT_CONFIG_GLOBAL=(
+    ["cursor"]="${HOME}/.cursor/commands:Cursor (global)"
+    ["opencode"]="${HOME}/.config/opencode/command:OpenCode (global)"
+    ["claude"]="${HOME}/.claude/commands:Claude Code (global)"
+    ["windsurf"]="${HOME}/.windsurf/commands:Windsurf (global)"
+    ["cline"]="${HOME}/.cline/commands:Cline (global)"
 )
 
 # Show help
@@ -59,24 +75,30 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  -a, --agent <name>    Target agent/IDE (default: cursor)"
-    echo "  -d, --dir <path>      Custom install directory (overrides --agent)"
+    echo "  -g, --global          Install to user-level directory (e.g., ~/.cursor/commands)"
+    echo "  -d, --dir <path>      Custom install directory (overrides --agent and --global)"
     echo "  -l, --list            List available agents"
     echo "  -h, --help            Show this help message"
     echo ""
     echo "Supported agents:"
     for agent in "${!AGENT_CONFIG[@]}"; do
         local config="${AGENT_CONFIG[$agent]}"
+        local global_config="${AGENT_CONFIG_GLOBAL[$agent]}"
         local dir="${config%%:*}"
+        local global_dir="${global_config%%:*}"
         local name="${config#*:}"
-        printf "  %-12s → %s (%s)\n" "$agent" "$dir" "$name"
+        printf "  %-12s → %s (global: %s)\n" "$agent" "$dir" "$global_dir"
     done | sort
     echo ""
     echo "Examples:"
-    echo "  # Install for Cursor (default)"
+    echo "  # Install for Cursor (default, project-level)"
     echo "  curl -fsSL <url> | bash"
     echo ""
-    echo "  # Install for OpenCode"
-    echo "  curl -fsSL <url> | bash -s -- --agent opencode"
+    echo "  # Install for Cursor globally (user-level)"
+    echo "  curl -fsSL <url> | bash -s -- --global"
+    echo ""
+    echo "  # Install for OpenCode globally"
+    echo "  curl -fsSL <url> | bash -s -- --agent opencode --global"
     echo ""
     echo "  # Install to custom directory"
     echo "  curl -fsSL <url> | bash -s -- --dir ./my-commands"
@@ -88,12 +110,17 @@ list_agents() {
     echo ""
     echo "Available agents:"
     echo ""
-    for agent in "${!AGENT_CONFIG[@]}"; do
+    # Sort agent names first, then iterate
+    local sorted_agents
+    sorted_agents=$(printf '%s\n' "${!AGENT_CONFIG[@]}" | sort)
+    while IFS= read -r agent; do
         local config="${AGENT_CONFIG[$agent]}"
+        local global_config="${AGENT_CONFIG_GLOBAL[$agent]}"
         local dir="${config%%:*}"
-        local name="${config#*:}"
-        printf "  ${CYAN}%-12s${NC} → %s (%s)\n" "$agent" "$dir" "$name"
-    done | sort
+        local global_dir="${global_config%%:*}"
+        printf "  ${CYAN}%-12s${NC} → %s\n" "$agent" "$dir"
+        printf "               --global: %s\n" "$global_dir"
+    done <<< "$sorted_agents"
     echo ""
 }
 
@@ -104,6 +131,10 @@ parse_args() {
             -a|--agent)
                 AGENT="$2"
                 shift 2
+                ;;
+            -g|--global)
+                GLOBAL=true
+                shift
                 ;;
             -d|--dir)
                 CUSTOM_DIR="$2"
@@ -140,7 +171,12 @@ get_install_dir() {
         exit 1
     fi
     
-    local config="${AGENT_CONFIG[$AGENT]}"
+    local config
+    if [[ "$GLOBAL" == true ]]; then
+        config="${AGENT_CONFIG_GLOBAL[$AGENT]}"
+    else
+        config="${AGENT_CONFIG[$AGENT]}"
+    fi
     echo "${config%%:*}"
 }
 
@@ -151,33 +187,13 @@ get_agent_name() {
         return
     fi
     
-    local config="${AGENT_CONFIG[$AGENT]}"
+    local config
+    if [[ "$GLOBAL" == true ]]; then
+        config="${AGENT_CONFIG_GLOBAL[$AGENT]}"
+    else
+        config="${AGENT_CONFIG[$AGENT]}"
+    fi
     echo "${config#*:}"
-}
-
-# Check for required tools
-check_requirements() {
-    if command -v curl >/dev/null 2>&1; then
-        DOWNLOADER="curl"
-    elif command -v wget >/dev/null 2>&1; then
-        DOWNLOADER="wget"
-    else
-        error "curl or wget is required but not installed."
-        exit 1
-    fi
-    info "Using $DOWNLOADER for downloads"
-}
-
-# Download a file
-download() {
-    local url="$1"
-    local output="$2"
-    
-    if [ "$DOWNLOADER" = "curl" ]; then
-        curl -fsSL "$url" -o "$output" 2>/dev/null
-    else
-        wget -q "$url" -O "$output" 2>/dev/null
-    fi
 }
 
 # Plugin definitions with their commands
@@ -198,6 +214,17 @@ PLUGINS=(
     "tech-stack:add-typescript-best-practices"
 )
 
+CURSOR_PLUGINS=(
+    "customaize-agent:apply-anthropic-skill-best-practices,create-agent,create-command,create-hook,create-skill,create-workflow-command"
+    "ddd:setup-code-formating"
+    "docs:update-docs"
+    "git:analyze-issue,attach-review-to-pr,commit,create-pr,load-issues"
+    "kaizen:analyse-problem,analyse,cause-and-effect,plan-do-check-act,root-cause-tracing,why"
+    "reflexion:critique,memorize,reflect"
+    "tech-stack:add-typescript-best-practices"
+)
+
+
 # Main installation function
 install_commands() {
     local install_dir
@@ -213,7 +240,6 @@ install_commands() {
     echo ""
     
     info "Target: ${agent_name}"
-    check_requirements
     
     # Create installation directory
     mkdir -p "$install_dir"
@@ -224,7 +250,15 @@ install_commands() {
     local installed_commands=0
     local failed_commands=0
     
-    for plugin_entry in "${PLUGINS[@]}"; do
+    # Select plugins array based on agent
+    local plugins_to_install
+    if [[ "$AGENT" == "cursor" ]]; then
+        plugins_to_install=("${CURSOR_PLUGINS[@]}")
+    else
+        plugins_to_install=("${PLUGINS[@]}")
+    fi
+    
+    for plugin_entry in "${plugins_to_install[@]}"; do
         # Parse plugin name and commands
         local plugin_name="${plugin_entry%%:*}"
         local commands_str="${plugin_entry#*:}"
@@ -235,18 +269,18 @@ install_commands() {
         IFS=',' read -ra commands <<< "$commands_str"
         
         for cmd in "${commands[@]}"; do
-            ((total_commands++))
-            
+            total_commands=$((total_commands + 1))
+
             local source_url="${BASE_URL}/plugins/${plugin_name}/commands/${cmd}.md"
-            local target_file="${install_dir}/${plugin_name}-${cmd}.md"
+            local target_file="${install_dir}/${cmd}.md"
             
-            if download "$source_url" "$target_file"; then
+            if curl -fsSL "$source_url" -o "$target_file"; then
                 success "  ✓ ${plugin_name}:${cmd}"
-                ((installed_commands++))
+                installed_commands=$((installed_commands + 1))
             else
-                warn "  ✗ ${plugin_name}:${cmd} (failed to download)"
-                ((failed_commands++))
-                rm -f "$target_file" 2>/dev/null || true
+                warn "  ✗ ${plugin_name}:${cmd} - failed to download"
+                failed_commands=$((failed_commands + 1))
+                rm -f "$target_file" || true
             fi
         done
     done
