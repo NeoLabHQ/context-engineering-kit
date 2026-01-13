@@ -64,7 +64,7 @@ Each installed plugin loads only its specific agents, commands, and skills into 
 
 #### Cursor, Windsurf, Cline, OpenCode
 
-Command installation available for agents that support them:
+Commands installation is available for Cursor and OpenCode:
 
 <details>
 <summary>Cursor</summary>
