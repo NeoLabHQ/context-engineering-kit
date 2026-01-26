@@ -101,7 +101,7 @@ Specify where results should be written:
 /launch-sub-agent "Implement the payment flow" --agent developer --model opus --output src/services/payment.ts
 ```
 
-#### Core design principles:
+#### Core design principles
 
 - **Context isolation**: Sub-agents operate with fresh context, preventing confirmation bias and attention scarcity
 - **Intelligent model selection**: Match model capability to task complexity for optimal quality/cost tradeoff
@@ -109,14 +109,14 @@ Specify where results should be written:
 - **Zero-shot CoT**: Systematic reasoning at task start improves quality by 20-60%
 - **Self-critique**: Verification loop catches 40-60% of issues before delivery
 
-#### When to use this command:
+#### When to use this command
 
 - Tasks that benefit from fresh, focused context
 - Tasks where model selection matters (quality vs. cost tradeoffs)
 - Delegating work while maintaining quality gates
 - Single, well-defined tasks with clear deliverables
 
-#### When NOT to use:
+#### When NOT to use
 
 - Simple tasks you can complete directly (overhead not justified)
 - Tasks requiring conversation history or accumulated session context
@@ -141,6 +141,81 @@ Specify where results should be written:
 - Fresh context prevents accumulated confusion and attention scarcity
 - Focused tasks produce better results than context-polluted sessions
 - Supervisor pattern enables quality gates between delegated work
+
+### /do-and-judge
+
+Execute a single task with implementation sub-agent, independent judge verification, and automatic retry loop until passing or max retries exceeded.
+
+- Purpose - Execute a single task with quality verification and feedback-driven iteration
+- Pattern - Implement → Judge → Iterate (if needed) → Report
+- Output - Verified implementation with judge scores and improvement suggestions
+- Quality - Two-layer verification: self-critique (internal) + LLM-as-a-judge (external)
+- Iteration - Retry with judge feedback until passing (≥3.5/5.0) or max retries (2)
+
+#### Pattern: Single-Task Execution with Judge Verification
+
+```
+Phase 1: Task Analysis and Model Selection
+         Complexity + Risk + Scope → Model Selection
+                     │
+Phase 2: Dispatch Implementation Agent
+         [CoT Prefix] + [Task Body] + [Self-Critique Suffix]
+                     │
+Phase 3: Dispatch Judge Agent
+         Independent verification with structured criteria
+                     │
+Phase 4: Parse Verdict and Iterate
+         ├─ PASS (≥3.5) → Report Success
+         └─ FAIL (<3.5) → Retry with Feedback (max 2)
+                            └─ Return to Phase 3
+                     │
+Phase 5: Final Report or Escalation
+         Success summary OR escalate to user after max retries
+```
+
+#### Usage
+
+```bash
+# Basic usage
+/do-and-judge "Refactor the UserService class to use dependency injection"
+
+# Complex implementation
+/do-and-judge "Implement rate limiting middleware with configurable limits per endpoint"
+
+# Architecture change
+/do-and-judge "Extract validation logic from UserController into separate UserValidator class"
+```
+
+#### When to Use
+
+**Good use cases:**
+
+- Single, well-defined tasks that benefit from quality verification
+- Changes that should meet a quality threshold before shipping
+- Tasks where feedback-driven iteration improves results
+- Any implementation where you want an independent quality gate
+
+**Do NOT use when:**
+
+- Multi-step tasks with dependencies → use `/do-in-steps` instead
+- Independent parallel tasks → use `/do-in-parallel` instead
+- High-stakes tasks needing multiple approaches → use `/do-competitively` instead
+- Simple tasks where verification overhead isn't justified → use `/launch-sub-agent` instead
+
+#### Quality Enhancement Techniques
+
+| Phase | Technique | Benefit |
+|-------|-----------|---------|
+| **Phase 2** | Zero-shot CoT | Systematic reasoning improves quality by 20-60% |
+| **Phase 2** | Self-Critique | Implementation agents verify own work before submission |
+| **Phase 3** | LLM-as-a-Judge | Independent judge catches blind spots self-critique misses |
+| **Phase 4** | Feedback Loop | Retry with specific issues until passing or max retries |
+
+#### Theoretical Foundation
+
+- **[Chain-of-Thought Prompting](https://arxiv.org/abs/2201.11903)** (Wei et al., 2022) - Step-by-step reasoning improves accuracy
+- **[Constitutional AI](https://arxiv.org/abs/2212.08073)** (Bai et al., 2022) - Self-critique loops before submission
+- **[LLM-as-a-Judge](https://arxiv.org/abs/2306.05685)** (Zheng et al., 2023) - Independent evaluation with structured rubrics
 
 ### /do-in-parallel
 
@@ -213,6 +288,7 @@ Phase 6: Collect and Summarize Results
 #### When to Use
 
 **Good use cases:**
+
 - Same operation across multiple files (refactoring, formatting)
 - Independent transformations (each file stands alone)
 - Batch documentation generation (API docs per module)
@@ -220,6 +296,7 @@ Phase 6: Collect and Summarize Results
 - Multi-file code generation (tests per service)
 
 **Do NOT use when:**
+
 - Only one target → use `/launch-sub-agent` instead
 - Targets have dependencies → use `/do-in-steps` instead
 - Tasks require sequential ordering → use `/do-in-steps` instead
@@ -236,29 +313,57 @@ Phase 6: Collect and Summarize Results
 #### Theoretical Foundation
 
 **Zero-shot Chain-of-Thought** (Kojima et al., 2022)
+
 - "Let's think step by step" improves reasoning by 20-60%
 - Applied to each parallel agent independently
 - Reference: [Large Language Models are Zero-Shot Reasoners](https://arxiv.org/abs/2205.11916)
 
 **Constitutional AI / Self-Critique** (Bai et al., 2022)
+
 - Each agent self-verifies before completing
 - Catches issues without coordinator overhead
 - Reference: [Constitutional AI](https://arxiv.org/abs/2212.08073)
 
 **Multi-Agent Context Isolation** (Multi-agent architecture patterns)
+
 - Fresh context prevents accumulated confusion
 - Focused tasks produce better results than context-polluted sessions
 - Reference: [Multi-Agent Debate](https://arxiv.org/abs/2305.14325) (Du et al., 2023)
 
 ### /do-in-steps
 
-Execute complex tasks through sequential sub-agent orchestration with automatic decomposition, intelligent model selection, context passing between steps, and mandatory self-critique verification.
+Execute complex tasks through sequential sub-agent orchestration with intelligent model selection and LLM-as-a-judge verification.
 
 - Purpose - Execute dependent tasks sequentially where each step builds on previous outputs
-- Pattern - Supervisor/Orchestrator with sequential dispatch and context accumulation
-- Output - Comprehensive report with all step results and integration summary
-- Quality - Enhanced with Zero-shot CoT, Constitutional AI self-critique, and per-step model optimization
-- Key Benefit - Prevents context pollution while maintaining necessary continuity between dependent steps
+- Pattern - Supervisor/Orchestrator with sequential dispatch, judge verification, and iteration loop
+- Output - Comprehensive report with all step results, judge scores, and integration summary
+- Quality - Two-layer verification: self-critique (internal) + LLM-as-a-judge (external) with iteration until passing
+- Key Benefit - Prevents context pollution while ensuring quality through independent verification
+
+#### Pattern: Sequential Orchestration with Judge Verification
+
+```
+Phase 1: Task Analysis and Decomposition
+         Task → Identify Dependencies → Define Step Boundaries
+                     │
+Phase 2: Model Selection
+         For each step: Assess Complexity + Scope + Risk → Select Model
+                     │
+Phase 3: Sequential Execution with Judge Verification
+         ┌─────────────────────────────────────────────────────────────┐
+         │ For each Step N:                                           │
+         │   Implementer → Self-Critique → Judge → Parse Verdict      │
+         │        ▲                                    │               │
+         │        │                                    ▼               │
+         │        │                         PASS (≥3.5)? → Next Step  │
+         │        │                         FAIL? → Retry (max 2)     │
+         │        └──────── feedback ───────┘         or Escalate     │
+         └─────────────────────────────────────────────────────────────┘
+         Step 1 → Judge ✓ → Step 2 → Judge ✓ → Step 3 → Judge ✓ → ...
+                     │
+Phase 4: Final Summary and Report
+         Aggregate results, judge scores, files modified, decisions made
+```
 
 #### Usage
 
@@ -271,91 +376,40 @@ Execute complex tasks through sequential sub-agent orchestration with automatic 
 
 # Multi-file refactoring with breaking changes
 /do-in-steps "Rename 'userId' to 'accountId' across the codebase - affects interfaces, implementations, and callers"
-
-# With output specification
-/do-in-steps "Refactor UserService class and update all consumers" --output "src/services/"
-```
-
-#### Pattern: Sequential Orchestration with Context Passing
-
-This command implements a four-phase sequential orchestration pattern:
-
-```
-Phase 1: Task Analysis and Decomposition
-         ┌─ Task Understanding ───────────────────────┐
-         │ "What is the overall objective?"           │
-         ├─ Identify Natural Boundaries ──────────────┤
-         │ Database → Interface → Implementation →    │
-         │ Integration → Testing → Documentation      │
-         ├─ Dependency Identification ────────────────┤
-         │ "What must happen before what?"            │
-         └─ Define Clear Boundaries ──────────────────┘
-                     │
-                     ▼
-         Decomposition Output:
-         | Step | Subtask | Depends On | Complexity | Output |
-         |------|---------|------------|------------|--------|
-         | 1    | ...     | -          | High       | ...    |
-         | 2    | ...     | Step 1     | Medium     | ...    |
-         | 3    | ...     | Steps 1,2  | Low        | ...    |
-                     │
-Phase 2: Model Selection for Each Subtask
-         For each step: Assess Complexity + Scope + Risk
-                     │
-         | Step | Model  | Agent     | Rationale              |
-         |------|--------|-----------|------------------------|
-         | 1    | opus   | developer | High risk, core change |
-         | 2    | sonnet | developer | Medium, follows pattern|
-         | 3    | haiku  | -         | Simple transformation  |
-                     │
-Phase 3: Sequential Execution with Context Passing
-         Step 1 ──→ Context 1 ──→ Step 2 ──→ Context 1+2 ──→ Step 3 ──→ ...
-           │                        │                          │
-           ▼                        ▼                          ▼
-         [Sub-agent]            [Sub-agent]              [Sub-agent]
-         Fresh context          + Step 1 context         + Steps 1,2 context
-                     │
-Phase 4: Final Summary and Report
-         Aggregate all step results, files modified, decisions made
 ```
 
 #### When to Use
 
 **Good use cases:**
+
 - Changes that cascade through multiple files/layers
 - Interface modifications with consumers to update
 - Feature additions spanning multiple components
-- Bug fixes with rippling effects
 - Refactoring with dependency chains
 - Any task where "Step N depends on Step N-1"
 
 **Do NOT use when:**
+
 - Independent tasks that could run in parallel → use `/do-in-parallel`
 - Single-step tasks → use `/launch-sub-agent`
 - Tasks needing exploration before commitment → use `/tree-of-thoughts`
 - High-stakes tasks needing multiple approaches → use `/do-competitively`
 
+#### Quality Enhancement Techniques
+
+| Phase | Technique | Benefit |
+|-------|-----------|---------|
+| **Phase 3** | Self-Critique | Implementation agents verify own work before submission, catching 40-60% of issues |
+| **Phase 3** | LLM-as-a-Judge | Independent judge verifies each step, catching blind spots self-critique misses |
+| **Phase 3** | Iteration Loop | Failed steps retry with judge feedback until passing (max 2 retries) or escalate |
+| **Phase 3** | Context Passing | Each step receives summary of previous outputs without full context pollution |
+
 #### Theoretical Foundation
 
-**Chain-of-Thought Prompting** (Wei et al., 2022)
-- Step-by-step reasoning improves task completion accuracy by 20-60%
-- Applied to both decomposition and sub-agent execution
-- Reference: [Chain-of-Thought Prompting](https://arxiv.org/abs/2201.11903)
-
-**Zero-shot Chain of Thought** (Kojima et al., 2022)
-- "Let's think step by step" triggers systematic reasoning without examples
-- Reference: [Large Language Models are Zero-Shot Reasoners](https://arxiv.org/abs/2205.11916)
-
-**Constitutional AI / Self-Critique** (Bai et al., 2022)
-- Self-critique loops catch 40-60% of issues before delivery
-- Each sub-agent verifies integration with previous steps
-- Reference: [Constitutional AI](https://arxiv.org/abs/2212.08073)
-
-**Multi-Agent Context Isolation** (Du et al., 2023)
-- Fresh context per sub-agent prevents accumulated confusion
-- Context passing maintains necessary continuity without pollution
-- Reference: [Multi-Agent Debate](https://arxiv.org/abs/2305.14325)
-
+- **[Chain-of-Thought Prompting](https://arxiv.org/abs/2201.11903)** (Wei et al., 2022) - Step-by-step reasoning improves accuracy
+- **[Constitutional AI](https://arxiv.org/abs/2212.08073)** (Bai et al., 2022) - Self-critique loops before submission
+- **[LLM-as-a-Judge](https://arxiv.org/abs/2306.05685)** (Zheng et al., 2023) - Independent evaluation with structured rubrics
+- **[Multi-Agent Debate](https://arxiv.org/abs/2305.14325)** (Du et al., 2023) - Fresh context prevents accumulated confusion
 
 ### do-competitively - Competitive Multi-Agent Synthesis
 
@@ -367,7 +421,7 @@ Execute tasks through competitive generation, multi-judge evaluation, and eviden
 - Quality - Enhanced with Constitutional AI self-critique, Chain of Verification, and intelligent strategy selection
 - Efficiency - 15-20% average cost savings through adaptive strategy (polish clear winners, redesign failures)
 
-## Pattern: Generate-Critique-Synthesize (GCS)
+#### Pattern: Generate-Critique-Synthesize (GCS)
 
 This command implements a four-phase adaptive competitive orchestration pattern with quality enhancement loops:
 
@@ -426,7 +480,6 @@ Do NOT use when:
 #### Quality Enhancement Techniques
 
 Techniques that were used to enhance the quality of the competitive execution pattern.
-
 
 | Phase         | Technique                       | Benefit                                                                                                              |
 | --------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
@@ -534,7 +587,6 @@ Phase 5: Synthesis (Only if FULL_SYNTHESIS)           │
 
 #### Quality Enhancement Techniques
 
-
 | Phase         | Technique                   | Benefit                                                                         |
 | --------------- | ----------------------------- | --------------------------------------------------------------------------------- |
 | **Phase 1**   | Probabilistic Sampling      | Explorers generate approaches with probability estimates, encouraging diversity |
@@ -628,7 +680,6 @@ Phase 2: Debate Round (iterative)   │
 - Evaluation criteria are purely mechanical (linting, formatting)
 
 #### Quality Enhancement Techniques
-
 
 | Phase         | Technique                | Benefit                                                                                            |
 | --------------- | -------------------------- | ---------------------------------------------------------------------------------------------------- |
@@ -760,7 +811,6 @@ Phase 3: Validation & Report
 
 #### Default Evaluation Criteria
 
-
 | Criterion             | Weight | What It Measures                                                  |
 | ----------------------- | -------- | ------------------------------------------------------------------- |
 | Instruction Following | 0.30   | Does output fulfill original request? All requirements addressed? |
@@ -771,7 +821,6 @@ Phase 3: Validation & Report
 
 #### Scoring Interpretation
 
-
 | Score Range | Verdict           | Recommendation              |
 | ------------- | ------------------- | ----------------------------- |
 | 4.50 - 5.00 | EXCELLENT         | Ready as-is                 |
@@ -781,7 +830,6 @@ Phase 3: Validation & Report
 | 1.00 - 2.99 | INSUFFICIENT      | Significant rework needed   |
 
 #### Quality Enhancement Techniques
-
 
 | Technique                | Benefit                                                                                |
 | -------------------------- | ---------------------------------------------------------------------------------------- |
@@ -951,7 +999,6 @@ For multiple unrelated failures (different files, subsystems, bugs):
 
 Quality gates are enforced at key checkpoints:
 
-
 | Checkpoint                   | Gate Type            | Action on Failure           |
 | ------------------------------ | ---------------------- | ----------------------------- |
 | After each task (sequential) | Code review          | Fix issues before next task |
@@ -971,7 +1018,6 @@ Use when single-agent context limits are exceeded, when tasks decompose naturall
 
 **Why Multi-Agent Architectures:**
 
-
 | Problem                   | Solution                                       |
 | --------------------------- | ------------------------------------------------ |
 | **Context Bottleneck**    | Partition work across multiple context windows |
@@ -979,7 +1025,6 @@ Use when single-agent context limits are exceeded, when tasks decompose naturall
 | **Generalist Overhead**   | Specialize agents with lean, focused context   |
 
 **Architecture Patterns:**
-
 
 | Pattern                     | When to Use                                    | Trade-offs                                    |
 | ----------------------------- | ------------------------------------------------ | ----------------------------------------------- |

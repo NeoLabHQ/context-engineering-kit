@@ -1,6 +1,6 @@
 {
   "name": "sadd",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Introduces skills for subagent-driven development, dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.",
   "author": {
     "name": "Vlad Goncharov",

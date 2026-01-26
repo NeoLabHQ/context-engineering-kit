@@ -264,6 +264,7 @@ Optional agent name (kebab-case) and description of the agent's purpose.
 | `color` | Yes | blue/cyan/green/yellow/magenta/red | `blue` |
 | `tools` | No | Array of tool names | `["Read", "Grep"]` |
 
+
 ---
 
 ### /customaize-agent:create-skill - Skill Development Guide

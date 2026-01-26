@@ -79,6 +79,7 @@ Execution framework for parallel/sequential task dispatch, competitive generatio
 #### Execution Commands
 
 - `/sadd:launch-sub-agent` - Launch focused sub-agents with intelligent model selection, Zero-shot CoT reasoning, and self-critique verification
+- `/sadd:do-and-judge` - Execute a single task with implementation sub-agent, independent judge verification, and automatic retry loop until passing
 - `/sadd:do-in-parallel` - Execute the same task across multiple independent targets in parallel with context isolation
 - `/sadd:do-in-steps` - Execute complex tasks through sequential sub-agent orchestration with automatic decomposition and context passing
 - `/sadd:do-competitively` - Execute tasks through competitive generation, multi-judge evaluation, and evidence-based synthesis to produce superior results
