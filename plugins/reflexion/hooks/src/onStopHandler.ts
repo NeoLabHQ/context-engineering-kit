@@ -1,7 +1,7 @@
 import { UserPromptSubmitPayload, type StopHandler } from "./lib"
 
 const TRIGGER_WORD = "reflect"
-const DEFAULT_REFLECT_PROMPT = "You MUST use SlashCommand tool to execute the command /reflexion:reflect"
+const DEFAULT_REFLECT_PROMPT = "You MUST use Skill tool to execute the command /reflexion:reflect"
 
 /**
  * Stop handler - called when Claude stops

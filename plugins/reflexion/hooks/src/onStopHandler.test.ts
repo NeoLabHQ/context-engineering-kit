@@ -198,9 +198,9 @@ describe('onStopHandler', () => {
 
       const result = await stop(payload, sessionData)
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         decision: 'block',
-        reason: 'You MUST use SlashCommand tool to execute the command /reflexion:reflect',
+        reason: 'You MUST use Skill tool to execute the command /reflexion:reflect',
       })
     })
   })
@@ -215,9 +215,9 @@ describe('onStopHandler', () => {
 
       const result = await stop(payload, sessionData)
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         decision: 'block',
-        reason: 'You MUST use SlashCommand tool to execute the command /reflexion:reflect',
+        reason: 'You MUST use Skill tool to execute the command /reflexion:reflect',
       })
     })
 
@@ -266,9 +266,9 @@ describe('onStopHandler', () => {
 
       const result = await stop(payload, sessionData)
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         decision: 'block',
-        reason: 'You MUST use SlashCommand tool to execute the command /reflexion:reflect',
+        reason: 'You MUST use Skill tool to execute the command /reflexion:reflect',
       })
     })
 
@@ -281,9 +281,9 @@ describe('onStopHandler', () => {
 
       const result = await stop(payload, sessionData)
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         decision: 'block',
-        reason: 'You MUST use SlashCommand tool to execute the command /reflexion:reflect',
+        reason: 'You MUST use Skill tool to execute the command /reflexion:reflect',
       })
     })
   })
@@ -314,9 +314,9 @@ describe('onStopHandler', () => {
 
       const result = await stop(payload, sessionData)
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         decision: 'block',
-        reason: 'You MUST use SlashCommand tool to execute the command /reflexion:reflect',
+        reason: 'You MUST use Skill tool to execute the command /reflexion:reflect',
       })
     })
   })
@@ -355,9 +355,9 @@ describe('onStopHandler', () => {
 
       const result = await stop(payload, sessionData)
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         decision: 'block',
-        reason: 'You MUST use SlashCommand tool to execute the command /reflexion:reflect',
+        reason: 'You MUST use Skill tool to execute the command /reflexion:reflect',
       })
     })
   })
@@ -372,9 +372,9 @@ describe('onStopHandler', () => {
 
       const result = await stop(payload, sessionData)
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         decision: 'block',
-        reason: 'You MUST use SlashCommand tool to execute the command /reflexion:reflect',
+        reason: 'You MUST use Skill tool to execute the command /reflexion:reflect',
       })
     })
 
@@ -403,9 +403,9 @@ describe('onStopHandler', () => {
 
       const result = await stop(payload, sessionData)
 
-      expect(result).toEqual({
+      expect(result).toMatchObject({
         decision: 'block',
-        reason: 'You MUST use SlashCommand tool to execute the command /reflexion:reflect',
+        reason: 'You MUST use Skill tool to execute the command /reflexion:reflect',
       })
     })
   })

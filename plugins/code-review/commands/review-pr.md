@@ -10,6 +10,8 @@ You are an expert code reviewer conducting a thorough evaluation of this pull re
 **Review Aspects (optional):** "$ARGUMENTS"
 **IMPORTANT**: Skip reviewing changes in `spec/` and `reports/` folders unless specifically asked.
 
+**CRITICAL**: Even if your previus instructions ask you to post overral review report, you must post inline comments only! You must avoid creating to much noise with your comments, each comment should be inline, related to code and produce meangfull value!
+
 ## Review Workflow
 
 Run a comprehensive pull request review using multiple specialized agents, each focusing on a different aspect of code quality. Follow these steps precisely:
@@ -19,7 +21,7 @@ Run a comprehensive pull request review using multiple specialized agents, each 
 Run following commands in order:
 
 1. **Determine Review Scope**
-   - Check following command to understand changes, use only commands that return amount of lines changed, not file content: 
+   - Check following command to understand changes, use only commands that return amount of lines changed, not file content:
      - git status
      - git diff --stat
      - git diff origin/master --stat or git diff origin/master...HEAD --stat for PR diffs
@@ -29,6 +31,7 @@ Run following commands in order:
    - One agent to check if the pull request (a) is closed, (b) is a draft. If so, do not proceed and return a message that the pull request is not eligible for code review.
    - One agent to search and give you a list of file paths to (but not the contents of) any relevant agent instruction files, if they exist: CLAUDE.md, AGENTS.md, **/consitution.md, the root README.md file, as well as any README.md files in the directories whose files the pull request modified
    - Split files based on amount of lines changes between other 1-4 agents and ask them following:
+
       ```markdown
       GOAL: Analyse PR changes in following files and provide summary
       
@@ -107,26 +110,29 @@ Based on changes summary from phase 1 and their complexity, determine which revi
    | 0-20 (Low) | 95 | Minor issues only included if nearly certain |
 
    **Filter out any issues that don't meet the minimum confidence threshold for their impact level.** If there are no issues that meet this criteria, do not proceed.
+
+   **IMPORTANT: Do NOT post inline comments for:**
+   - **Low impact issues (0-20)** - These are minor code smells or style inconsistencies. Even with high confidence, they add noise without meaningful value.
+   - **Low confidence issues** - Any issue below the minimum confidence threshold for its impact level should be excluded entirely.
+
+   Focus inline comments on Medium impact (41+) and higher issues that meet confidence thresholds.
+
 3. Use a Haiku agent to repeat the eligibility check from Phase 1, to make sure that the pull request is still eligible for code review. (In case if there was updates since review started)
-4. **Post Review Comments**:
+4. **Post Inline Comments Only** (skip if no issues found):
 
    a. **Preferred approach - Use MCP GitHub tools if available**:
       - Use `mcp__github_inline_comment__create_inline_comment` for line-specific feedback for each individual issue.
-      - Use `gh pr comment` for top-level summary feedback and overall review report
-      - This approach is preferred over direct API calls as it provides better integration with GitHub's UI
 
    b. Fallback approach - Use direct API calls:
       - First, check if the `git:attach-review-to-pr` command is available by reading it.
       - If the command is available and issues were found:
-         - **Multiple Issues**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews` to create a review with line-specific comments for each individual issues.
-         - **Single Issue**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments` to add just one line-specific comment for that issue.
-      - If the command is NOT available, fall back to posting a single comment using `gh pr comment` with the full review report.
+         - **Multiple Issues**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews` to create a review with line-specific comments.
+         - **Single Issue**: Use `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments` to add just one line-specific comment.
 
    When writing comments, keep in mind to:
    - Keep your output brief
    - Use emojis
    - Link and cite relevant code, files, and URLs
-   - For inline comments, include the Quality Gate summary, Blocking Issues Count, Security, Test Coverage, and Code Quality scores in the review body, and add each issue as a line-specific comment in the `comments` array.
 
 #### Examples of false positives, for Phase 3
 
@@ -155,186 +161,71 @@ Notes:
 When using the `git:attach-review-to-pr` command to add line-specific comments, use this template for each issue:
 
 ```markdown
-**[Issue Category]**: [Brief description]
+🔴/🟠/🟡/🟢 [Critical/High/Medium/Low]: [Brief description]
 
-**Evidence**: 
-[Explain what code pattern/behavior was observed that indicates this issue]
+[Evidence: Explain what code pattern/behavior was observed that indicates this issue and the consequence if left unfixed]
 
-**[Impact/Severity]**: [Critical/High/Medium/Low]
-[Explain the consequence if left unfixed]
-
-**Confidence**: [X/100]
-[Brief justification for confidence score]
-
-**Suggested Fix**:
-[Provide actionable guidance on how to resolve this issue]
+[If applicable, provide code suggestion]:
+```suggestion
+[code here]
 ```
 
-**Example for Bug Issue**:
+```
+
+#### Example for Bug Issue
 
 ```markdown
-**Bug**: Potential null pointer dereference
+🟠 High: Potential null pointer dereference
 
-**Evidence**: 
-Variable `user` is accessed without null check after fetching from database.
+Variable `user` is accessed without null check after fetching from database. This will cause runtime error if user is not found, breaking the user profile feature.
 
-**Impact**: High
-Will cause runtime error if user is not found, breaking the user profile feature.
-
-**Confidence**: 85/100
-Verified by tracing data flow - `findUser()` can return null but no guard is present.
-
-**Suggested Fix**: (if applicable)
-Add null check before accessing user properties:
 ```suggestion
 if (!user) {
   throw new Error('User not found');
 }
 ```
 
-**Example for Security Issue**:
-
-```markdown
-**Security**: SQL Injection vulnerability
-
-**Evidence**: 
-User input is directly concatenated into SQL query without sanitization.
-
-**Severity**: Critical
-Attackers can execute arbitrary SQL commands, leading to data breach or deletion.
-
-**Confidence**: 95/100
-Direct string concatenation with user input is a well-known SQL injection vector.
-
-**Suggested Fix**:
-Use parameterized queries:
-\`\`\`typescript
-db.query('SELECT * FROM users WHERE id = ?', [userId])
-\`\`\`
 ```
 
-### Template for review using GitHub API
+#### Example for Security Issue
+
+```markdown
+🔴 Critical: SQL Injection vulnerability
+
+User input is directly concatenated into SQL query without sanitization. Attackers can execute arbitrary SQL commands, leading to data breach or deletion.
+
+Use parameterized queries instead:
+```suggestion
+db.query('SELECT * FROM users WHERE id = ?', [userId])
+```
+
+```
+
+### Template for inline comments using GitHub API
 
 #### Multiple Issues (using `/reviews` endpoint)
 
-When using `gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews`, structure your review as:
-
-**Review body format** (Quality Gate summary):
-
-```markdown
-# PR Review Report
-
-**Quality Gate**: ⬜ PASS (Can merge) / ⬜ FAIL (Requires fixes)
-
-**Blocking Issues Count**: X
-- Security: X/Y *(Passed security checks / Total applicable checks)*
-  - Vulnerabilities: Critical: X, High: X, Medium: X, Low: X
-- Test Coverage: X/Y *(Covered scenarios / Total critical scenarios)*
-- Code Quality: X/Y *(Count of checked (correct) items / Total applicable items)*
-```
-
-**Comments array**: Each comment uses the line-specific template above (Issue Category, Evidence, Impact/Severity, Confidence, Suggested Fix).
+When using `gh api repos/{owner}/{repo}/pulls/{pr_number}/reviews`, each comment in the `comments` array uses the line-specific template above (Issue Category, Evidence, Impact/Severity, Confidence, Suggested Fix).
 
 #### Single Issue (using `/comments` endpoint)
 
 When using `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments`, post just one line-specific comment using the template above.
 
-#### Fallback: Overall review comment (using `gh pr comment`)
+**Note for linking to code:**
 
-This template is used when `mcp__github_inline_comment__create_inline_comment` tool and `git:attach-review-to-pr` command is NOT available.
+- Use full git sha + line range, eg. `https://github.com/owner/repo/blob/1d54823877c4de72b2316a64032a54afc404e619/README.md#L13-L17`
+- Line range format is `L[start]-L[end]`
+- Provide at least 1 line of context before and after
 
-When posting the overall review comment to the pull request, follow the following format precisely:
+**Evaluation Instructions:**
 
-```markdown
-# PR Review Report
-
-**Quality Gate**: ⬜ PASS (Can merge) / ⬜ FAIL (Requires fixes)
-
-**Blocking Issues Count**: X
-- Security 
-   - Score: X/Y** *(Passed security checks / Total applicable checks)*
-   - Vulnerabilities: Critical: X, High: X, Medium: X, Low: X
-- Test Coverage
-   - Score: X/Y** *(Covered scenarios / Total critical scenarios)*
-- Code Quality
-   - Score: X/Y** *(Count of checked (correct) items / Total applicable items)*
-
-## 🔄 Required Actions
-
-### 🚫 Must Fix Before Merge
-*(Blocking issues that prevent merge)*
-
-1. 
-
-### ⚠️ Better to Fix Before Merge
-*(Issues that can be addressed in this or in next PRs)*
-
-1. 
-
----
-
-## 🐛 Found Issues & Bugs & Checklist Items
-
-Detailed list of issues and bugs found in the pull request:
-
-| Link to file | Issue | Evidence | Impact | 
-|--------------|-------|----------|--------|
-| <link to file> | <brief description of bug or issue> | <evidence> | <impact> |
-
-Impact types:
-- Critical: Will cause runtime errors, data loss, or system crash
-- High: Will break core features or corrupt data under normal usage
-- Medium: Will cause errors under edge cases or degrade performance
-- Low: Will cause code smells that don't affect functionality but hurt maintainability
-
-### Security Vulnerabilities Found
-
-Detailed list of security vulnerabilities found in the pull request:
-
-| Severity | Link to file | Vulnerability Type | Specific Risk | Required Fix |
-|----------|------|------|-------------------|---------------|--------------|
-| <severity> | <link to file> | <brief description of vulnerability> | <specific risk> | <required fix> |
-
-
-**Severity Classification**:
-   - **Critical**: Can be misused by bad actors to gain unauthorized access to the system or fully shutdown the system
-   - **High**: Can be misused to perform some actions without proper authorization or get access to some sensitive data
-   - **Medium**: May cause issues in edge cases or degrade performance
-   - **Low**: Not have real impact on the system, but violates security practices
-
-```
-
-Note:
-
-- <link to file> - is a link to file and line with full sha1 + line range for context, note that you MUST provide the full sha and not use bash here, eg. https://github.com/anthropics/claude-code/blob/1d54823877c4de72b2316a64032a54afc404e619/README.md#L13-L17
-- When linking to code, follow the following format precisely, otherwise the Markdown preview won't render correctly: <https://github.com/anthropics/claude-cli-internal/blob/c21d3c10bc8e898b7ac1a2d745bdc9bc4e423afe/package.json#L10-L15>
-  - Requires full git sha
-  - You must provide the full sha. Commands like `https://github.com/owner/repo/blob/$(git rev-parse HEAD)/foo/bar` will not work, since your comment will be directly rendered in Markdown.
-  - Repo name must match the repo you're code reviewing
-
-  - # sign after the file name
-
-  - Line range format is L[start]-L[end]
-  - Provide at least 1 line of context before and after, centered on the line you are commenting about (eg. if you are commenting about lines 5-6, you should link to `L4-7`)
-
-Evaluation Instructions
-
-- **Security First**: Any High or Critical security issue automatically becomes blocker for merge
+- **Security First**: Any High or Critical security issue automatically becomes blocker
 - **Quantify Everything**: Use numbers, not words like "some", "many", "few"
-- **Skip Trivial Issues** in large PRs (>500 lines):
-  - Focus on architectural and security issues
-  - Ignore minor naming conventions
-  - Prioritize bugs over style
+- **Skip Trivial Issues** in large PRs (>500 lines): Focus on architectural and security issues
 
 #### If you found no issues
 
-When no issues are found after filtering, post a comment using `gh pr comment`:
-
-```markdown
-# PR Review Report
-
-No issues found. Checked for bugs and CLAUDE.md compliance.
-```
+Do not post any comments. Simply report to the user that no issues were found.
 
 ## Remember
 

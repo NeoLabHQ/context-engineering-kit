@@ -205,7 +205,7 @@ Slash commands can trigger extended thinking by including extended thinking keyw
 | `argument-hint` | Expected arguments for auto-completion | None |
 | `description` | Brief description of the command | First line from prompt |
 | `model` | Specific model string | Inherits from conversation |
-| `disable-model-invocation` | Prevent `SlashCommand` tool from calling this command | false |
+| `disable-model-invocation` | Prevent `Skill` tool from calling this command | false |
 
 **Example with all frontmatter options:**
 

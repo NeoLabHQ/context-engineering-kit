@@ -107,10 +107,10 @@ Optional review aspects to focus on (e.g., "security", "bugs", "tests")
 
 ### /code-review:review-pr - Pull Request Review
 
-Comprehensive pull request review using all specialized agents.
+Comprehensive pull request review using all specialized agents. Posts only high-confidence, high-value inline comments directly on PR lines - no overall review report.
 
-- Purpose - Review PR changes before merge
-- Output - Detailed findings with line-specific comments
+- Purpose - Review PR changes before merge with minimal noise
+- Output - Inline comments on specific lines (only issues that pass confidence/impact thresholds)
 
 ```bash
 /code-review:review-pr ["PR number or review-aspects"]
@@ -132,13 +132,15 @@ PR number (e.g., #123, 123) and/or review aspects to focus on
    - Each agent examines changes from their specialty perspective
    - Considers PR context and commit messages
 
-3. **Finding Aggregation**: Combines findings with PR-specific context
-   - Links findings to specific lines in the diff
-   - Considers breaking changes and backward compatibility
+3. **Confidence & Impact Scoring**: Each issue is scored on two dimensions
+   - **Confidence (0-100)**: How likely is this a real issue vs false positive?
+   - **Impact (0-100)**: How severe is the consequence if left unfixed?
+   - Progressive threshold: Critical issues (81-100 impact) need 50% confidence, Low issues (0-20 impact) need 95% confidence
 
-4. **Report Generation**: Produces PR-ready report
-   - Structured for easy review
-   - Action items for the PR author
+4. **Inline Comment Posting**: Only issues passing thresholds get posted
+   - Uses GitHub inline comments on specific PR lines
+   - Low impact issues (0-20) are never posted, even with high confidence
+
 
 #### Usage Examples
 
@@ -153,12 +155,7 @@ PR number (e.g., #123, 123) and/or review aspects to focus on
 > /code-review:review-pr
 ```
 
-#### Best Practices
 
-- Review before requesting human review - Address automated findings first
-- Share report with team - Include findings in PR comments
-- Track patterns - Use findings to improve coding guidelines
-- Don't ignore low priority - Create issues for future improvement
 
 ## Review Agents
 
@@ -288,18 +285,20 @@ jobs:
             REPO: ${{ github.repository }}
             PR NUMBER: ${{ github.event.pull_request.number }}
 
-            CRITICAL: You MUST use SlashCommand tool to read and perform /code-review:review-pr command EXACTLY!
+            CRITICAL: You MUST use Skill tool to read and perform /code-review:review-pr command EXACTLY!
             Do not analyze or read PR, code or anything else UNTIL you have read the command!
 
             Note: The PR branch is already checked out in the current working directory.
-          
-          # SlashCommand and Bash(gh pr comment:*) is required for review, the rest is optional, but recommended for better context and quality of the review.
-          claude_args: '--allowed-tools "SlashCommand,Bash,Glob,Grep,Read,Task,mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh api:*)"'
+
+          # Skill and Bash(gh pr comment:*) is required for review, the rest is optional, but recommended for better context and quality of the review.
+          claude_args: '--allowed-tools "Skill,Bash,Glob,Grep,Read,Task,mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh api:*)"'
 ```
 
-## Report Structure
+## Output Formats
 
-Reviews produce structured output organized by severity:
+### Local Changes Review (`review-local-changes`)
+
+Produces a structured report organized by severity:
 
 ```markdown
 # Code Review Report
@@ -323,3 +322,18 @@ Reviews produce structured output organized by severity:
 - [ ] Critical action 1
 - [ ] High priority action 1
 ```
+
+### PR Review (`review-pr`)
+
+Posts inline comments directly on PR lines - no overall report. Each comment follows this format:
+
+```markdown
+🔴/🟠/🟡 [Critical/High/Medium]: [Brief description]
+
+[Evidence: What was observed and consequence if unfixed]
+
+```suggestion
+[code fix if applicable]
+```
+```
+

@@ -150,7 +150,7 @@ Execute a single task with implementation sub-agent, independent judge verificat
 - Pattern - Implement → Judge → Iterate (if needed) → Report
 - Output - Verified implementation with judge scores and improvement suggestions
 - Quality - Two-layer verification: self-critique (internal) + LLM-as-a-judge (external)
-- Iteration - Retry with judge feedback until passing (≥3.5/5.0) or max retries (2)
+- Iteration - Retry with judge feedback until passing (≥4/5.0) or max retries (2)
 
 #### Pattern: Single-Task Execution with Judge Verification
 
@@ -165,8 +165,8 @@ Phase 3: Dispatch Judge Agent
          Independent verification with structured criteria
                      │
 Phase 4: Parse Verdict and Iterate
-         ├─ PASS (≥3.5) → Report Success
-         └─ FAIL (<3.5) → Retry with Feedback (max 2)
+         ├─ PASS (≥4) → Report Success
+         └─ FAIL (<4) → Retry with Feedback (max 2)
                             └─ Return to Phase 3
                      │
 Phase 5: Final Report or Escalation

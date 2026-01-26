@@ -100,7 +100,7 @@ When running with `DEBUG=true`, hook responses include the full session data for
 ```json
 {
   "decision": "block",
-  "reason": "You MUST use SlashCommand tool to execute the command /reflexion:reflect",
+  "reason": "You MUST use Skill tool to execute the command /reflexion:reflect",
   "sessionData": [
     {"timestamp": "...", "hookType": "UserPromptSubmit", "payload": {...}},
     {"timestamp": "...", "hookType": "Stop", "payload": {...}}
