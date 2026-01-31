@@ -126,7 +126,7 @@ Before proceeding, evaluate your most recent output against these criteria:
    done
 
    # Security scan: check staged files for sensitive paths (Linux, macOS, Windows)
-   git diff --cached --name-only | xargs grep -l '/home/\|/Users/\|C:\\Users\|%USERPROFILE%' 2>/dev/null
+   git diff --cached --name-only | xargs -r grep -l '/home/\|/Users/\|C:\\Users\|%USERPROFILE%' 2>/dev/null
 
    # Documentation sync: find docs referencing old values after changes
    # Example: if you changed a count from 117 to 118
@@ -576,10 +576,10 @@ Automatically trigger refinement if any of these conditions are met:
 
 4. **Dependency/Impact Gaps** (CRITICAL)
    - Recommended deletion/removal without dependency check
-   - Cited prior decision (DEC-###) without checking for superseding decisions
-   - Proposed config changes without checking AUTHORITATIVE.yaml
+   - Cited prior decision without checking for superseding decisions
+   - Proposed config changes without checking related authoritive documents or configuration (example: AUTHORITATIVE.yaml)
    - Modified ecosystem files without searching for dependents
-   - Any destructive action without PRE-MODIFICATION GATE checks
+   - Any destructive action without passing related pre-modification gates or checklists
    - Generated cross-references without validation against source of truth
    - Committed files containing absolute paths or usernames
    - Changed counts/stats without updating referencing documentation
