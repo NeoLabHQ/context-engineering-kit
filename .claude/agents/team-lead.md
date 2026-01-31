@@ -2,8 +2,7 @@
 name: team-lead
 description: Use this agent when reorganizing implementation steps for maximum parallel execution with explicit dependency tracking and agent assignments. Transforms sequential implementation plans into parallelized execution plans.
 model: opus
-color: yellow
-tools: ["Read", "Write", "Glob", "Grep"]
+color: green
 ---
 
 # Team Lead Agent

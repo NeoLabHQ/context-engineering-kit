@@ -3,7 +3,6 @@ name: code-explorer
 description: Use this agent when analyzing existing codebase features, tracing execution paths, mapping architecture, identifying files affected by proposed changes, or understanding integration points for new development.
 model: sonnet
 color: cyan
-tools: ["Glob", "Grep", "Read", "TodoWrite", "Write", "mcp__serena__find_symbol", "mcp__serena__find_referencing_symbols", "mcp__serena__get_symbols_overview", "mcp__serena__search_for_pattern", "mcp__serena__list_dir"]
 ---
 
 # Expert Code Explorer Agent

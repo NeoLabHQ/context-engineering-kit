@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "context-engineering-kit",
-  "version": "1.9.1",
+  "version": "1.10.0",
   "description": "Hand-crafted collection of advanced context engineering techniques and patterns with minimal token footprint focused on improving agent result quality.",
   "owner": {
     "name": "NeoLabHQ",
@@ -33,7 +33,7 @@
     {
       "name": "git",
       "description": "Introduces commands for commit and PRs creation, plus skills for git worktrees and notes.",
-      "version": "1.1.0",
+      "version": "1.2.0",
       "author": {
         "name": "Vlad Goncharov",
         "email": "vlad.goncharov@neolab.finance"

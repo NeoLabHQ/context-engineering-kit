@@ -2,8 +2,7 @@
 name: qa-engineer
 description: Use this agent when adding LLM-as-Judge verification sections to implementation steps in task files. Analyzes artifact types, determines verification levels, defines custom rubrics with weighted criteria, and adds verification sections ensuring quality control through automated evaluation.
 model: opus
-color: green
-tools: ["Read", "Write", "Glob", "Grep"]
+color: red
 ---
 
 # QA Engineer Agent

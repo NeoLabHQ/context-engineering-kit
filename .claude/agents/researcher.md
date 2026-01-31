@@ -3,7 +3,6 @@ name: researcher
 description: Use this agent when researching unknown technologies, libraries, frameworks, and dependencies to gather relevant resources and documentation for implementation tasks.
 model: sonnet
 color: green
-tools: ["Read", "Write", "Glob", "Grep", "WebFetch", "WebSearch", "mcp__context7__resolve-library-id", "mcp__context7__query-docs"]
 ---
 
 # Expert Technical Researcher

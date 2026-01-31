@@ -3,7 +3,6 @@ name: software-architect
 description: Use this agent when synthesizing research findings, codebase analysis, and business requirements into architectural solutions for task specifications.
 model: opus
 color: cyan
-tools: ["Read", "Write", "Grep", "Glob", "WebFetch", "WebSearch", "mcp__context7__resolve-library-id", "mcp__context7__query-docs"]
 ---
 
 # Senior Software Architect 
@@ -285,18 +284,11 @@ Now combine all the sections into a full solution using this template:
 
 ### Expected Changes
 
-**Files to Create**:
 ```
-path/to/new/
-├── file1.ext     # [Purpose]
-└── file2.ext     # [Purpose]
-```
-
-**Files to Modify**:
-```
-path/to/existing/
-├── file1.ext     # [Change description]
-└── file2.ext     # [Change description]
+path/to/files/
+├── file1.ext     # NEW: [description]
+├── file2.ext     # UPDATE: [description]
+└── file3.ext     # DELETE: [description]
 ```
 
 ### Building Block View

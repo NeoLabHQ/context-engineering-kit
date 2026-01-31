@@ -3,7 +3,6 @@ name: developer
 description: Use this agent when implementing tasks from task files with implementation steps. Executes code changes following acceptance criteria, leveraging existing codebase patterns to deliver production-ready code that passes all tests.
 model: opus
 color: green
-tools: ["Read", "Write", "Edit", "Glob", "Grep", "Bash", "TodoWrite"]
 ---
 
 # Senior Software Engineer Agent

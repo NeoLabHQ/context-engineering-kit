@@ -258,6 +258,130 @@ PR number or URL (optional - can work with current branch).
 > /git:attach-review-to-pr 456
 ```
 
+### /git:create-worktree - Create Worktrees
+
+Create and setup git worktrees for parallel development with automatic dependency installation.
+
+- Purpose - Enable parallel branch development without stashing or context switching
+- Output - New worktree with dependencies installed
+
+```bash
+/git:create-worktree <name> | --list
+```
+
+#### Arguments
+
+- `<name>` - Descriptive name for the worktree (e.g., "refactor auth system", "fix login bug")
+- `--list` - Show existing worktrees
+
+#### How It Works
+
+1. **Type Detection**: Auto-detects branch type from name (feature, fix, hotfix, refactor, etc.)
+2. **Branch Resolution**: Creates or tracks existing local/remote branch
+3. **Worktree Creation**: Creates sibling directory with pattern `../<project>-<name>`
+4. **Dependency Installation**: Detects project type and runs appropriate install command
+
+**Supported Project Types**: Node.js (npm/yarn/pnpm/bun), Python (pip/poetry), Rust (cargo), Go, Ruby, PHP
+
+#### Usage Examples
+
+```bash
+# Create feature worktree (default type)
+> /git:create-worktree auth system
+# Branch: feature/auth-system → ../myproject-auth-system
+
+# Create fix worktree
+> /git:create-worktree fix login error
+# Branch: fix/login-error → ../myproject-login-error
+
+# Create hotfix while feature work continues
+> /git:create-worktree hotfix critical bug
+
+# List existing worktrees
+> /git:create-worktree --list
+```
+
+### /git:compare-worktrees - Compare Worktrees
+
+Compare files and directories between git worktrees or worktree and current branch.
+
+- Purpose - Understand differences across branches/worktrees before merging
+- Output - Diff output with clear headers and statistics
+
+```bash
+/git:compare-worktrees [paths...] [--stat]
+```
+
+#### Arguments
+
+- `<paths>` - File(s) or directory(ies) to compare
+- `<worktree>` - Worktree path or branch name to compare
+- `--stat` - Show summary statistics only
+
+#### Usage Examples
+
+```bash
+# Compare specific file
+> /git:compare-worktrees src/app.js
+
+# Compare multiple paths
+> /git:compare-worktrees src/app.js src/utils/ package.json
+
+# Compare entire directory
+> /git:compare-worktrees src/
+
+# Get summary statistics
+> /git:compare-worktrees --stat
+
+# Interactive mode (lists worktrees)
+> /git:compare-worktrees
+```
+
+### /git:merge-worktree - Merge from Worktrees
+
+Merge changes from worktrees into current branch with selective file checkout, cherry-picking, interactive patch selection, or manual merge.
+
+- Purpose - Selectively merge changes without full branch merges
+- Output - Merged files with optional cleanup
+
+```bash
+/git:merge-worktree [path|commit] [--from <worktree>] [--patch] [--interactive]
+```
+
+#### Arguments
+
+- `<path>` - File or directory to merge
+- `<commit>` - Commit name to cherry-pick
+- `--from <worktree>` - Source worktree path
+- `--patch` / `-p` - Interactive patch selection mode
+- `--interactive` - Guided mode
+
+#### Merge Strategies
+
+| Strategy | Use When | Command Pattern |
+|----------|----------|-----------------|
+| **Selective File** | Need complete file(s) from another branch | `git checkout <branch> -- <path>` |
+| **Interactive Patch** | Need specific changes within a file | `git checkout -p <branch> -- <path>` |
+| **Cherry-Pick Selective** | Need a commit but not all its changes | `git cherry-pick --no-commit` + selective staging |
+| **Manual Merge** | Full branch merge with control | `git merge --no-commit` + selective staging |
+| **Multi-Source** | Combining files from multiple branches | Multiple `git checkout <branch> -- <path>` |
+
+#### Usage Examples
+
+```bash
+# Merge single file
+> /git:merge-worktree src/app.js --from ../project-feature
+
+# Interactive patch selection (select specific hunks)
+> /git:merge-worktree src/utils.js --patch
+
+# Cherry-pick specific commit
+> /git:merge-worktree abc1234
+
+# Full guided mode
+> /git:merge-worktree --interactive
+```
+
 ## Skills Overview
 
 ### worktrees - Parallel Branch Development

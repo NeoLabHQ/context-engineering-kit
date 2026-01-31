@@ -1,10 +1,12 @@
 ---
 description: Implement a task with automated LLM-as-Judge verification for critical steps
-argument-hint: Task file name (e.g., task-reorganize-fpf-plugin.md) with implementation steps defined
+argument-hint: Task file name (e.g., add-validation.feature.md) with implementation steps defined
 allowed-tools: Task, Read, TodoWrite, Bash
 ---
 
 # Implement Task with Verification
+
+Your job is to implement solution in best quality using task specification and sub-agents. You MUST NOT stop until it critically neccesary or you are done! Avoid asking questions until it is critically neccesary! Launch implementation agent, judges, iterate till issues are fixed and then move to next step!
 
 Execute task implementation steps with automated quality verification using LLM-as-Judge for critical artifacts.
 
@@ -13,6 +15,26 @@ Execute task implementation steps with automated quality verification using LLM-
 ```text
 Task File: $ARGUMENTS
 ```
+
+---
+
+## Task Selection and Status Management
+
+### Task Status Folders
+
+Task status is managed by folder location:
+
+- `.specs/tasks/todo/` - Tasks waiting to be implemented
+- `.specs/tasks/in-progress/` - Tasks currently being worked on
+- `.specs/tasks/done/` - Completed tasks
+
+### Status Transitions
+
+| When | Action |
+|------|--------|
+| Start implementation | Move task from `todo/` to `in-progress/` |
+| Final verification PASS | Move task from `in-progress/` to `done/` |
+| Implementation failure (user aborts) | Keep in `in-progress/` |
 
 ---
 
@@ -87,6 +109,12 @@ This command orchestrates multi-step task implementation with:
 ## Complete Workflow Overview
 
 ```
+Phase 0: Select Task & Move to In-Progress
+    │
+    ├─── Use provided task file name or auto-select from todo/ (if only 1 task)
+    ├─── Move task: todo/ → in-progress/
+    │
+    ▼
 Phase 1: Load Task
     │
     ▼
@@ -113,10 +141,83 @@ Phase 2: Execute Steps
     │    └─────────────────────────────────────────────────┘
     │
     ▼
-Phase 3: Final Report
+Phase 3: Final Verification
+    │
+    ├─── Verify all Definition of Done items
+    │    │
+    │    ▼
+    │    ┌─────────────────────────────────────────────────┐
+    │    │ Launch judge agent                              │
+    │    │ (verify all DoD items)                          │
+    │    └─────────────────┬───────────────────────────────┘
+    │                      │
+    │                      ▼
+    │    ┌─────────────────────────────────────────────────┐
+    │    │ All PASS? → Proceed to Phase 4                  │
+    │    │ Any FAIL? → Fix and re-verify (iterate)         │
+    │    └─────────────────────────────────────────────────┘
+    │
+    ▼
+Phase 4: Move Task to Done
+    │
+    ├─── Move task: in-progress/ → done/
+    │
+    ▼
+Phase 5: Final Report
 ```
 
 ---
+
+## Phase 0: Parse User Input and Select Task
+
+Parse user input to get the task file path and arguments.
+
+### Step 0.1: Resolve Task File
+
+**If `$ARGUMENTS` is empty or only contains flags:**
+
+1. **Check in-progress folder first:**
+
+   ```bash
+   ls .specs/tasks/in-progress/*.md 2>/dev/null
+   ```
+
+   - If exactly 1 file → Set `$TASK_FILE` to that file, `$TASK_FOLDER` to `in-progress`
+   - If multiple files → List them and ask user: "Multiple tasks in progress. Which one to continue?"
+   - If no files → Continue to step 2
+
+2. **Check todo folder:**
+
+   ```bash
+   ls .specs/tasks/todo/*.md 2>/dev/null
+   ```
+
+   - If exactly 1 file → Set `$TASK_FILE` to that file, `$TASK_FOLDER` to `todo`
+   - If multiple files → List them and ask user: "Multiple tasks in todo. Which one to implement?"
+   - If no files → Report "No tasks available. Create one with /add-task first." and STOP
+
+**If `$ARGUMENTS` contains a task file name:**
+
+1. Search for the file in order: `in-progress/` → `todo/` → `done/`
+2. Set `$TASK_FILE` and `$TASK_FOLDER` accordingly
+3. If not found, report error and STOP
+
+### Step 0.2: Move to In-Progress (if needed)
+
+**If task is in `todo/` folder:**
+
+```bash
+mv .specs/tasks/todo/$TASK_FILE .specs/tasks/in-progress/
+```
+
+Update `$TASK_PATH` to `.specs/tasks/in-progress/$TASK_FILE`
+
+**If task is already in `in-progress/`:**
+Set `$TASK_PATH` to `.specs/tasks/in-progress/$TASK_FILE`
+
+### Step 0.3: Parse Flags
+
+- `--continue` - If user input contains `--continue` flag, parse the task file, identify which phases and steps are completed and launch next step (that not completed yet) from judges checks. They should verify whether steps that are marked as not completed were started or not. If they not completed, then perform them as usual (start implementation) and continue from there. If they are completed, but not passed judge check, then fix the issues and continue from there. If they completed and passed judge checks, but not marked as done, then mark them as done and continue from there.
 
 ## Phase 1: Load and Analyze Task
 
@@ -127,7 +228,7 @@ Phase 3: Final Report
 Read the task file ONCE:
 
 ```bash
-Read .specs/tasks/$TASK_FILE
+Read $TASK_PATH
 ```
 
 **After this read, you MUST NOT read any other files for the rest of execution.**
@@ -180,7 +281,7 @@ Use Task tool with:
 ```
 Implement Step [N]: [Step Title]
 
-Task File: .specs/tasks/$TASK_FILE
+Task File: $TASK_PATH
 Step Number: [N]
 
 Your task:
@@ -223,7 +324,7 @@ Use Task tool with:
 ```
 Implement Step [N]: [Step Title]
 
-Task File: .specs/tasks/$TASK_FILE
+Task File: $TASK_PATH
 Step Number: [N]
 
 Your task:
@@ -252,7 +353,7 @@ When complete, report:
 **Evaluation 1 & 2** (launch both in parallel with same prompt structure):
 
 ```
-Read ./plugins/sadd/tasks/judge.md for evaluation methodology.
+Read .claude/prompts/judge.md for evaluation methodology.
 
 Evaluate artifact at: [artifact_path from implementation agent report]
 
@@ -262,7 +363,7 @@ Rubric:
 [paste rubric table from #### Verification section]
 
 Context:
-- Read .specs/tasks/$TASK_FILE
+- Read $TASK_PATH
 - Verify Step [N] ONLY: [Step Title]
 - Threshold: [from #### Verification section]
 - Reference pattern: [if specified in #### Verification section]
@@ -310,7 +411,7 @@ Use Task tool for EACH item (launch all in parallel):
 ```
 Implement Step [N], Item: [Item Name]
 
-Task File: .specs/tasks/$TASK_FILE
+Task File: $TASK_PATH
 Step Number: [N]
 Item: [Item Name]
 
@@ -340,7 +441,7 @@ When complete, report:
 For each item:
 
 ```
-Read ./plugins/sadd/tasks/judge.md for evaluation methodology.
+Read .claude/prompts/judge.md for evaluation methodology.
 
 Evaluate artifact at: [item_path from implementation agent report]
 
@@ -350,7 +451,7 @@ Rubric:
 [paste rubric from #### Verification section]
 
 Context:
-- Read .specs/tasks/$TASK_FILE
+- Read $TASK_PATH
 - Verify Step [N]: [Step Title]
 - Verify ONLY this Item: [Item Name]
 - Threshold: [from #### Verification section]
@@ -383,9 +484,9 @@ Return: scores with evidence, overall score, PASS/FAIL, improvements if FAIL.
 
 ---
 
-## ⚠️ CHECKPOINT: Before Proceeding to Phase 3
+## ⚠️ CHECKPOINT: Before Proceeding to Final Verification
 
-Before moving to final report, verify you followed the rules:
+Before moving to final verification, verify you followed the rules:
 
 - [ ] Did you launch developer agents for ALL implementations?
 - [ ] Did you launch evaluation agents for ALL verifications?
@@ -396,43 +497,109 @@ Before moving to final report, verify you followed the rules:
 
 ---
 
-## Phase 3: Verification Specifications
+## Phase 3: Final Verification
 
-Task files define verification in `#### Verification` sections with:
+After all implementation steps are complete, verify the task meets all Definition of Done criteria.
 
-### Required Elements
+### Step 3.1: Launch Definition of Done Verification
 
-1. **Level**: None / Single / Panel (2) / Per-Item
-2. **Artifact(s)**: Path(s) to file(s) being verified
-3. **Threshold**: Passing score (typically 4.0/5.0 or 4.5/5.0)
-4. **Rubric**: Table with criteria, weights, and descriptions
-5. **Reference Pattern**: (Optional) Path to example of good implementation
+**Use Task tool with:**
 
-### Rubric Format
+- **Agent Type**: `developer`
+- **Model**: `opus`
+- **Description**: "Verify Definition of Done"
+- **Prompt**:
 
-```markdown
-| Criterion | Weight | Description |
-|-----------|--------|-------------|
-| [Name 1]  | 0.XX   | [What to evaluate] |
-| [Name 2]  | 0.XX   | [What to evaluate] |
-| ...       | ...    | ...         |
+```
+Verify all Definition of Done items in the task file.
+
+Task File: $TASK_PATH
+
+Your task:
+1. Read the task file and locate the "## Definition of Done (Task Level)" section
+2. Go through each checkbox item one by one
+3. For each item, verify if it passes by:
+   - Running appropriate tests (unit tests, E2E tests)
+   - Checking build/compilation status
+   - Verifying file existence and correctness
+   - Checking code patterns and linting
+4. Mark each item with one of:
+   - ✅ PASS - if the item is complete and verified
+   - ❌ FAIL - if the item fails verification, with specific reason why
+   - ⚠️ BLOCKED - if the item cannot be verified due to a blocker
+
+Return a structured report:
+- List ALL Definition of Done items
+- Status for each (PASS/FAIL/BLOCKED)
+- Evidence for each status
+- Specific issues for any failures
+- Overall pass rate
+
+Be thorough - check everything the task requires.
 ```
 
-Weights MUST sum to 1.0.
+### Step 3.2: Review Verification Results
 
-### Scoring Scale
+- Receive the verification report
+- Note which items PASS and which FAIL
+- **DO NOT read any files yourself to verify - trust the judge agent's report**
 
-For each criterion:
+### Step 3.3: Fix Failing Items (If Any)
 
-- **1 (Poor)**: Does not meet requirements
-- **2 (Below Average)**: Multiple issues, partially meets requirements
-- **3 (Adequate)**: Meets basic requirements
-- **4 (Good)**: Meets all requirements, few minor issues
-- **5 (Excellent)**: Exceeds requirements
+If any Definition of Done items FAIL:
+
+**1. Launch Developer Agent for Each Failing Item:**
+
+```
+Fix Definition of Done item: [Item Description]
+
+Task File: $TASK_PATH
+
+Current Status:
+[paste failure details from verification report]
+
+Your task:
+1. Fix the specific issue identified
+2. Verify the fix resolves the problem
+3. Ensure no regressions (all tests still pass)
+
+Return:
+- What was fixed
+- Confirmation the item now passes
+- Any related changes made
+```
+
+**2. Re-verify After Fixes:**
+
+Launch the verification agent again (Step 3.1) to confirm all items now PASS.
+
+**3. Iterate if Needed:**
+
+Repeat fix → verify cycle until all Definition of Done items PASS.
 
 ---
 
-## Phase 4: Aggregation and Reporting
+## Phase 4: Move Task to Done
+
+Once ALL Definition of Done items PASS, move the task to the done folder.
+
+### Step 4.1: Verify Completion
+
+Confirm all Definition of Done items are marked complete in the task file.
+
+### Step 4.2: Move Task
+
+```bash
+# Extract just the filename from $TASK_PATH
+TASK_FILENAME=$(basename $TASK_PATH)
+
+# Move from in-progress to done
+mv .specs/tasks/in-progress/$TASK_FILENAME .specs/tasks/done/
+```
+
+---
+
+## Phase 5: Aggregation and Reporting
 
 ### Panel Voting Algorithm
 
@@ -491,10 +658,14 @@ If evaluations significantly disagree (difference > 2.0 on any criterion):
 
 ### Final Report
 
-After all steps complete:
+After all steps complete and DoD verification passes:
 
 ```markdown
 ## Implementation Summary
+
+### Task Status
+- Task Status: `done` ✅
+- All Definition of Done items: X/X PASS (100%)
 
 ### Steps Completed
 
@@ -512,15 +683,28 @@ After all steps complete:
 - Required revision: W
 - Final pass rate: 100%
 
+### Definition of Done Verification
+
+| Item | Status | Evidence |
+|------|--------|----------|
+| [DoD Item 1] | ✅ PASS | [Brief evidence] |
+| [DoD Item 2] | ✅ PASS | [Brief evidence] |
+| ... | ... | ... |
+
+**Issues Fixed During Verification:**
+1. [Issue]: [How it was fixed]
+2. [Issue]: [How it was fixed]
+
 ### High-Variance Criteria (Evaluators Disagreed)
 
 - [Criterion] in [Step]: Eval 1 scored X, Eval 2 scored Y
 
 ### Task File Updated
 
+- Task moved from `in-progress/` to `done/` folder
 - All step titles marked `[DONE]`
 - All step subtasks marked `[X]`
-- Definition of Done items verified
+- All Definition of Done items marked `[X]`
 
 ### Recommendations
 
@@ -537,9 +721,16 @@ After all steps complete:
 │                IMPLEMENT TASK WITH VERIFICATION               │
 ├──────────────────────────────────────────────────────────────┤
 │                                                               │
+│  Phase 0: Select Task                                         │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │ Use provided name or auto-select from todo/ (if 1 task) │  │
+│  │ → Move task from todo/ to in-progress/                  │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                           │                                   │
+│                           ▼                                   │
 │  Phase 1: Load Task                                           │
 │  ┌─────────────────────────────────────────────────────────┐  │
-│  │ Read .specs/tasks/$TASK_FILE → Parse steps              │  │
+│  │ Read $TASK_PATH → Parse steps                           │  │
 │  │ → Extract #### Verification specs → Create TodoWrite    │  │
 │  └─────────────────────────────────────────────────────────┘  │
 │                           │                                   │
@@ -564,7 +755,31 @@ After all steps complete:
 │  └─────────────────────────────────────────────────────────┘  │
 │                           │                                   │
 │                           ▼                                   │
-│  Phase 4: Aggregate & Report                                  │
+│  Phase 3: Final Verification                                  │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │                                                         │  │
+│  │  ┌──────────────┐    ┌───────────────┐    ┌───────────┐ │  │
+│  │  │ Judge Agent  │───▶│ All DoD       │───▶│ All PASS? │ │  │
+│  │  │ (verify DoD) │    │ items checked │    │           │ │  │
+│  │  └──────────────┘    └───────────────┘    └───────────┘ │  │
+│  │                                                │   │    │  │
+│  │                                               Yes  No   │  │
+│  │                                                │   │    │  │
+│  │                                                ▼   ▼    │  │
+│  │                                                Fix &    │  │
+│  │                                                Retry    │  │
+│  │                                                ↺        │  │
+│  │                                                         │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                           │                                   │
+│                           ▼                                   │
+│  Phase 4: Move Task to Done                                   │
+│  ┌─────────────────────────────────────────────────────────┐  │
+│  │ mv in-progress/$TASK → done/$TASK                       │  │
+│  └─────────────────────────────────────────────────────────┘  │
+│                           │                                   │
+│                           ▼                                   │
+│  Phase 5: Aggregate & Report                                  │
 │  ┌─────────────────────────────────────────────────────────┐  │
 │  │ Collect all verification results                        │  │
 │  │ → Calculate aggregate metrics                           │  │
@@ -582,7 +797,11 @@ After all steps complete:
 ### Example 1: Implementing a Feature
 
 ```
-User: /implement-task task-add-validation.md
+User: /implement-task add-validation.feature.md
+
+Phase 0: Task Selection...
+Found task in: .specs/tasks/todo/add-validation.feature.md
+Moving to in-progress: .specs/tasks/in-progress/add-validation.feature.md
 
 Phase 1: Loading task...
 Task: "Add form validation service"
@@ -614,15 +833,59 @@ Step 2: Launching developer agent...
 
 [Continue for all steps...]
 
-Phase 4: Final Report
+Phase 3: Final Verification...
+Launching DoD verification agent...
+  Agent: "Verify all Definition of Done items..."
+  Result: 4/4 items PASS ✅
+
+Phase 4: Moving task to done...
+  mv .specs/tasks/in-progress/add-validation.feature.md .specs/tasks/done/
+
+Phase 5: Final Report
 Implementation complete.
 - 4/4 steps completed
 - 6 artifacts verified
 - All passed first try
-- Final pass rate: 100%
+- Definition of Done: 4/4 PASS
+- Task location: .specs/tasks/done/add-validation.feature.md ✅
 ```
 
-### Example 2: Handling Verification Failure
+### Example 2: Handling DoD Item Failure
+
+```
+[All steps complete...]
+
+Phase 3: Final Verification...
+Launching DoD verification agent...
+  Agent: "Verify all Definition of Done items..."
+  Result: 3/4 items PASS, 1 FAIL ❌
+
+Failing item:
+- "Code follows ESLint rules": 356 errors found
+
+Should I attempt to fix this issue? [Y/n]
+
+User: Y
+
+Launching developer agent...
+  Agent: "Fix ESLint errors..."
+  Result: Fixed 356 errors, 0 warnings ✅
+
+Re-launching DoD verification agent...
+  Agent: "Re-verify all Definition of Done items..."
+  Result: 4/4 items PASS ✅
+
+Phase 4: Moving task to done...
+All DoD checkboxes marked complete ✅
+
+Phase 5: Final Report
+Task verification complete.
+- All DoD items now PASS
+- 1 issue fixed (ESLint errors)
+- Task location: .specs/tasks/done/ ✅
+```
+
+### Example 3: Handling Verification Failure
 
 ```
 Step 3 Implementation complete.
@@ -692,7 +955,7 @@ Before completing implementation:
 
 ### Context Protection (CRITICAL)
 
-- [ ] Read ONLY the task file (`.specs/tasks/$TASK_FILE`) - no other files
+- [ ] Read ONLY the task file (`$TASK_PATH` in `.specs/tasks/in-progress/`) - no other files
 - [ ] Did NOT read implementation outputs, reference files, or artifacts
 - [ ] Used sub-agent reports for status - did NOT read files to "check"
 
@@ -722,3 +985,138 @@ Before completing implementation:
 - [ ] Failed evaluations addressed (max 2 retries per step)
 - [ ] Final report generated with judge confirmation status
 - [ ] User informed of any evaluator disagreements
+
+### Final Verification and Completion
+
+- [ ] Definition of Done verification agent launched
+- [ ] All DoD items verified (PASS/FAIL/BLOCKED status)
+- [ ] Failing DoD items fixed via developer agents
+- [ ] Re-verification performed after fixes
+- [ ] Task moved from `in-progress/` to `done/` folder
+- [ ] All DoD checkboxes marked `[X]` in task file
+- [ ] Final verification report presented to user
+
+---
+
+## Appendix A: Verification Specifications Reference
+
+This appendix documents how verification is specified in task files. During Phase 2 (Execute Steps), you will reference these specifications to understand how to verify each artifact.
+
+### How Task Files Define Verification
+
+Task files define verification requirements in `#### Verification` sections within each implementation step. These sections specify:
+
+### Required Elements
+
+1. **Level**: Verification complexity
+   - `None` - Simple operations (mkdir, delete) - skip verification
+   - `Single Judge` - Non-critical artifacts - 1 judge, threshold 4.0/5.0
+   - `Panel of 2 Judges` - Critical artifacts - 2 judges, median voting, threshold 4.0/5.0 or 4.5/5.0
+   - `Per-Item Judges` - Multiple similar items - 1 judge per item, parallel execution
+
+2. **Artifact(s)**: Path(s) to file(s) being verified
+   - Example: `src/decision/decision.service.ts`, `src/decision/tests/decision.service.spec.ts`
+
+3. **Threshold**: Minimum passing score
+   - Typically 4.0/5.0 for standard quality
+   - Sometimes 4.5/5.0 for critical components
+
+4. **Rubric**: Weighted criteria table (see format below)
+
+5. **Reference Pattern** (Optional): Path to example of good implementation
+   - Example: `src/app.service.ts` for NestJS service patterns
+
+### Rubric Format
+
+Rubrics in task files use this markdown table format:
+
+```markdown
+| Criterion | Weight | Description |
+|-----------|--------|-------------|
+| [Name 1]  | 0.XX   | [What to evaluate] |
+| [Name 2]  | 0.XX   | [What to evaluate] |
+| ...       | ...    | ...         |
+```
+
+**Requirements:**
+
+- Weights MUST sum to 1.0
+- Each criterion has a clear, measurable description
+- Typically 3-6 criteria per rubric
+
+**Example:**
+
+```markdown
+| Criterion | Weight | Description |
+|-----------|--------|-------------|
+| Type Correctness | 0.35 | Types match specification exactly |
+| API Contract Alignment | 0.25 | Aligns with documented API contract |
+| Export Structure | 0.20 | Barrel exports correctly expose all types |
+| Code Quality | 0.20 | Follows project TypeScript conventions |
+```
+
+### Scoring Scale
+
+When judges evaluate artifacts, they use this 5-point scale for each criterion:
+
+- **1 (Poor)**: Does not meet requirements
+  - Missing essential elements
+  - Fundamental misunderstanding of requirements
+
+- **2 (Below Average)**: Multiple issues, partially meets requirements
+  - Some correct elements, but significant gaps
+  - Would require substantial rework
+
+- **3 (Adequate)**: Meets basic requirements
+  - Functional but minimal
+  - Room for improvement in quality or completeness
+
+- **4 (Good)**: Meets all requirements, few minor issues
+  - Solid implementation
+  - Minor polish could improve it
+
+- **5 (Excellent)**: Exceeds requirements
+  - Exceptional quality
+  - Goes beyond what was asked
+  - Could serve as reference implementation
+
+### Using Verification Specs During Execution
+
+**During Phase 2 (Execute Steps):**
+
+1. After a developer agent completes implementation
+2. Read the step's `#### Verification` section in the task file
+3. Extract: Level, Artifact paths, Threshold, Rubric, Reference Pattern
+4. Launch appropriate judge agent(s) based on Level
+5. Provide judges with: Artifact path, Rubric, Threshold, Reference Pattern
+6. Aggregate judge results and determine PASS/FAIL
+7. If FAIL, launch developer agent to fix issues and re-verify
+
+**Example Verification Section in Task File:**
+
+```markdown
+#### Verification
+
+**Level:** Panel of 2 Judges with Aggregated Voting
+**Artifact:** `src/decision/decision.service.ts`, `src/decision/tests/decision.service.spec.ts`
+
+**Rubric:**
+
+| Criterion | Weight | Description |
+|-----------|--------|-------------|
+| Routing Logic | 0.20 | Correctly routes by customerType |
+| Drip Feed Implementation | 0.25 | 2% random approval for rejected New customers only |
+| Response Formatting | 0.20 | Correct decision outcome, triggeredRules preserved, ISO 8601 timestamp |
+| Testability | 0.15 | Injectable randomGenerator enables deterministic testing |
+| Test Coverage | 0.20 | Unit tests cover approval, rejection, drip feed, routing, timestamp |
+
+**Reference Pattern:** NestJS service patterns, ZenEngineService API
+```
+
+This specification tells you to:
+
+- Launch 2 judge agents in parallel
+- Have them evaluate both service and test files
+- Use the 5-criterion rubric with specified weights
+- Do not pass threshold to judges, only use it to compare it with the average score of the judges
+- Reference existing NestJS patterns for comparison

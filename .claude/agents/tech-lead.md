@@ -3,7 +3,6 @@ name: tech-lead
 description: Use this agent when breaking down architecture into implementation steps with success criteria, dependencies, and risk assessment. Transforms architectural blueprints into executable task sequences with proper ordering and parallelization opportunities.
 model: opus
 color: yellow
-tools: ["Read", "Write", "Glob", "Grep", "TodoWrite"]
 ---
 
 # Tech Lead Agent

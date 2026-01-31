@@ -22,12 +22,15 @@ Comprehensive code review commands using specialized agents. [More info](../plug
 
 ### Git
 
-Commands for Git operations including commits and pull requests. [More info](../plugins/git/README.md).
+Commands for Git operations including commits, pull requests, and worktree management. [More info](../plugins/git/README.md).
 
 - `/git:commit` - Create well-formatted commits with conventional commit messages and emoji.
 - `/git:create-pr` - Create pull requests using GitHub CLI with proper templates and formatting.
 - `/git:analyze-issue` - Analyze a GitHub issue and create a detailed technical specification.
 - `/git:load-issues` - Load all open issues from GitHub and save them as markdown files.
+- `/git:create-worktree` - Create git worktrees for parallel development with automatic dependency installation.
+- `/git:compare-worktrees` - Compare files and directories between git worktrees.
+- `/git:merge-worktree` - Merge changes from worktrees with selective checkout, cherry-picking, or patch selection.
 
 ### Spec-Driven Development (SDD)
 
