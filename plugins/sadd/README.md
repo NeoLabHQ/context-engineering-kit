@@ -411,7 +411,7 @@ Phase 4: Final Summary and Report
 - **[LLM-as-a-Judge](https://arxiv.org/abs/2306.05685)** (Zheng et al., 2023) - Independent evaluation with structured rubrics
 - **[Multi-Agent Debate](https://arxiv.org/abs/2305.14325)** (Du et al., 2023) - Fresh context prevents accumulated confusion
 
-### do-competitively - Competitive Multi-Agent Synthesis
+### /do-competitively - Competitive Multi-Agent Synthesis
 
 Execute tasks through competitive generation, multi-judge evaluation, and evidence-based synthesis to produce superior results.
 
@@ -508,7 +508,7 @@ The competitive execution pattern combines insights from:
 - A/B Testing - Compare alternatives with clear metrics
 - Ensemble Methods - Combining multiple models improves performance
 
-### tree-of-thoughts - Tree of Thoughts with Adaptive Strategy
+### /tree-of-thoughts - Tree of Thoughts with Adaptive Strategy
 
 Execute complex reasoning tasks through systematic exploration of solution space, pruning unpromising branches, expanding viable approaches, and synthesizing the best solution.
 
@@ -606,7 +606,7 @@ Based on:
 - **[LLM-as-Judge](https://arxiv.org/abs/2306.05685)** (Zheng et al., 2023) - Multi-perspective evaluation
 - **[Chain-of-Verification](https://arxiv.org/abs/2309.11495)** (Dhuliawala et al., 2023) - Structured verification reduces bias
 
-### judge-with-debate - Multi-Agent Debate Evaluation
+### /judge-with-debate - Multi-Agent Debate Evaluation
 
 Evaluate solutions through iterative multi-judge debate where independent judges analyze, challenge each other's assessments, and refine evaluations until reaching consensus or maximum rounds.
 
@@ -616,7 +616,7 @@ Evaluate solutions through iterative multi-judge debate where independent judges
 - Quality - Enhanced through multi-perspective analysis, evidence-based argumentation, and iterative refinement
 - Efficiency - Early termination when consensus reached or judges stop converging
 
-## Pattern: Debate-Based Evaluation
+#### Pattern: Debate-Based Evaluation
 
 This command implements iterative multi-judge debate with filesystem-based communication:
 
@@ -731,7 +731,7 @@ Based on:
 
 **Key Insight**: Debate forces judges to explicitly defend positions with evidence and consider counter-arguments, reducing individual bias and improving calibration.
 
-### judge - Single-Agent Work Evaluation
+### /judge - Single-Agent Work Evaluation
 
 Evaluate completed work using LLM-as-Judge with structured rubrics, context isolation, and evidence-based scoring.
 
@@ -846,6 +846,7 @@ Based on:
 - **[LLM-as-a-Judge](https://arxiv.org/abs/2306.05685)** (Zheng et al., 2023) - Structured evaluation rubrics with calibrated scoring
 - **[Chain of Thought Prompting](https://arxiv.org/abs/2201.11903)** (Wei et al., 2022) - Reasoning before conclusion improves accuracy
 - **[Constitutional AI](https://arxiv.org/abs/2212.08073)** (Bai et al., 2022) - Self-critique and verification loops
+- **[Inference-Time Scaling of Verification](https://arxiv.org/abs/2601.15808)** (Wan et al., 2026) - Rubric-guided verification with test-time self-evolution and iterative feedback refinement
 
 ## Skills Overview
 
