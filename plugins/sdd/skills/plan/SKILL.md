@@ -886,6 +886,8 @@ Launch agent:
 
   Task File: <TASK_FILE>
 
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, code-review:bug-hunter. Also include general agents: opus, sonnet, haiku}
+
   CRITICAL: DO NOT OUTPUT YOUR PARALLELIZATION, ONLY CREATE THE SCRATCHPAD AND UPDATE THE TASK FILE.
   ```
 
@@ -923,6 +925,8 @@ Launch judge:
   reorganized for maximum parallel execution with explicit dependencies, agent assignments, and
   parallelization diagram.
 
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, code-review:bug-hunter. Also include general agents: opus, sonnet, haiku}
+
   ### Rubric
   1. Dependency Accuracy (weight: 0.35)
      - Are step dependencies correctly identified?
@@ -938,6 +942,7 @@ Launch judge:
   3. Agent Selection Correctness (weight: 0.20)
      - Are agent types appropriate for outputs (opus by default, haiku for trivial, sonnet for simple but high in volume)?
      - Does selection follow the Agent Selection Guide?
+     - Are only agents from the provided available agents list used?
      - 1=Wrong agents, 2=Mostly appropriate, 3=Acceptable, 4=Optimal selection, 5=Perfect selection
 
   4. Execution Directive Present (weight: 0.15)
