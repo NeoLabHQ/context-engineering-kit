@@ -8,7 +8,7 @@ This plugin is designed to consistently and reproducibly produce working code. I
 
 - **Development as compilation** — The plugin works like a "compilation" or "nightly build" for your development process: `task specs → run /sdd:implement → working code`. After writing your prompt, you can launch the plugin and expect a working result when you come back. The time it takes depends on task complexity — simple tasks may finish in 30 minutes, while complex ones can take a few days.
 - **Benchmark-level quality in real life** — Model benchmarks improve with each release, yet real-world results usually stay the same. That's because benchmarks reflect the best possible output a model can achieve, whereas in practice LLMs tend to drift toward sub-optimal solutions that can be wrong or non-functional. This plugin uses a variety of patterns to keep the model working at its peak performance.
-- **Customizable** — Balance between result quality and process speed by adjusting command parameters. Learn more in the [Customization](./customization.md) section.
+- **Customizable** — Balance between result quality and process speed by adjusting command parameters. Learn more in the [Customization](./customization) section.
 - **Developer time-efficient** — The overall process is designed to minimize developer time and reduce the number of interactions, while still producing results better than what a model can generate from scratch. However, overall quality is highly proportional to the time you invest in iterating and refining the specification.
 - **Industry-standard** — The plugin's specification template is based on the arc42 standard, adjusted for LLM capabilities. Arc42 is a widely adopted, high-quality standard for software development documentation used by many companies and organizations.
 - **Works best in complex or large codebases** — While most other frameworks work best for new projects and greenfield development, this plugin is designed to perform better the more existing code and well-structured architecture you have. At each planning phase it includes a **codebase impact analysis** step that evaluates which files may be affected and which patterns to follow to achieve the desired result.
@@ -46,8 +46,8 @@ Restart the Claude Code session to clear context and start fresh. Then run the f
 # produces working implementation and moves the task to .specs/tasks/done/ folder
 ```
 
-- [Detailed guide](../../guides/spec-driven-development.md)
-- [Usage Examples](./usage-examples.md)
+- [Detailed guide](../../guides/spec-driven-development)
+- [Usage Examples](./usage-examples)
 
 ## Overall Flow
 
@@ -103,14 +103,14 @@ flowchart LR
 
 Core workflow commands:
 
-- [/sdd:add-task](./add-task.md) - Create task template file with initial prompt
-- [/sdd:plan](./plan.md) - Analyze prompt, generate required skills and refine task specification
-- [/sdd:implement](./implement.md) - Produce working implementation of the task and verify it
+- [/sdd:add-task](./add-task) - Create task template file with initial prompt
+- [/sdd:plan](./plan) - Analyze prompt, generate required skills and refine task specification
+- [/sdd:implement](./implement) - Produce working implementation of the task and verify it
 
 Additional commands useful before creating a task:
 
-- [/sdd:create-ideas](./create-ideas.md) - Generate diverse ideas on a given topic using creative sampling techniques
-- [/sdd:brainstorm](./brainstorm.md) - Refine vague ideas into fully-formed designs through collaborative dialogue
+- [/sdd:create-ideas](./create-ideas) - Generate diverse ideas on a given topic using creative sampling techniques
+- [/sdd:brainstorm](./brainstorm) - Refine vague ideas into fully-formed designs through collaborative dialogue
 
 ## Available Agents
 
@@ -149,7 +149,7 @@ Our tests showed that even when the initially generated specification was incorr
 
 Even if you don't want to spend much time on this process, you can still use the plugin for complex tasks without decomposition or human verification — but you will likely need tools like ralph-loop to keep the agent running for a longer time.
 
-Learn more about available customization options in [Customization](./customization.md).
+Learn more about available customization options in [Customization](./customization).
 
 ## Theoretical Foundation
 
