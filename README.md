@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://cek.neolab.finance/" target="blank"><img src="docs/assets/Context-Engineering-Kit.png" width="512" alt="Context Engineering Kit - advanced context engineering techniques" /></a>
+  <a href="https://cek.neolab.finance/" target="blank"><img src="docs/assets/Context-Engineering-Kit.png" width="256" alt="Context Engineering Kit - advanced context engineering techniques" /></a>
 </p>
 
 <div align="center">
