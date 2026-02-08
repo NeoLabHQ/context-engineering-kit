@@ -20,6 +20,7 @@ Hand-crafted collection of advanced context engineering techniques and patterns 
 
 Marketplace is based on prompts used daily by our company developers for a long time, while adding plugins from benchmarked papers and high-quality projects.
 
+> [!IMPORTANT]
 > **v2 marketplace release:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) was rewritten from sctratch. It now able to achive working code aligned with initial prompt in 100% of cases, and was tested on real-life production projects!
 
 ## Key Features
