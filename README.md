@@ -103,9 +103,9 @@ But main plugin we recommend to start with is [Spec-Driven Development](https://
 
 Comprehensive specification-driven development workflow plugin that transforms prompts into production-ready implementations through structured planning, architecture design, and quality-gated execution.
 
-This plugin is designed to consistently and reproducibly produce working code. It was tested on real-life production projects by our team, and in 100% of cases it generated working code aligned with the initial prompt. If you find a use case it cannot handle, please report it as an issue.
+This plugin is designed to consistently produce working code. It was tested on real-life production projects by our team, and in 100% of cases it generated working code aligned with the initial prompt. If you find a use case it cannot handle, please report it as an issue.
 
-#### Key Features
+### Key Features
 
 - **Development as compilation** — The plugin works like a "compilation" or "nightly build" for your development process: `task specs → run /sdd:implement → working code`. After writing your prompt, you can launch the plugin and expect a working result when you come back. The time it takes depends on task complexity — simple tasks may finish in 30 minutes, while complex ones can take a few days.
 - **Benchmark-level quality in real life** — Model benchmarks improve with each release, yet real-world results usually stay the same. That's because benchmarks reflect the best possible output a model can achieve, whereas in practice LLMs tend to drift toward sub-optimal solutions that can be wrong or non-functional. This plugin uses a variety of patterns to keep the model working at its peak performance.
@@ -115,7 +115,7 @@ This plugin is designed to consistently and reproducibly produce working code. I
 - **Works best in complex or large codebases** — While most other frameworks work best for new projects and greenfield development, this plugin is designed to perform better the more existing code and well-structured architecture you have. At each planning phase it includes a **codebase impact analysis** step that evaluates which files may be affected and which patterns to follow to achieve the desired result.
 - **Simple** — This plugin avoids unnecessary complexity and mainly uses just 3 commands, offloading process complexity to the model via multi-agent orchestration. `/sdd:implement` is a single command that produces working code from a task specification. To create that specification, you run `/sdd:add-task` and `/sdd:plan`, which analyze your prompt and iteratively refine the specification until it meets the required quality.
 
-#### Quick Start
+### Quick Start
 
 ```bash
 /plugin install sdd@NeoLabHQ/context-engineering-kit
@@ -168,6 +168,29 @@ Additional commands useful before creating a task:
 | `developer` | Code implementation, TDD execution, quality review, verification | `/sdd:implement` |
 | `tech-writer` | Technical documentation writing, API guides, architecture updates, lessons learned | `/sdd:implement` |
 
+
+### Patterns
+
+Key patterns implemented in this plugin:
+
+- **Structured reasoning templates** — includes Zero-shot and Few-shot Chain of Thought, Tree of Thoughts, Problem Decomposition, and Self-Critique. Each is tailored to a specific agent and task, enabling sufficiently detailed decomposition so that isolated sub-agents can implement each step independently.
+- **Multi-agent orchestration for context management** — Context isolation of independent agents prevents the context rot problem, essentially keeping LLMs at optimal performance at each step of the process. The main agent acts as an orchestrator that launches sub-agents and controls their work.
+- **Quality gates based on LLM-as-Judge** — Evaluate the quality of each planning and implementation step using evidence-based scoring and predefined verification rubrics. This fully eliminates cases where an agent produces non-working or incorrect solutions.
+- **Continuous learning** — Builds skills that the agent needs to implement a specific task, which it would otherwise not be able to perform from scratch.
+- **Spec-driven development pattern** — Based on the arc42 specification standard, adjusted for LLM capabilities, to eliminate parts of the specification that add no value to implementation quality or that could degrade it.
+- **MAKER** — An agent reliability pattern introduced in [Solving a Million-Step LLM Task with Zero Errors](https://arxiv.org/abs/2511.09030). It removes agent mistakes caused by accumulated context and hallucinations by utilizing clean-state agent launches, filesystem-based memory storage, and multi-agent voting during critical decision-making.
+
+### Vibe Coding vs. Specification-Driven Development
+
+This plugin is not a "vibe coding" solution, but out of the box it works like one. By default it is designed to work from a single prompt through to the end of the task, making reasonable assumptions and evidence-based decisions instead of constantly asking for clarification. This is caused by fact that developer time is more valuable than model time, so it allow developer to decide how much time task is worth to spend. Plugin will always produce working results, but quality will be sub-optimal if no human feedback is provided.
+
+To improve quality, after generating a specification you can correct it or leave comments using `//`, then run the `/plan` command again with the `--refine` flag. You can also verify each planning and implementation phase by adding the `--human-in-the-loop` flag. According to the majority of known research, human feedback is the most effective way to improve results.
+
+Our tests showed that even when the initially generated specification was incorrect due to lack of information or task complexity, the agent was still able to self-correct until it reached a working solution. However, it usually took much longer, spending time on wrong paths and stopping more frequently. To avoid this, we strongly advise decomposing tasks into smaller separate tasks with dependencies and reviewing the specification for each one. You can add dependencies between tasks as arguments to the `/add-task` command, and the model will link them together by adding a `depends_on` section to the task file frontmatter.
+
+Even if you don't want to spend much time on this process, you can still use the plugin for complex tasks without decomposition or human verification — but you will likely need tools like ralph-loop to keep the agent running for a longer time.
+
+Learn more about available customization options in [Customization](https://cek.neolab.finance/plugins/sdd/customization.md).
 
 ## Plugins List
 
