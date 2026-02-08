@@ -8,10 +8,10 @@ This plugin is designed to consistently and reproducibly produce working code. I
 
 - **Development as compilation** — The plugin works like a "compilation" or "nightly build" for your development process: `task specs → run /sdd:implement → working code`. After writing your prompt, you can launch the plugin and expect a working result when you come back. The time it takes depends on task complexity — simple tasks may finish in 30 minutes, while complex ones can take a few days.
 - **Benchmark-level quality in real life** — Model benchmarks improve with each release, yet real-world results usually stay the same. That's because benchmarks reflect the best possible output a model can achieve, whereas in practice LLMs tend to drift toward sub-optimal solutions that can be wrong or non-functional. This plugin uses a variety of patterns to keep the model working at its peak performance.
-- **Customizable** — Balance between result quality and process speed by adjusting command parameters. Learn more in the [Customization](./customization.md) section.
-- **Developer time-efficient** — The overall process is designed to minimize developer time and reduce the number of interactions, while still producing results better than what a model can generate from scratch. But overral quality is highly proportional to the time you invest in iterating and refining the specification.
+- **Customizable** — Balance between result quality and process speed by adjusting command parameters. Learn more in the [Customization](customization.md) section.
+- **Developer time-efficient** — The overall process is designed to minimize developer time and reduce the number of interactions, while still producing results better than what a model can generate from scratch. However, overall quality is highly proportional to the time you invest in iterating and refining the specification.
 - **Industry-standard** — The plugin's specification template is based on the arc42 standard, adjusted for LLM capabilities. Arc42 is a widely adopted, high-quality standard for software development documentation used by many companies and organizations.
-- **Works best in complex or large codebases** — While most other frameworks work best for new projects and greenfield development, this plugin is designed to improve the more existing code and well-structured architecture you have. At each planning phase it includes a **codebase impact analysis** step that evaluates which files may be affected and which patterns to follow to achieve the desired result.
+- **Works best in complex or large codebases** — While most other frameworks work best for new projects and greenfield development, this plugin is designed to perform better the more existing code and well-structured architecture you have. At each planning phase it includes a **codebase impact analysis** step that evaluates which files may be affected and which patterns to follow to achieve the desired result.
 - **Simple** — This plugin avoids unnecessary complexity and mainly uses just 3 commands, offloading process complexity to the model via multi-agent orchestration. `/sdd:implement` is a single command that produces working code from a task specification. To create that specification, you run `/sdd:add-task` and `/sdd:plan`, which analyze your prompt and iteratively refine the specification until it meets the required quality.
 
 ## Quick Start
@@ -47,11 +47,11 @@ Restart the Claude Code session to clear context and start fresh. Then run the f
 ```
 
 - [Detailed guide](../../guides/spec-driven-development.md)
-- [Usage Examples](./usage-examples.md)
+- [Usage Examples](usage-examples.md)
 
 ## Overall Flow
 
-End-to-end task implementation process from initial prompt to pull request, including commands from the [git](../git) plugin:
+End-to-end task implementation process from initial prompt to pull request, including commands from the [git](../git/README.md) plugin:
 
 - `/sdd:add-task` → creates a `.specs/tasks/draft/<task-name>.<type>.md` file with the initial task description.
 - `/sdd:plan` → generates a `.claude/skills/<skill-name>/SKILL.md` file with skills needed to implement the task (by analyzing library and framework documentation used in the codebase), then updates the task file with a refined specification and moves it to `.specs/tasks/todo/`.
@@ -59,58 +59,34 @@ End-to-end task implementation process from initial prompt to pull request, incl
 - `/git:commit` → commits changes.
 - `/git:create-pr` → creates a pull request.
 
-```mermaid
-flowchart LR
-    subgraph Create["1. Create"]
-        A["/sdd:add-task"]
-    end
-
-    subgraph Plan["2. Plan"]
-        B["/sdd:plan"]
-    end
-
-    subgraph Implement["3. Implement"]
-        C["/sdd:implement"]
-    end
-
-    subgraph Ship["4. Ship"]
-        D["/git:commit"]
-        E["/git:create-pr"]
-    end
-
-    subgraph Files["Task Lifecycle"]
-        F1[📄 draft/*.md]
-        F2[📄 todo/*.md]
-        F3[📄 in-progress/*.md]
-        F4[📄 done/*.md]
-    end
-
-    A --> F1
-    F1 --> B
-    B --> F2
-    F2 --> C
-    C --> F3
-    F3 --> F4
-    F4 --> D --> E
-
-    style F1 fill:#ffecb3
-    style F2 fill:#e1f5fe
-    style F3 fill:#fff3e0
-    style F4 fill:#c8e6c9
+```
+  1. Create        2. Plan         3. Implement           4. Ship
++-------------+  +-----------+  +---------------+  +-----------------+
+|/sdd:add-task|  | /sdd:plan |  |/sdd:implement |  |  /git:commit    |
++------+------+  +-----+-----+  +------+--------+  |       |         |
+       |                |               |           |       v         |
+       v                v               v           |/git:create-pr   |
+                                                    +-------+---------+
+                                                            |
+                     Task Lifecycle                         |
+ +----------+   +----------+   +--------------+   +---------+
+ | draft/   +-->| todo/    +-->| in-progress/ +-->| done/   |
+ |   *.md   |   |   *.md   |   |     *.md     |   |  *.md   |
+ +----------+   +----------+   +--------------+   +---------+
 ```
 
 ## Commands
 
 Core workflow commands:
 
-- [/sdd:add-task](./add-task.md) - Create task template file with initial prompt
-- [/sdd:plan](./plan.md) - Analyze prompt, generate required skills and refine task specification
-- [/sdd:implement](./implement.md) - Produce working implementation of the task and verify it
+- [/sdd:add-task](add-task.md) - Create task template file with initial prompt
+- [/sdd:plan](plan.md) - Analyze prompt, generate required skills and refine task specification
+- [/sdd:implement](implement.md) - Produce working implementation of the task and verify it
 
 Additional commands useful before creating a task:
 
-- [/sdd:create-ideas](./create-ideas.md) - Generate diverse ideas on a given topic using creative sampling techniques
-- [/sdd:brainstorm](./brainstorm.md) - Refine vague ideas into fully-formed designs through collaborative dialogue
+- [/sdd:create-ideas](create-ideas.md) - Generate diverse ideas on a given topic using creative sampling techniques
+- [/sdd:brainstorm](brainstorm.md) - Refine vague ideas into fully-formed designs through collaborative dialogue
 
 ## Available Agents
 
@@ -126,6 +102,7 @@ The SDD plugin uses specialized agents for different phases of development:
 | `team-lead` | Step parallelization, agent assignment, execution planning | `/sdd:plan` (Phase 5) |
 | `qa-engineer` | Verification rubrics, quality gates, LLM-as-Judge definitions | `/sdd:plan` (Phase 6) |
 | `developer` | Code implementation, TDD execution, quality review, verification | `/sdd:implement` |
+| `tech-writer` | Technical documentation writing, API guides, architecture updates, lessons learned | `/sdd:implement` |
 
 ## Patterns
 
@@ -148,7 +125,7 @@ Our tests showed that even when the initially generated specification was incorr
 
 Even if you don't want to spend much time on this process, you can still use the plugin for complex tasks without decomposition or human verification — but you will likely need tools like ralph-loop to keep the agent running for a longer time.
 
-Learn more about available customization options in [Customization](./customization.md).
+Learn more about available customization options in [Customization](customization.md).
 
 ## Theoretical Foundation
 

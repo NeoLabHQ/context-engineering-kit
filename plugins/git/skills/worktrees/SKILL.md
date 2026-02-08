@@ -1,5 +1,4 @@
 ---
-name: worktrees
 description: Use when working on multiple branches simultaneously, context switching without stashing, reviewing PRs while developing, testing in isolation, or comparing implementations across branches - provides git worktree commands and workflow patterns for parallel development with multiple working directories.
 ---
 

@@ -1,5 +1,4 @@
 ---
-name: add-typescript-best-practices
 description: Setup TypeScript best practices and code style rules in CLAUDE.md
 argument-hint: Optional argument which practices to add or avoid
 ---

@@ -1,5 +1,4 @@
 ---
-name: create-agent
 description: Comprehensive guide for creating Claude Code agents with proper structure, triggering conditions, system prompts, and validation - combines official Anthropic best practices with proven patterns
 argument-hint: [agent-name] [optional description of agent purpose]
 allowed-tools: Read, Write, Glob, Grep, Bash(mkdir:*), Task

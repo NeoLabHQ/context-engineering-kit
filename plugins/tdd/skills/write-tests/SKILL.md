@@ -1,5 +1,4 @@
 ---
-name: write-tests
 description: Systematically add test coverage for all local code changes using specialized review and development agents. Add tests for uncommitted changes (including untracked files), or if everything is commited, then will cover latest commit.
 argument-hint: what tests or modules to focus on
 ---

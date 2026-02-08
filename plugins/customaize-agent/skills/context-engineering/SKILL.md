@@ -1,5 +1,4 @@
 ---
-name: context-engineering
 description: Understand the components, mechanics, and constraints of context in agent systems. Use when writing, editing, or optimizing commands, skills, or sub-agents prompts.
 ---
 

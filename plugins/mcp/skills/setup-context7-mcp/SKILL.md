@@ -1,5 +1,4 @@
 ---
-name: setup-context7-mcp
 description: Guide for setup Context7 MCP server to load documentation for specific technologies.
 argument-hint: List of languages and frameworks to load documentation for
 ---

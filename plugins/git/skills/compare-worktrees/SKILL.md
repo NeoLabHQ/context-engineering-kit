@@ -1,5 +1,4 @@
 ---
-name: compare-worktrees
 description: Compare files and directories between git worktrees or worktree and current branch
 argument-hint: Path(s) to compare, worktree paths, branch names, or --stat for summary
 model: opus

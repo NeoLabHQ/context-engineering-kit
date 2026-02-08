@@ -1,5 +1,4 @@
 ---
-name: apply-anthropic-skill-best-practices
 description: Comprehensive guide for skill development based on Anthropic's official best practices - use for complex skills requiring detailed structure
 argument-hint: Optional skill name or path to skill being reviewed
 ---

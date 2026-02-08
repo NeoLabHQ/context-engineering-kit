@@ -1,5 +1,4 @@
 ---
-name: merge-worktree
 description: Merge changes from worktrees into current branch with selective file checkout, cherry-picking, interactive patch selection, or manual merge
 argument-hint: file/directory path, commit name, branch name, or --interactive for guided mode
 model: opus

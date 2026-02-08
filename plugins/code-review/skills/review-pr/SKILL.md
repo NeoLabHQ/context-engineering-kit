@@ -1,5 +1,4 @@
 ---
-name: review-pr
 description: Comprehensive pull request review using specialized agents
 argument-hint: "[review-aspects]"
 ---

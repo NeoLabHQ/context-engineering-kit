@@ -89,19 +89,23 @@ The plugin includes optional hooks that automatically trigger reflection when yo
 
 ## Theoretical Foundation
 
-The Reflexion plugin is based on peer-reviewed research demonstrating **8-21% improvement in output quality** across diverse tasks:
+Based on papers like [Self-Refine](https://arxiv.org/abs/2303.17651) and [Reflexion](https://arxiv.org/abs/2303.11366). These techniques improve the output of large language models by introducing feedback and refinement loops.
 
-### Core Papers
+They are proven to **increase output quality by 8–21%** based on both automatic metrics and human preferences across seven diverse tasks, including dialogue generation, coding, and mathematical reasoning, when compared to standard one-step model outputs.
 
-- **[Self-Refine](https://arxiv.org/abs/2303.17651)** - Iterative refinement where the model reviews and improves its own output
-- **[Reflexion](https://arxiv.org/abs/2303.11366)** - Self-reflection for autonomous agents with memory
-- **[Constitutional AI (CAI)](https://arxiv.org/abs/2212.08073)** - Critique based on principles and guidelines
-- **[LLM-as-a-Judge](https://arxiv.org/abs/2306.05685)** - Using LLMs to evaluate other LLM outputs
-- **[Multi-Agent Debate](https://arxiv.org/abs/2305.14325)** - Multiple models proposing and critiquing solutions
-- **[Agentic Context Engineering](https://arxiv.org/abs/2510.04618)** - Memory updates after reflection (**10.6% improvement**)
+Full list of included patterns and techniques:
 
-### Additional Techniques
+- [Self-Refinement / Iterative Refinement](https://arxiv.org/abs/2303.17651) - One model generates, then reviews and improves its own output
+- [Constitutional AI (CAI) / RLAIF](https://arxiv.org/abs/2212.08073) - One model generates responses, another critiques them based on principles
+- [Critic-Generator or Verifier-Generator Architecture](https://arxiv.org/abs/2510.14660v1) - Generator model creates outputs, Critic/verifier model evaluates and provides feedback
+- [LLM-as-a-Judge](https://arxiv.org/abs/2306.05685) - One LLM evaluates/scores outputs from another LLM
+- [Debate / Multi-Agent Debate](https://arxiv.org/abs/2305.14325) - Multiple models propose and critique solutions
+- [Generate-Verify-Refine (GVR)](https://arxiv.org/abs/2204.05511) - Three-stage process: generate → verify → refine based on verification
 
-- **[Chain-of-Verification (CoVe)](https://arxiv.org/abs/2309.11495)** - Generate, verify, revise cycle
-- **[Tree of Thoughts (ToT)](https://arxiv.org/abs/2305.10601)** - Multiple reasoning path exploration
-- **[Process Reward Models](https://arxiv.org/abs/2305.20050)** - Step-by-step evaluation
+On top of that, the plugin is based on the [Agentic Context Engineering](https://arxiv.org/abs/2510.04618) paper that uses memory updates after reflection, and **consistently outperforms strong baselines by 10.6%** on agents.
+
+Also includes the following techniques:
+
+- [Chain-of-Verification (CoVe)](https://arxiv.org/abs/2309.11495) - Model generates answer, then verification questions, then revises
+- [Tree of Thoughts (ToT)](https://arxiv.org/abs/2305.10601) - Explores multiple reasoning paths with evaluation
+- [Process Reward Models (PRM)](https://arxiv.org/abs/2305.20050) - Evaluates reasoning steps rather than just final answers

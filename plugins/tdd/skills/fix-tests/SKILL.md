@@ -1,5 +1,4 @@
 ---
-name: fix-tests
 description: Systematically fix all failing tests after business logic changes or refactoring
 argument-hint: what tests or modules to focus on
 ---

@@ -1,5 +1,4 @@
 ---
-name: add-task
 description: creates draft task file in .specs/tasks/draft/ with original user intent
 argument-hint: Task title or description (e.g., "Add validation to form inputs") [list of task files that this task depends on]
 ---

@@ -1,5 +1,4 @@
 ---
-name: test-prompt
 description: Use when creating or editing any prompt (commands, hooks, skills, subagent instructions) to verify it produces desired behavior - applies RED-GREEN-REFACTOR cycle to prompt engineering using subagents for isolated testing
 ---
 
