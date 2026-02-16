@@ -2,8 +2,8 @@
 
 Create a draft task file that captures the user's intent with structured metadata, proper classification, and dependency tracking — ready for refinement by `/sdd:plan`.
 
-- Purpose — Transform a user prompt into a well-structured draft task file with action-oriented title, type classification, and optional dependencies
-- Output — Task file in `.specs/tasks/draft/<name>.<type>.md`
+- Purpose — Transform a user prompt into a well-structured draft task file with an action-oriented title, type classification, and optional dependencies
+- Output — Task file at `.specs/tasks/draft/<name>.<type>.md`
 
 ```bash
 /sdd:add-task "Task description" [dependency-file-paths...]
@@ -65,7 +65,7 @@ Create a draft task file that captures the user's intent with structured metadat
 
 ### Phase 1: Setup Directory Structure
 
-Creates the full task lifecycle directory structure if it doesn't exist:
+Creates the full task lifecycle directory structure if it does not exist:
 
 | Directory | Purpose |
 |-----------|---------|
@@ -115,7 +115,7 @@ depends_on: <list of dependency task files>
 
 ## Description
 
-// Will be filled in future stages by business analyst
+// Will be filled in future stages by a business analyst
 ```
 
 > The `depends_on` field is only included when dependencies are explicitly provided.
@@ -180,10 +180,10 @@ After creating a draft task, proceed with the SDD workflow:
 /sdd:implement
 ```
 
-## Best practices
+## Best Practices
 
-- Keep descriptions focused — one task per prompt, decompose large features into multiple dependent tasks
-- Provide dependencies explicitly — use task file paths as additional arguments when tasks have ordering requirements
-- Use natural language — the agent infers type and title from your description; no special formatting needed
-- Review the draft — verify the generated title and type before running `/sdd:plan`
-- Decompose before planning — creating smaller tasks with dependencies produces better specifications than one large task
+- Keep descriptions focused — one task per prompt; decompose large features into multiple dependent tasks.
+- Provide dependencies explicitly — use task file paths as additional arguments when tasks have ordering requirements.
+- Use natural language — the agent infers type and title from your description; no special formatting is needed.
+- Review the draft — verify the generated title and type before running `/sdd:plan`.
+- Decompose before planning — creating smaller tasks with dependencies produces better specifications than one large task.

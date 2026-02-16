@@ -1,9 +1,9 @@
 # /sdd:implement - Task Implementation with Verification
 
-Execute task implementation steps with automated LLM-as-Judge quality verification, sequential and parallel step execution, and Definition of Done validation.
+Execute task implementation steps using automated LLM-as-Judge quality verification, sequential and parallel execution, and Definition of Done (DoD) validation.
 
-- Purpose - Implement all steps from a planned task specification and verify working results
-- Output - Working code with tests passing, task moved to `.specs/tasks/done/`
+- **Purpose**: Implement all steps from a planned task specification and verify the results.
+- **Output**: Working code with passing tests; task moved to `.specs/tasks/done/`.
 
 ```bash
 /sdd:implement [task-file] [options]
@@ -16,10 +16,10 @@ Execute task implementation steps with automated LLM-as-Judge quality verificati
 | `task-file` | Path or filename | Auto-detect | Task file name or path (e.g., `add-validation.feature.md`). Auto-selects from `in-progress/` or `todo/` if only one task exists. |
 | `--target-quality` | `--target-quality X.X` or `X.X,Y.Y` | `4.0` (standard) / `4.5` (critical) | Quality threshold. Single value sets both. Two comma-separated values set standard,critical. |
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum fix→verify cycles per step. Set to `unlimited` for no limit. |
-| `--human-in-the-loop` | `--human-in-the-loop [s1,s2,...]` | None | Steps after which to pause for review. Without step numbers, pauses after every step. |
-| `--skip-judges` | flag | `false` | Skip all judge validation — fast but no quality gates |
-| `--continue` | flag | None | Resume from last completed step |
-| `--refine` | flag | `false` | Detect changed project files and re-verify from earliest affected step |
+| `--human-in-the-loop` | `--human-in-the-loop [s1,s2,...]` | None | Steps after which to pause for review. If no steps are specified, the process pauses after every step. |
+| `--skip-judges` | flag | `false` | Skip all judge validation — fast but provides no quality gates |
+| `--continue` | flag | None | Resume from the last completed step |
+| `--refine` | flag | `false` | Detect changed project files and re-verify from the earliest affected step |
 
 ## Workflow Diagram
 
@@ -91,7 +91,7 @@ Execute task implementation steps with automated LLM-as-Judge quality verificati
 
 ### Phase 0: Select Task & Move to In-Progress
 
-1. Resolves the task file — checks `in-progress/` first, then `todo/`
+1. Resolves the task file by checking `in-progress/` first, then `todo/`
 2. Moves the task from `todo/` to `in-progress/`
 3. Parses flags and displays resolved configuration
 
@@ -112,16 +112,16 @@ For each step in dependency order, the orchestrator launches sub-agents and judg
 For simple operations (directory creation, file deletion):
 
 1. Launch `sdd:developer` agent to implement the step
-2. Mark step complete — no judge verification needed
+2. Mark the step as complete — no judge verification is needed
 
 #### Pattern B: Critical Step (Panel of 2 Evaluations)
 
 For critical artifacts requiring high confidence:
 
-1. Launch `sdd:developer` agent to implement
+1. Launch the `sdd:developer` agent to implement the step
 2. Launch 2 `sdd:developer` evaluation agents **in parallel** with the step's rubric
-3. Calculate median score; pass if median ≥ threshold
-4. On FAIL: iterate fix→verify until PASS or max iterations reached
+3. Calculate the median score; pass if median ≥ threshold
+4. On failure: iterate through fix→verify cycles until they pass or the maximum number of iterations is reached
 
 #### Pattern C: Multi-Item Step (Per-Item Evaluations)
 
@@ -129,24 +129,24 @@ For steps creating multiple similar items:
 
 1. Launch `sdd:developer` agents **in parallel** (one per item)
 2. Launch evaluation agents **in parallel** (one per item)
-3. All items must pass; failing items get re-implemented
-4. Iterate until all pass or max iterations reached
+3. All items must pass; failing items are re-implemented
+4. Iterate until all pass or the maximum number of iterations is reached
 
 ### Phase 3: Final Verification
 
 After all steps complete:
 
 1. Launch `sdd:developer` agent to verify all **Definition of Done** items
-2. Each item checked with evidence (tests pass, build succeeds, files exist, patterns match)
-3. Failing items get fixed by dedicated developer agents
+2. Each item is checked for evidence (e.g., passing tests, successful builds, existing files, matching patterns)
+3. Failing items are fixed by dedicated developer agents
 4. Re-verify until all items pass
 
 ### Phase 4: Complete
 
 1. Move task from `in-progress/` to `done/`
-2. All step titles marked `[DONE]`, subtasks marked `[X]`
-3. All DoD items marked `[X]`
-4. Generate final implementation report
+2. All step titles are marked `[DONE]`, and subtasks are marked `[X]`
+3. All DoD items are marked `[X]`
+4. Generate a final implementation report
 
 ## Verification Levels
 
@@ -164,7 +164,7 @@ Resumes implementation from the last completed step:
 1. Parses task file for `[DONE]` markers
 2. Launches judge to verify the last incomplete step's artifacts
 3. If PASS: marks done, resumes from next step
-4. If FAIL: re-implements the step and iterates
+4. If it fails: re-implement the step and iterate
 
 ## Refine Mode (`--refine`)
 
@@ -173,7 +173,7 @@ Detects changes to **project files** (not the task file) and re-verifies from th
 1. Detects changed files via `git diff`
 2. Maps changed files to implementation steps using "Expected Output" and artifact paths
 3. Determines the earliest affected step
-4. Launches judge for each affected step — if PASS, user's fix is accepted; if FAIL, implementation agent aligns the rest of code with user's changes
+4. Launches a judge for each affected step — if it passes, the user's fix is accepted; if it fails, the implementation agent aligns the rest of the code with the user's changes
 5. All subsequent steps are also re-verified
 
 ## Human-in-the-Loop (`--human-in-the-loop`)
@@ -182,7 +182,7 @@ After each specified step passes:
 
 1. Displays step results, artifacts, and judge feedback
 2. Asks: `Continue? [Y/n/feedback]`
-3. User feedback gets incorporated into subsequent iterations
+3. User feedback is incorporated into subsequent iterations
 4. User can pause the workflow at any point
 
 ## Usage Examples
@@ -230,7 +230,7 @@ After each specified step passes:
 | Final verification PASS | Move task from `in-progress/` → `done/` |
 | Implementation aborted | Keep in `in-progress/` |
 
-## Best practices
+## Best Practices
 
 - Let the orchestrator work autonomously — it launches sub-agents for both implementation and verification
 - Use `--continue` if the process is interrupted — it picks up where it left off

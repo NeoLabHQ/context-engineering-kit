@@ -1,6 +1,6 @@
 # SDD Plugin - Usage Examples
 
-Real-world scenarios demonstrating effective use of the Spec-Driven Development plugin for various project types and complexity levels.
+Real-world scenarios demonstrating the effective use of the Spec-Driven Development plugin across various project types and complexity levels.
 
 ## Examples
 
@@ -64,7 +64,7 @@ Real-world scenarios demonstrating effective use of the Spec-Driven Development 
 /sdd:implement @.specs/tasks/todo/fix-null-pointer-user-service.bug.md --skip-judges
 ```
 
-The `--fast` flag sets `--target-quality 3.0 --max-iterations 1 --included-stages business analysis,decomposition,verifications`, skipping research, codebase analysis, architecture synthesis, and parallelization.
+The `--fast` flag sets `--target-quality 3.0 --max-iterations 1 --included-stages "business analysis,decomposition,verifications"`, skipping research, codebase analysis, architecture synthesis, and parallelization.
 
 ---
 
@@ -174,9 +174,9 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 # Detecting changed project files...
 # Changed: src/validation/validation.service.ts (modified)
 # Maps to: Step 2 (Create ValidationService)
-# Step 2: Judge PASS ✅ — user's fix is good
+# Step 2: Judge PASS ✅ — The user's fix is good
 # Step 3: Judge PASS ✅ — no cascading issues
-# Step 4: Judge FAIL — launching implementation agent to align...
+# Step 4: Judge FAIL — Launching the implementation agent to align...
 # Step 4: Judge PASS ✅ (after fix)
 ```
 
@@ -215,13 +215,13 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 ```bash
 # Quick diverse idea generation
-/sdd:create-ideas caching strategies for real-time product catalog
+/sdd:create-ideas "caching strategies for a real-time product catalog"
 
 # Output: 5 diverse ideas with probability scores
 # Pick the most promising approach
 
 # Deeper exploration with collaborative dialogue
-/sdd:brainstorm We need real-time features but not sure about WebSockets vs Server-Sent Events
+/sdd:brainstorm "We need real-time features but are not sure about WebSockets vs. Server-Sent Events"
 
 # After brainstorm produces a design document:
 /sdd:add-task "Implement real-time stock updates using WebSocket connections"
@@ -239,11 +239,11 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 # Skip research phase — you're familiar with the stack
 /sdd:plan @.specs/tasks/draft/add-pagination.feature.md --skip research
 
-# Skip research and codebase analysis — small isolated change
-/sdd:plan @.specs/tasks/draft/fix-date-format.bug.md --skip research,codebase analysis
+# Skip research and codebase analysis — A small, isolated change
+/sdd:plan @.specs/tasks/draft/fix-date-format.bug.md --skip research,"codebase analysis"
 
 # Only run business analysis and decomposition
-/sdd:plan @.specs/tasks/draft/update-config.chore.md --included-stages business analysis,decomposition
+/sdd:plan @.specs/tasks/draft/update-config.chore.md --included-stages "business analysis,decomposition"
 ```
 
 ---
@@ -297,7 +297,7 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 ```bash
 # For unfamiliar technology — brainstorm first
-/sdd:brainstorm We need real-time features but I'm not sure about WebSockets vs Server-Sent Events
+/sdd:brainstorm "We need real-time features, but I'm not sure about WebSockets vs. Server-Sent Events"
 
 # The research phase in /sdd:plan will:
 # - Launch researcher agent to compare libraries
@@ -317,9 +317,9 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 - New features with unclear requirements
 - Complex integrations with multiple systems
-- Features affecting multiple parts of codebase
+- Features affecting multiple parts of the codebase
 - Public APIs or features with external consumers
-- Refactoring with high regression risk
+- Refactoring projects with high regression risk
 
 ### When to Use Abbreviated Workflow
 
@@ -337,8 +337,8 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 ### Anti-Patterns to Avoid
 
-1. Skipping specification review for complex features
+1. Skipping specification reviews for complex features
 2. Ignoring high-risk task warnings in decomposition
 3. Using `--skip-judges` for production-critical code
 4. Creating tasks that are too large — decompose into smaller dependent tasks
-5. Not using `--refine` after editing specifications (re-running full plan is wasteful)
+5. Not using `--refine` after editing specifications (re-running a full plan is wasteful)

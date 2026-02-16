@@ -4,9 +4,9 @@ Customization options available for the SDD plugin.
 
 ## Token Usage and Efficiency
 
-The main limitation of SDD plugin is the number of tokens you're willing to spend on each task.
+The main limitation of the SDD plugin is the number of tokens you're willing to spend on each task.
 
-In contrast to other plugins in the context-engineering-kit marketplace, this plugin tries to use as many tokens as possible to get the best results. This approach can consume an entire Claude Code session's token budget on a single task, which is why it has default limits like `target-quality` and `max-iterations` set per command. These are predefined in a way that if a task is well-defined and not too big, in majority of the cases results will be good enough, that you not will be need to re-iterate on it.
+In contrast to other plugins in the context-engineering-kit marketplace, this plugin tries to use as many tokens as possible to get the best results. This approach can consume an entire Claude Code session's token budget on a single task, which is why it has default limits like `target-quality` and `max-iterations` set per command. These are predefined in a way that if a task is well-defined and not too big, in the majority of cases, results will be good enough that you will not need to reiterate on it.
 
 If you want better results or want to finish tasks faster, you can adjust command parameters. For example, adding `--target-quality 4.5 --max-iterations 5` to `/plan` or `/implement` allows the orchestrator agent to iterate more toward "ideal" results. Conversely, setting `--target-quality 3.0 --max-iterations 1` makes agents finish when results minimally meet the criteria, iterating only once to resolve issues. This lets you configure each command to balance quality and speed per task run.
 
@@ -18,9 +18,9 @@ Last but not least, you can ask the orchestrator to use only the `haiku` model f
 
 ## Human-in-the-Loop Verification
 
-The initial version of this plugin was designed to produce the highest possible quality solution an LLM can generate — in other words, to move real-world LLM performance closer to benchmark results. However, in practice, LLMs tend to drift toward sub-optimal solutions, which is not the desired outcome. The current version filters out all non-working and obviously incorrect solutions. That said, the overall quality still depends on the quality of the specification file and, consequently, on the quality of your review of that specification.
+The initial version of this plugin was designed to produce the highest possible quality solution that an LLM can generate — in other words, to move real-world LLM performance closer to benchmark results. However, in practice, LLMs tend to drift toward sub-optimal solutions, which is not the desired outcome. The current version filters out all non-working and obviously incorrect solutions. That said, the overall quality still depends on the quality of the specification file and, consequently, on the quality of your review of that specification.
 
-In order to incorporate human feedback into the process, you can use the `--human-in-the-loop` parameter in the `/plan` and `/implement` commands. It will pause the process after each phase and ask you to review the results of last phase, before continuing to the next one.
+In order to incorporate human feedback into the process, you can use the `--human-in-the-loop` parameter in the `/plan` and `/implement` commands. It will pause the process after each phase and ask you to review the results of the last phase before continuing to the next one.
 
 ## Epics, User Stories, and Roadmaps
 
