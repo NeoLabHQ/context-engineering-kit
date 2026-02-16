@@ -2,8 +2,8 @@
 
 Refine a draft task specification into a fully planned, implementation-ready task through multi-agent analysis, architecture synthesis, and quality-gated verification.
 
-- Purpose - Transform draft task into complete specification with architecture, implementation steps, parallelization, and verification rubrics
-- Output - Refined task file moved to `.specs/tasks/todo/`, plus skill files in `.claude/skills/` and analysis files in `.specs/analysis/`
+- Purpose - Transforms a draft task into a complete specification with architecture, implementation steps, parallelization, and verification rubrics
+- Output - A refined task file moved to `.specs/tasks/todo/`, plus skill files in `.claude/skills/` and analysis files in `.specs/analysis/`
 
 ```bash
 /sdd:plan .specs/tasks/draft/add-validation.feature.md [options]
@@ -29,13 +29,13 @@ Refine a draft task specification into a fully planned, implementation-ready tas
 
 | Stage Name | Phase | Description |
 |------------|-------|-------------|
-| `research` | 2a | Gather relevant resources, documentation, libraries |
-| `codebase analysis` | 2b | Identify affected files, interfaces, integration points |
-| `business analysis` | 2c | Refine description and create acceptance criteria |
-| `architecture synthesis` | 3 | Synthesize research and analysis into architecture |
-| `decomposition` | 4 | Break into implementation steps with risks |
-| `parallelize` | 5 | Reorganize steps for parallel execution |
-| `verifications` | 6 | Add LLM-as-Judge verification rubrics |
+| `research` | 2a | Gathers relevant resources, documentation, and libraries |
+| `codebase analysis` | 2b | Identifies affected files, interfaces, and integration points |
+| `business analysis` | 2c | Refines the description and creates acceptance criteria |
+| `architecture synthesis` | 3 | Synthesizes research and analysis into an architecture |
+| `decomposition` | 4 | Breaks the architecture into implementation steps with risks |
+| `parallelize` | 5 | Reorganizes steps for parallel execution |
+| `verifications` | 6 | Adds LLM-as-Judge verification rubrics |
 
 ## Workflow Diagram
 
@@ -114,18 +114,18 @@ Refine a draft task specification into a fully planned, implementation-ready tas
 Three analysis agents run **in parallel**, each with its own judge validation:
 
 - **Phase 2a: Research** (`researcher` agent, sonnet) — Gathers relevant resources, documentation, and libraries. Creates or updates a reusable skill file in `.claude/skills/`.
-- **Phase 2b: Codebase Impact Analysis** (`code-explorer` agent, sonnet) — Identifies affected files, interfaces, and integration points. Produces analysis file in `.specs/analysis/`.
-- **Phase 2c: Business Analysis** (`business-analyst` agent, opus) — Refines task description, creates acceptance criteria, and documents user scenarios.
+- **Phase 2b: Codebase Impact Analysis** (`code-explorer` agent, sonnet) — Identifies affected files, interfaces, and integration points. Produces an analysis file in `.specs/analysis/`.
+- **Phase 2c: Business Analysis** (`business-analyst` agent, opus) — Refines the task description, creates acceptance criteria, and documents user scenarios.
 
 Each sub-phase is validated by a judge agent. All three must pass before proceeding.
 
 ### Phase 3: Architecture Synthesis
 
-`software-architect` agent (opus) synthesizes findings from research, codebase analysis, and business analysis into an architectural overview with key decisions, solution strategy, and expected file changes.
+`software-architect` agent (opus) synthesizes findings from research, codebase analysis, and business analysis into an architectural overview featuring key decisions, a solution strategy, and expected file changes.
 
 ### Phase 4: Decomposition
 
-`tech-lead` agent (opus) breaks the architecture into ordered implementation steps with success criteria, subtasks, blockers, risks, and complexity ratings.
+`tech-lead` agent (opus) breaks the architecture into ordered implementation steps, including success criteria, subtasks, blockers, risks, and complexity ratings.
 
 ### Phase 5: Parallelize Steps
 
@@ -133,23 +133,23 @@ Each sub-phase is validated by a judge agent. All three must pass before proceed
 
 ### Phase 6: Define Verifications
 
-`qa-engineer` agent (opus) adds LLM-as-Judge verification sections with custom rubrics, thresholds, and verification levels (None / Single Judge / Panel of 2 / Per-Item) for each implementation step.
+`qa-engineer` agent (opus) adds LLM-as-Judge verification sections with custom rubrics, thresholds, and verification levels (None, Single Judge, Panel of 2, or Per-Item) for each implementation step.
 
 ### Phase 7: Promote Task
 
-Moves the refined task file from `draft/` to `todo/` and stages all generated artifacts with git.
+Moves the refined task file from `draft/` to `todo/` and stages all generated artifacts with Git.
 
 ## Quality Gates
 
 Every phase includes a judge validation step using LLM-as-Judge:
 
-- **PASS** (score >= threshold) — Phase complete, proceed to next
-- **FAIL** (score < threshold) — Re-run phase with judge feedback
-- **MAX_ITERATIONS reached** — Proceed to next stage automatically (with warning logged)
+- **PASS** (score >= threshold) — Phase complete; proceed to the next stage.
+- **FAIL** (score < threshold) — Re-run the phase with judge feedback.
+- **MAX_ITERATIONS reached** — Proceed to the next stage automatically (with a warning logged).
 
 ## Refine Mode (`--refine`)
 
-After reviewing the generated specification, you can edit it directly and re-run planning with `--refine`:
+After reviewing the generated specification, you can edit it directly and re-run the planning process with `--refine`:
 
 1. Detects changes via `git diff HEAD -- <TASK_FILE>`
 2. Identifies the earliest modified section
@@ -209,11 +209,11 @@ After reviewing the generated specification, you can edit it directly and re-run
     └── <hex-id>.md                # Working scratchpads (gitignored)
 ```
 
-## Best practices
+## Best Practices
 
-- Review the generated specification before implementing — human feedback is the most effective quality lever
-- Use `--refine` after making edits instead of re-running the full workflow
-- Add `//` comment markers to lines that need clarification — agents will incorporate your feedback
-- For complex tasks, use `--human-in-the-loop` to verify architecture decisions before decomposition
-- Use `--fast` for simple well-defined tasks where full analysis is unnecessary
-- Use `--skip research` when working with familiar technologies
+- Review the generated specification before implementing — human feedback is the most effective quality lever.
+- Use `--refine` after making edits instead of re-running the full workflow.
+- Add `//` comment markers to lines that need clarification — agents will incorporate your feedback.
+- For complex tasks, use `--human-in-the-loop` to verify architecture decisions before decomposition.
+- Use `--fast` for simple, well-defined tasks where full analysis is unnecessary.
+- Use `--skip research` when working with familiar technologies.

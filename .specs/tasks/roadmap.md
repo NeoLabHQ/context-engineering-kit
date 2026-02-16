@@ -6,6 +6,7 @@
 [x] Move all commands to skills format, in order to properly support all installers
 [] Add support for vercel skill installer - but left support for installers that exists now
 [] Publish skills in vercel marketplace
+[] Add skills to https://github.com/VoltAgent/awesome-agent-skills
 [x] Migrate SDD plugin to v2 version
     [x] Fix issues with scratchpad id generation - potentially write script for generation of them
     [x] switch to `git mv` instead of `mv` in order to keep git history clean and avoid conflicts.

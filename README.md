@@ -21,20 +21,20 @@ Hand-crafted collection of advanced context engineering techniques and patterns 
 The marketplace is based on prompts used daily by our company developers for a long time, while adding plugins from benchmarked papers and high-quality projects.
 
 > [!IMPORTANT]
-> **v2 marketplace release:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) was rewritten from sctratch. It is now able to produce working code in 100% of cases on real-life production projects!
+> **v2 marketplace release:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) was rewritten from scratch. It is now able to produce working code in 100% of cases on real-life production projects!
 
 ## Key Features
 
 - **Simple to Use** - Easy to install and use without any dependencies. Contains automatically used skills and self-explanatory commands.
-- **Token-Efficient** - Carefully crafted prompts and architecture, preferring command oriented skills with sub-agents over general information skills when possible, to minimize populating context with unnecessary information.
+- **Token-Efficient** - Carefully crafted prompts and architecture, preferring command-oriented skills with sub-agents over general information skills when possible, to minimize populating context with unnecessary information.
 - **Quality-Focused** - Each plugin is focused on meaningfully improving agent results in a specific area.
 - **Granular** - Install only the plugins you need. Each plugin loads only its specific agents, commands, and skills. Each without overlap and redundant skills.
 - **Scientifically proven** - Plugins are based on proven techniques and patterns that were tested by well-trusted benchmarks and studies.
-- **Open-Standards** - Skills are based on [agentskills.io](https://agentskills.io) and [openskills](https://github.com/numman-ali/openskills). [SDD](https://cek.neolab.finance/plugins/sdd) plugin is based on Arc42 specification standard for software development documentation.
+- **Open-Standards** - Skills are based on [agentskills.io](https://agentskills.io) and [openskills](https://github.com/numman-ali/openskills). The [SDD](https://cek.neolab.finance/plugins/sdd) plugin is based on the Arc42 specification standard for software development documentation.
 
 ## Quick Start
 
-### Step 1: Install Marketplaces and Plugin
+### Step 1: Install Marketplace and Plugins
 
 #### Claude Code
 
@@ -57,7 +57,7 @@ Each installed plugin loads only its specific agents, commands, and skills into 
 <details>
 <summary>Installation for Cursor, Windsurf, Cline, OpenCode and others</summary>
 
-Use [OpenSkills](https://github.com/numman-ali/openskills) to install skills for broad range of agents:
+Use [OpenSkills](https://github.com/numman-ali/openskills) to install skills for a broad range of agents:
 
 ```bash
 npx openskills install NeoLabHQ/context-engineering-kit
@@ -97,13 +97,13 @@ In order to use this hook, you need to have `bun` installed. However, it is not 
 
 You can find the complete Context Engineering Kit documentation [here](https://cek.neolab.finance).
 
-But main plugin we recommend to start with is [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd).
+However, the main plugin we recommend starting with is [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd).
 
 ## [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd)
 
 Comprehensive specification-driven development workflow plugin that transforms prompts into production-ready implementations through structured planning, architecture design, and quality-gated execution.
 
-This plugin is designed to consistently produce working code. It was tested on real-life production projects by our team, and in 100% of cases it generated working code aligned with the initial prompt. If you find a use case it cannot handle, please report it as an issue.
+This plugin is designed to consistently produce working code. It was tested on real-life production projects by our team, and in 100% of cases, it generated working code aligned with the initial prompt. If you find a use case it cannot handle, please report it as an issue.
 
 ### Key Features
 
@@ -147,7 +147,7 @@ Restart the Claude Code session to clear context and start fresh. Then run the f
 
 - [/sdd:add-task](https://cek.neolab.finance/plugins/sdd/add-task) - Create task template file with initial prompt
 - [/sdd:plan](https://cek.neolab.finance/plugins/sdd/plan) - Analyze prompt, generate required skills and refine task specification
-- [/sdd:implement](https://cek.neolab.finance/plugins/sdd/implement) - Produce working implementation of the task and verify it
+- [/sdd:implement](https://cek.neolab.finance/plugins/sdd/implement) - Produce a working implementation of the task and verify it
 
 Additional commands useful before creating a task:
 
@@ -182,7 +182,7 @@ Key patterns implemented in this plugin:
 
 ### Vibe Coding vs. Specification-Driven Development
 
-This plugin is not a "vibe coding" solution, but out of the box it works like one. By default it is designed to work from a single prompt through to the end of the task, making reasonable assumptions and evidence-based decisions instead of constantly asking for clarification. This is caused by fact that developer time is more valuable than model time, so it allow developer to decide how much time task is worth to spend. Plugin will always produce working results, but quality will be sub-optimal if no human feedback is provided.
+This plugin is not a "vibe coding" solution, but out of the box it works like one. By default it is designed to work from a single prompt through to the end of the task, making reasonable assumptions and evidence-based decisions instead of constantly asking for clarification. This is because developer time is more valuable than model time, allowing the developer to decide how much time the task is worth. The plugin will always produce working results, but quality will be sub-optimal if no human feedback is provided.
 
 To improve quality, after generating a specification you can correct it or leave comments using `//`, then run the `/plan` command again with the `--refine` flag. You can also verify each planning and implementation phase by adding the `--human-in-the-loop` flag. According to the majority of known research, human feedback is the most effective way to improve results.
 
@@ -201,11 +201,11 @@ To view all available plugins:
 ```
 
 - [Reflexion](https://cek.neolab.finance/plugins/reflexion) - Introduces feedback and refinement loops to improve output quality.
-- [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd) - Introduces commands for specification-driven development, based on Continuous Learning + LLM-as-Judge + Agent Swarm. Achives **development as compilation** through reliable code generation.
+- [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd) - Introduces commands for specification-driven development, based on Continuous Learning + LLM-as-Judge + Agent Swarm. Achieves **development as compilation** through reliable code generation.
 - [Code Review](https://cek.neolab.finance/plugins/code-review) - Introduces codebase and PR review commands and skills using multiple specialized agents.
 - [Git](https://cek.neolab.finance/plugins/git) - Introduces commands for commit and PRs creation.
 - [Test-Driven Development](https://cek.neolab.finance/plugins/tdd) - Introduces commands for test-driven development, common anti-patterns and skills for testing using subagents.
-- [Subagent-Driven Development](https://cek.neolab.finance/plugins/sadd) - Introduces skills for subagent-driven development, dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
+- [Subagent-Driven Development](https://cek.neolab.finance/plugins/sadd) - Introduces skills for subagent-driven development, which dispatches a fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
 - [Domain-Driven Development](https://cek.neolab.finance/plugins/ddd) - Introduces commands to update CLAUDE.md with best practices for domain-driven development, focused on code quality, and includes Clean Architecture, SOLID principles, and other design patterns.
 - [FPF - First Principles Framework](https://cek.neolab.finance/plugins/fpf) - Introduces structured reasoning using ADI cycle (Abduction-Deduction-Induction) with knowledge layer progression. Uses workflow command pattern with fpf-agent for hypothesis generation, verification, and auditable decision-making.
 - [Kaizen](https://cek.neolab.finance/plugins/kaizen) - Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root causes of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.
@@ -260,7 +260,7 @@ This plugin uses multiple specialized agents for comprehensive code quality anal
 - **security-auditor** - Identifies security vulnerabilities and potential attack vectors
 - **test-coverage-reviewer** - Evaluates test coverage and suggests missing test cases
 
-You can use this plugin to review code in github actions, in order to do it follow [this guide](https://cek.neolab.finance/guides/ci-integration).
+You can use this plugin to review code in GitHub Actions; to do so, follow [this guide](https://cek.neolab.finance/guides/ci-integration).
 
 ### [Git](https://cek.neolab.finance/plugins/git)
 
@@ -501,10 +501,10 @@ Commands for integrating Model Context Protocol servers with your project. Each 
 
 **Commands**
 
-- [/mcp:setup-context7-mcp](https://cek.neolab.finance/plugins/mcp/setup-context7-mcp) - Guide for setup Context7 MCP server to load documentation for specific technologies
-- [/mcp:setup-serena-mcp](https://cek.neolab.finance/plugins/mcp/setup-serena-mcp) - Guide for setup Serena MCP server for semantic code retrieval and editing capabilities
-- [/mcp:setup-codemap-cli](https://cek.neolab.finance/plugins/mcp/setup-codemap-cli) - Guide for setup Codemap CLI for intelligent codebase visualization and navigation
-- [/mcp:setup-arxiv-mcp](https://cek.neolab.finance/plugins/mcp/setup-arxiv-mcp) - Guide for setup arXiv/Paper Search MCP server via Docker MCP for academic paper search and retrieval from multiple sources
+- [/mcp:setup-context7-mcp](https://cek.neolab.finance/plugins/mcp/setup-context7-mcp) - Guide for setting up Context7 MCP server to load documentation for specific technologies
+- [/mcp:setup-serena-mcp](https://cek.neolab.finance/plugins/mcp/setup-serena-mcp) - Guide for setting up Serena MCP server for semantic code retrieval and editing capabilities
+- [/mcp:setup-codemap-cli](https://cek.neolab.finance/plugins/mcp/setup-codemap-cli) - Guide for setting up Codemap CLI for intelligent codebase visualization and navigation
+- [/mcp:setup-arxiv-mcp](https://cek.neolab.finance/plugins/mcp/setup-arxiv-mcp) - Guide for setting up arXiv/Paper Search MCP server via Docker MCP for academic paper search and retrieval from multiple sources
 - [/mcp:build-mcp](https://cek.neolab.finance/plugins/mcp/build-mcp) - Guide for creating high-quality MCP servers that enable LLMs to interact with external services
 
 ## Theoretical Foundation
@@ -525,4 +525,4 @@ This project is based on research and papers from the following sources:
 - [Chain of Thought Prompting](https://arxiv.org/abs/2201.11903) - Step-by-step reasoning
 - [Inference-Time Scaling of Verification](https://arxiv.org/abs/2601.15808) - Rubric-guided verification
 
-More details about theoretical foundation can be found in [resources](https://cek.neolab.finance/resources) page.
+More details about the theoretical foundation can be found on the [resources](https://cek.neolab.finance/resources) page.
