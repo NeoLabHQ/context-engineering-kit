@@ -1,4 +1,5 @@
 ---
+name: sadd:do-competitively
 description: Execute tasks through competitive multi-agent generation, multi-judge evaluation, and evidence-based synthesis
 argument-hint: Task description and optional output path/criteria
 ---

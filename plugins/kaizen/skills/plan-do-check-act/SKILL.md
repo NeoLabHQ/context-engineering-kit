@@ -1,4 +1,5 @@
 ---
+name: kaizen:plan-do-check-act
 description: Iterative PDCA cycle for systematic experimentation and continuous improvement
 argument-hint: Optional improvement goal or problem to address
 ---

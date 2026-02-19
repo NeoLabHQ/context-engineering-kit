@@ -21,6 +21,11 @@ Execute task implementation steps using automated LLM-as-Judge quality verificat
 | `--continue` | flag | None | Resume from the last completed step |
 | `--refine` | flag | `false` | Detect changed project files and re-verify from the earliest affected step |
 
+## Context Management
+
+If you ran `/plan` in the same session, run `/clear` (or re-open Claude Code) before `/implement`. The planning phase fills the context window with analysis artifacts; starting fresh gives the implementation agents a clean context for better results.
+
+
 ## Workflow Diagram
 
 ```
@@ -146,7 +151,10 @@ After all steps complete:
 1. Move task from `in-progress/` to `done/`
 2. All step titles are marked `[DONE]`, and subtasks are marked `[X]`
 3. All DoD items are marked `[X]`
-4. Generate a final implementation report
+4. Stage all changed files with Git
+5. Generate a final implementation report
+
+Staging at the end allows you to make manual edits on top and use `--refine`, so the agent can diff your changes against the staged state.
 
 ## Verification Levels
 
@@ -170,7 +178,7 @@ Resumes implementation from the last completed step:
 
 Detects changes to **project files** (not the task file) and re-verifies from the earliest affected step:
 
-1. Detects changed files via `git diff`
+1. Compares local (unstaged) changes against staged changes by default. To compare against the last commit instead, specify it explicitly (e.g., `/implement --refine compare with last commit`).
 2. Maps changed files to implementation steps using "Expected Output" and artifact paths
 3. Determines the earliest affected step
 4. Launches a judge for each affected step — if it passes, the user's fix is accepted; if it fails, the implementation agent aligns the rest of the code with the user's changes

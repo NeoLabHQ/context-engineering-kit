@@ -1,4 +1,5 @@
 ---
+name: customaize-agent:agent-evaluation
 description: Evaluate and improve Claude Code commands, skills, and agents. Use when testing prompt effectiveness, validating context engineering choices, or measuring improvement quality.
 ---
 

@@ -38,7 +38,7 @@ Then run the following commands:
 # Moves the task to the .specs/tasks/todo/ folder
 ```
 
-Restart the Claude Code session to clear context and start fresh. Then run the following command:
+Run `/clear` (or re-open Claude Code) to clear context and start fresh. Then run the following command:
 
 ```bash
 # Implement the task
@@ -47,6 +47,7 @@ Restart the Claude Code session to clear context and start fresh. Then run the f
 ```
 
 - [Detailed guide](../../guides/spec-driven-development.md)
+- [Refining specifications and code](refine.md)
 - [Usage Examples](usage-examples.md)
 
 ## Overall Flow
@@ -126,6 +127,20 @@ Our tests showed that even when the initially generated specification was incorr
 Even if you prefer a less hands-on approach, you can still use the plugin for complex tasks without decomposition or human verification — though you may need tools to keep the session active for longer periods, for example ralph-loop.
 
 Learn more about available customization options in [Customization](customization.md).
+
+## FAQ
+
+**Do I need to re-run `/plan` or `/implement` after context compaction (`/compact`)?**
+
+After compaction, close the terminal and resume with `/plan --continue` or `/implement --continue`. This produces more predictable results than continuing in a compacted context. Using `/model sonnet[1m]` reduces compaction frequency.
+
+**Do I need to prefix every prompt with `/plan` or `/implement`?**
+
+No. Run these commands once to start the workflow. The only time to invoke them again is when you change the specification or code and want agents to update misaligned sections — use `/plan --refine` or `/implement --refine`.
+
+**Should I clear context between `/plan` and `/implement`?**
+
+Yes. Run `/clear` (or re-open Claude Code) after `/plan` completes and before running `/implement`. The planning phase fills the context with analysis artifacts; a clean context gives implementation agents better results.
 
 ## Theoretical Foundation
 

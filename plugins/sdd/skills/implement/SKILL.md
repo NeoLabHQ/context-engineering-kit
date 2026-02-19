@@ -1,5 +1,6 @@
 ---
-description: Implement a task with automated LLM-as-Judge verification for critical steps 
+name: sdd:implement
+description: Implement a task with automated LLM-as-Judge verification for critical steps
 argument-hint: Task file [options] (e.g., "add-validation.feature.md --continue --human-in-the-loop")
 ---
 

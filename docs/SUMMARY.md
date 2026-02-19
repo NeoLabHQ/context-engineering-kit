@@ -95,6 +95,7 @@
     * [implement](plugins/sdd/implement.md)
     * [brainstorm](plugins/sdd/brainstorm.md)
     * [create-ideas](plugins/sdd/create-ideas.md)
+    * [Refining Specifications and Code](plugins/sdd/refine.md)
     * [customization](plugins/sdd/customization.md)
     * [Usage Examples](plugins/sdd/usage-examples.md)
   * [Test-Driven Development](plugins/tdd/README.md)

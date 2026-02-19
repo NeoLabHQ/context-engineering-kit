@@ -1,4 +1,5 @@
 ---
+name: docs:write-concisely
 description: Apply writing rules to any documentation that humans will read. Makes your writing clearer, stronger, and more professional.
 ---
 

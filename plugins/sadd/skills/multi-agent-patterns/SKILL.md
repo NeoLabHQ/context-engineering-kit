@@ -1,4 +1,5 @@
 ---
+name: sadd:multi-agent-patterns
 description: Design multi-agent architectures for complex tasks. Use when single-agent context limits are exceeded, when tasks decompose naturally into subtasks, or when specializing agents improves quality.
 ---
 
