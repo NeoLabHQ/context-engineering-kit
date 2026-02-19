@@ -8,7 +8,7 @@
 [![agentskills.io](https://img.shields.io/badge/format-agentskills.io-purple.svg)](https://agentskills.io)
 [![Mentioned in Awesome Claude Code](https://awesome.re/mentioned-badge.svg)](https://github.com/hesreallyhim/awesome-claude-code)
 
-Advanced context engineering techniques and patterns for Claude Code, OpenCode, Cursor and more.
+Advanced context engineering techniques and patterns for Claude Code, OpenCode, Cursor, Antigravity and more.
 
 [Quick Start](#quick-start) · [Plugins](#plugins-list) · [Github Action](https://cek.neolab.finance/guides/ci-integration) · [Reference](https://cek.neolab.finance/reference) · [Docs](https://cek.neolab.finance/)
 
@@ -18,7 +18,7 @@ Advanced context engineering techniques and patterns for Claude Code, OpenCode, 
 
 Hand-crafted collection of advanced context engineering techniques and patterns with minimal token footprint, focused on improving agent result quality and predictability.
 
-The marketplace is based on prompts used daily by our company developers for a long time, while adding plugins from benchmarked papers and high-quality projects.
+The marketplace is based on prompts used daily by our company developers for a long time, supplemented by plugins from benchmarked papers and high-quality projects.
 
 > [!IMPORTANT]
 > **v2 marketplace release:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) was rewritten from scratch. It is now able to produce working code in 100% of cases on real-life production projects!
@@ -30,7 +30,7 @@ The marketplace is based on prompts used daily by our company developers for a l
 - **Quality-Focused** - Each plugin is focused on meaningfully improving agent results in a specific area.
 - **Granular** - Install only the plugins you need. Each plugin loads only its specific agents, commands, and skills. Each without overlap and redundant skills.
 - **Scientifically proven** - Plugins are based on proven techniques and patterns that were tested by well-trusted benchmarks and studies.
-- **Open-Standards** - Skills are based on [agentskills.io](https://agentskills.io) and [openskills](https://github.com/numman-ali/openskills). The [SDD](https://cek.neolab.finance/plugins/sdd) plugin is based on the Arc42 specification standard for software development documentation.
+- **Open-Standards** - Skills are based on [agentskills.io](https://agentskills.io) specification. The [SDD](https://cek.neolab.finance/plugins/sdd) plugin is based on the **Arc42** specification standard for software development documentation.
 
 ## Quick Start
 
@@ -46,7 +46,7 @@ Open Claude Code and add the Context Engineering Kit marketplace
 
 This makes all plugins available for installation, but does not load any agents or skills into your context.
 
-Install any plugins, for example reflexion
+Install any plugin, for example reflexion:
 
 ```bash
 /plugin install reflexion@NeoLabHQ/context-engineering-kit
@@ -54,10 +54,19 @@ Install any plugins, for example reflexion
 
 Each installed plugin loads only its specific agents, commands, and skills into Claude's context.
 
-<details>
-<summary>Installation for Cursor, Windsurf, Cline, OpenCode and others</summary>
+#### Cursor, Antigravity, Codex, OpenCode and others
 
-Use [OpenSkills](https://github.com/numman-ali/openskills) to install skills for a broad range of agents:
+Run the [vercel-labs/skills](https://github.com/vercel-labs/skills) command in your terminal:
+
+```bash
+npx skills add NeoLabHQ/context-engineering-kit
+```
+You can pick which skills and agents to install.
+
+<details>
+<summary>Alternative installation methods</summary>
+
+You can use [OpenSkills](https://github.com/numman-ali/openskills) to install skills by running the following commands:
 
 ```bash
 npx openskills install NeoLabHQ/context-engineering-kit
@@ -78,8 +87,8 @@ npx openskills sync
 # If they are minor, it will suggest improvements that you can respond to
 > fix the issues
 
-# If you would like it to avoid issues that were found during reflection to appear again,
-# ask claude to extract resolution strategies and save the insights to project memory
+# If you would like to prevent issues found during reflection from appearing again,
+# ask Claude to extract resolution strategies and save the insights to project memory
 > /reflexion:memorize
 ```
 
@@ -109,7 +118,7 @@ This plugin is designed to consistently produce working code. It was tested on r
 
 - **Development as compilation** — The plugin works like a "compilation" or "nightly build" for your development process: `task specs → run /sdd:implement → working code`. After writing your prompt, you can launch the plugin and expect a working result when you come back. The time it takes depends on task complexity — simple tasks may finish in 30 minutes, while complex ones can take a few days.
 - **Benchmark-level quality in real life** — Model benchmarks improve with each release, yet real-world results usually stay the same. That's because benchmarks reflect the best possible output a model can achieve, whereas in practice LLMs tend to drift toward sub-optimal solutions that can be wrong or non-functional. This plugin uses a variety of patterns to keep the model working at its peak performance.
-- **Customizable** — Balance between result quality and process speed by adjusting command parameters. Learn more in the [Customization](./customization.md) section.
+- **Customizable** — Balance result quality and process speed by adjusting command parameters. Learn more in the [Customization](./customization.md) section.
 - **Developer time-efficient** — The overall process is designed to minimize developer time and reduce the number of interactions, while still producing results better than what a model can generate from scratch. However, overall quality is highly proportional to the time you invest in iterating and refining the specification.
 - **Industry-standard** — The plugin's specification template is based on the arc42 standard, adjusted for LLM capabilities. Arc42 is a widely adopted, high-quality standard for software development documentation used by many companies and organizations.
 - **Works best in complex or large codebases** — While most other frameworks work best for new projects and greenfield development, this plugin is designed to perform better the more existing code and well-structured architecture you have. At each planning phase it includes a **codebase impact analysis** step that evaluates which files may be affected and which patterns to follow to achieve the desired result.
@@ -184,11 +193,11 @@ Key patterns implemented in this plugin:
 
 This plugin is not a "vibe coding" solution, but out of the box it works like one. By default it is designed to work from a single prompt through to the end of the task, making reasonable assumptions and evidence-based decisions instead of constantly asking for clarification. This is because developer time is more valuable than model time, allowing the developer to decide how much time the task is worth. The plugin will always produce working results, but quality will be sub-optimal if no human feedback is provided.
 
-To improve quality, after generating a specification you can correct it or leave comments using `//`, then run the `/plan` command again with the `--refine` flag. You can also verify each planning and implementation phase by adding the `--human-in-the-loop` flag. According to the majority of known research, human feedback is the most effective way to improve results.
+To improve quality, after generating a specification you can correct it or leave comments using `//`, then run the `/plan` command again with the `--refine` flag. You can also verify each planning and implementation phase by adding the `--human-in-the-loop` flag. According to most known research, human feedback is the most effective way to improve results.
 
 Our tests showed that even when the initially generated specification was incorrect due to lack of information or task complexity, the agent was still able to self-correct until it reached a working solution. However, it usually took much longer, spending time on wrong paths and stopping more frequently. To avoid this, we strongly advise decomposing tasks into smaller separate tasks with dependencies and reviewing the specification for each one. You can add dependencies between tasks as arguments to the `/add-task` command, and the model will link them together by adding a `depends_on` section to the task file frontmatter.
 
-Even if you don't want to spend much time on this process, you can still use the plugin for complex tasks without decomposition or human verification — but you will likely need tools like ralph-loop to keep the agent running for a longer time.
+Even if you don't want to spend much time on this process, you can still use the plugin for complex tasks without decomposition or human verification — but you will likely need tools like ralph-loop to keep the agent running for longer.
 
 Learn more about available customization options in [Customization](https://cek.neolab.finance/plugins/sdd/customization).
 
@@ -344,7 +353,7 @@ Commands for setting up domain-driven development best practices focused on code
 
 **Commands**
 
-- [/ddd:setup-code-formating](https://cek.neolab.finance/plugins/ddd/setup-code-formating) - Sets up code formatting rules and style guidelines in CLAUDE.md
+- [/ddd:setup-code-formatting](https://cek.neolab.finance/plugins/ddd/setup-code-formating) - Sets up code formatting rules and style guidelines in CLAUDE.md
 
 **Skills**
 
