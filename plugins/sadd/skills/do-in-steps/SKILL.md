@@ -1,4 +1,5 @@
 ---
+name: sadd:do-in-steps
 description: Execute complex tasks through sequential sub-agent orchestration with intelligent model selection, and LLM-as-a-judge verification
 argument-hint: Task description (e.g., "Refactor UserService class and update all consumers")
 ---

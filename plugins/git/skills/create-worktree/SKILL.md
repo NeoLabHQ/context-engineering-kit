@@ -1,4 +1,5 @@
 ---
+name: git:create-worktree
 description: Create and setup git worktrees for parallel development with automatic dependency installation
 argument-hint: <name> (e.g., "refactor auth system" or "fix login") or --list to show existing worktrees
 model: opus

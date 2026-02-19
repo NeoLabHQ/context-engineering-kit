@@ -1,4 +1,5 @@
 ---
+name: fpf:decay
 description: "Manage evidence freshness by identifying stale decisions and providing governance actions"
 ---
 

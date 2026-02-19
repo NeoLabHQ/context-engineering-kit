@@ -1,4 +1,5 @@
 ---
+name: git:analyze-issue
 description: Analyze a GitHub issue and create a detailed technical specification
 argument-hint: Issue number (e.g., 42)
 allowed-tools: Bash(gh issue:*), Read, Write, Glob, Grep
