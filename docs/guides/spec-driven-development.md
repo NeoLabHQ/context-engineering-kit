@@ -117,11 +117,11 @@ It will perform the following refinement process to update the task file with a 
 
 It will output the updated task file to `.specs/tasks/todo/design-implement-authentication-middleware-with-jwt-support.feature.md` and create new skills if needed. It also produces scratchpads and verification reports along the way to properly evaluate each step of the process. You can safely ignore all of them.
 
-At this point you can verify and adjust the specification, then run the `/plan --refine` command again for agents to update the rest of the specification where it doesn't align with your changes. It uses a top-to-bottom approach, meaning all sections below your changes will be rethought and updated accordingly.
+At this point you can verify and adjust the specification, then run the `/plan --refine` command again for agents to update the rest of the specification where it doesn't align with your changes. It uses a top-to-bottom approach, meaning all sections below your changes will be rethought and updated accordingly. See the [Refining Specifications and Code](../plugins/sdd/refine.md) guide for details.
 
 ### Code Generation
 
-Once you are happy with the specification, you can run the implementation process:
+Once you are happy with the specification, run `/clear` (or re-open Claude Code) to clear context. Then you can start the implementation process:
 
 ```bash
 /implement

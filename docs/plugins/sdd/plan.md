@@ -137,7 +137,7 @@ Each sub-phase is validated by a judge agent. All three must pass before proceed
 
 ### Phase 7: Promote Task
 
-Moves the refined task file from `draft/` to `todo/` and stages all generated artifacts with Git.
+Moves the refined task file from `draft/` to `todo/` and stages all generated artifacts with Git. Staging at the end allows you to make manual edits on top and use `--refine`, so the agent can diff your changes against the staged state.
 
 ## Quality Gates
 
@@ -151,11 +151,13 @@ Every phase includes a judge validation step using LLM-as-Judge:
 
 After reviewing the generated specification, you can edit it directly and re-run the planning process with `--refine`:
 
-1. Detects changes via `git diff HEAD -- <TASK_FILE>`
+1. Compares local (unstaged) changes against staged changes by default. To compare against the last commit instead, specify it explicitly (e.g., `/plan --refine compare with last commit`).
 2. Identifies the earliest modified section
 3. Re-runs only stages from that point onward (top-to-bottom propagation)
 4. Preserves earlier stages that are unaffected
 5. Supports `//` comment markers for inline feedback
+
+You can also pass a requirement change directly: `/plan --refine <requirement change>`. The agent incorporates your change and re-runs affected stages.
 
 | Modified Section | Re-run From Stage |
 |------------------|-------------------|
