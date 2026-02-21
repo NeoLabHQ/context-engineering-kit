@@ -759,28 +759,46 @@ Example: When building a `big-query` skill to handle queries like "How many user
 
 To establish the skill's contents, analyze each concrete example to create a list of the reusable resources to include: scripts, references, and assets.
 
-### Step 3: Initializing the Skill
+### Step 3: Creating the Skill Directory
 
-At this point, it is time to actually create the skill.
+Skip this step if the skill already exists and only needs iteration.
 
-Skip this step only if the skill being developed already exists, and iteration or packaging is needed. In this case, continue to the next step.
+Create the skill directory and required files:
 
-When creating a new skill from scratch, always run the `init_skill.py` script. The script conveniently generates a new template skill directory that automatically includes everything a skill requires, making the skill creation process much more efficient and reliable.
+1. Create the skill folder: `mkdir -p skills/<skill-name>`
+2. Create `SKILL.md` with YAML frontmatter:
 
-Usage:
+```markdown
+---
+name: skill-name
+description: Use when [triggering conditions] - [what the skill does]
+---
 
-```bash
-scripts/init_skill.py <skill-name> --path <output-directory>
+# Skill Name
+
+## Critical Guidlines
+[Core principle in 1-2 sentences. Each start wit "You MUST ..."]
+
+## How to Use
+[Think in steps, use problem decomposition, etc.]
+
+## Guide
+[Procedures, patterns]
+
+## Examples
+[Examples of how to use the skill, include agent input and output]
+
+## Troubleshooting
+[Common mistakes and how to avoid them]
+
+## Resources
+[Scripts, references, assets]
 ```
 
-The script:
-
-- Creates the skill directory at the specified path
-- Generates a SKILL.md template with proper frontmatter and TODO placeholders
-- Creates example resource directories: `scripts/`, `references/`, and `assets/`
-- Adds example files in each directory that can be customized or deleted
-
-After initialization, customize or remove the generated SKILL.md and example files as needed.
+3. Add resource subdirectories only if needed:
+   - `scripts/` — reusable executable code
+   - `references/` — documentation loaded on demand
+   - `assets/` — files used in output (templates, images)
 
 ### Step 4: Edit the Skill
 
@@ -790,7 +808,7 @@ When editing the (newly-generated or existing) skill, remember that the skill is
 
 To begin implementation, start with the reusable resources identified above: `scripts/`, `references/`, and `assets/` files. Note that this step may require user input. For example, when implementing a `brand-guidelines` skill, the user may need to provide brand assets or templates to store in `assets/`, or documentation to store in `references/`.
 
-Also, delete any example files and directories not needed for the skill. The initialization script creates example files in `scripts/`, `references/`, and `assets/` to demonstrate structure, but most skills won't need all of them.
+Remove any resource subdirectories not needed for the skill. Most skills need only SKILL.md.
 
 #### Update SKILL.md
 
@@ -802,31 +820,15 @@ To complete SKILL.md, answer the following questions:
 2. When should the skill be used?
 3. In practice, how should Claude use the skill? All reusable skill contents developed above should be referenced so that Claude knows how to use them.
 
-### Step 5: Packaging a Skill
+### Step 5: Validating the Skill
 
-Once the skill is ready, it should be packaged into a distributable zip file that gets shared with the user. The packaging process automatically validates the skill first to ensure it meets all requirements:
+Before deploying, verify the skill meets requirements:
 
-```bash
-scripts/package_skill.py <path/to/skill-folder>
-```
-
-Optional output directory specification:
-
-```bash
-scripts/package_skill.py <path/to/skill-folder> ./dist
-```
-
-The packaging script will:
-
-1. **Validate** the skill automatically, checking:
-   - YAML frontmatter format and required fields
-   - Skill naming conventions and directory structure
-   - Description completeness and quality
-   - File organization and resource references
-
-2. **Package** the skill if validation passes, creating a zip file named after the skill (e.g., `my-skill.zip`) that includes all files and maintains the proper directory structure for distribution.
-
-If validation fails, the script will report the errors and exit without creating a package. Fix any validation errors and run the packaging command again.
+1. **Frontmatter** — YAML contains only `name` and `description` (max 1024 chars total)
+2. **Name** — uses only letters, numbers, and hyphens
+3. **Description** — starts with "Use when...", written in third person, includes specific triggers
+4. **Structure** — `SKILL.md` exists at `skills/<skill-name>/SKILL.md`
+5. **Resources** — any referenced scripts, references, or assets exist at their declared paths
 
 ### Step 6: Iterate
 
