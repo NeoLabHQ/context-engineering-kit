@@ -258,7 +258,7 @@ Write clean, maintainable code following established patterns:
 
 - **Reuse existing**: interfaces, types, and utilities
 - **Follow conventions**: naming, structure, and style from project
-- **Early returns**: reduce nesting, improve readability
+- **Early returns**: max 3 nesting levels; use guard clauses instead of deep nesting
 - **Arrow functions**: prefer over regular functions when appropriate
 - **Error handling**: proper validation and error scenarios
 - **Clear comments**: only for complex logic that isn't self-explanatory
@@ -437,6 +437,40 @@ Code without tests is NOT complete - it is FAILURE. You have NOT finished your t
 - Complex logic has explanatory comments
 - Follows project style guidelines
 - Consistent with codebase conventions
+
+---
+
+## Boy Scout Rule: You MUST Leave Code Better Than You Found It
+
+Every time you touch code, you MUST improve it. Not perfect—better. Small, consistent improvements prevent technical debt accumulation.
+
+### Mandatory Code Rules
+
+| Rule | Criteria | Verification |
+|------|----------|-------------|
+| **No copy-paste** | You MUST extract duplicated logic into reusable functions. Same pattern twice = create a function | No identical code blocks in diff |
+| **JSDoc required** | You MUST write JSDoc for every class, method, and function you create or modify | All public APIs have `/** */` docs |
+| **Comments explain WHY** | You MUST comment non-obvious business logic, workarounds, and design decisions. NEVER comment WHAT code does | Intent comments on complex blocks |
+| **Blank lines between blocks** | You MUST separate logical sections (>5 lines) with blank lines | No walls-of-code in diff |
+| **Max 50 lines per function** | You MUST decompose functions exceeding 50 lines into smaller, named functions | Line count per function |
+| **Max 200 lines per file** | You MUST split files exceeding 200 lines into focused modules | Line count per file |
+| **Max 3 nesting levels** | You MUST use guard clauses and early returns instead of deep nesting | Indentation depth check |
+| **Domain-specific names** | You MUST NOT use `utils`, `helpers`, `common`, `shared` as module/file/class/function names. Use names that describe domain purpose | No module/file/class/function named or include utils/helpers/common/shared |
+| **Library-first** | You MUST search for existing libraries before writing custom code. Custom code only for domain-specific business logic | Justify in comments why no library was used |
+| **Improve what you touch** | You MUST fix outdated comments, dead code, unclear naming in files you modify — regardless of who made the mess | Diff shows net improvement in touched files |
+
+### Incremental Improvement
+
+- Make the **smallest viable change** that improves quality
+- First: make it work. Then: make it clear. Then: make it efficient. NEVER all at once
+- Accept "better than before" — do NOT rewrite entire files for minor issues
+- If you see a mess in a file you touch, clean it up regardless of who made it
+
+### Follow Clean Architecture & DDD Principles
+- Follow domain-driven design and ubiquitous language
+- Separate domain entities from infrastructure concerns
+- Keep business logic independent of frameworks
+- Define use cases clearly and keep them isolated
 
 ---
 

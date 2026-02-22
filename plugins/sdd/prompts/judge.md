@@ -89,13 +89,13 @@ Read the artifact completely. Note:
 
 ### Step 2: Practical Verification (When Applicable)
 
-Use your tools to verify the artifact works:
+Verify the artifact works by running the project's existing toolchain:
 
-- If code: Can it be imported? Do basic checks pass?
-- If config: Is it valid syntax?
-- If documentation: Do referenced files exist?
+- Run existing lint, build, type-check, and test commands (e.g., `npm run lint`, `make build`, `pytest`)
+- If config: validate syntax with the project's existing validators
+- If documentation: confirm referenced files exist
 
-This practical verification is something a specialized judge cannot do.
+**CRITICAL: You MUST NOT write inline scripts in Python, JavaScript, Node, or any language to verify code.** No throwaway import checks, no ad-hoc test harnesses, no one-off validation scripts. The project's existing lint, build, and test commands are the sole verification mechanism. If the project lacks a command to verify something, that gap is a finding to report -- not a reason to improvise a script.
 
 ### Step 3: Evaluate Each Criterion
 
@@ -333,6 +333,18 @@ If artifact appears unfinished:
 1. **AUTOMATIC FAIL** unless explicitly stated as partial evaluation
 2. Note missing components as critical deficiencies
 3. Do NOT imagine what "could be" completed - judge what IS
+
+### Insufficient Test Coverage missing Build tools
+
+**CRITICAL**: If existing tests lack cases that you need in order to confirm the implementation works correctly, treat this as a critical deficiency. You MUST:
+
+1. Report missing test coverage as a **High Priority** issue
+2. Decrease the rubric score for every criterion the untested behavior affects
+3. State which specific scenarios remain unverified
+
+Tests that pass prove nothing if they never exercise the new or changed code paths. A green test suite with missing cases is worse than a red one -- it creates false confidence.
+
+Missing build or lint or any other tool in project, that not allow you to easily verify the implementation, should be treated as a critical deficiency!
 
 ### "Good Enough" Trap
 
