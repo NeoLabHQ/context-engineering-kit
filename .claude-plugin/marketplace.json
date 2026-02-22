@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "context-engineering-kit",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "Hand-crafted collection of advanced context engineering techniques and patterns with minimal token footprint focused on improving agent result quality.",
   "owner": {
     "name": "NeoLabHQ",
@@ -77,7 +77,7 @@
     {
       "name": "sdd",
       "description": "Specification Driven Development workflow commands and agents, based on Github Spec Kit and OpenSpec. Uses specialized agents for effective context management and quality review.",
-      "version": "2.0.0",
+      "version": "2.1.0",
       "author": {
         "name": "Vlad Goncharov",
         "email": "vlad.goncharov@neolab.finance"

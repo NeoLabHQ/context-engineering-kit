@@ -79,6 +79,35 @@ Analysis: [analysis file path]
 
 [Stage 5 content...]
 
+## Architecture Pattern Decision
+
+Pattern: [layered / hexagonal / onion / clean / event-driven / microkernel / other: ___]
+Justification: [Why this pattern fits based on codebase analysis from Step 3.2]
+Codebase precedent: [Existing file paths demonstrating current architecture pattern]
+
+## DDD & Clean Architecture Verification
+
+### Clean Architecture Layers
+- Layer 1 (Entities/Domain): [List domain entities and value objects]
+- Layer 2 (Use Cases): [List application use cases]
+- Layer 3 (Adapters): [List controllers, gateways, presenters]
+- Layer 4 (Frameworks): [List external frameworks, DB, UI]
+
+### Dependency Direction Check
+- [ ] Layer 1 imports NOTHING from layers 2, 3, 4
+- [ ] Layer 2 imports ONLY from layer 1
+- [ ] Layer 3 imports ONLY from layers 1, 2
+- [ ] Layer 4 imports from any layer (outermost)
+
+### DDD Checklist
+- [ ] Bounded contexts identified with explicit names
+- [ ] Ubiquitous language terms defined for this domain
+- [ ] Domain entities have zero infrastructure imports
+- [ ] Business logic independent of frameworks and libraries
+- [ ] Use cases isolated — one use case per file/class
+- [ ] No generic module names (utils, helpers, common, shared)
+- [ ] Module boundaries align with domain boundaries
+
 ## Self-Critique
 
 [Stage 7 content...]
@@ -194,6 +223,21 @@ Based on patterns found, select the best approach and commit to it.
 - Design for testability, performance, and maintainability
 
 If you think "developers will figure it out" - You are WRONG. They will FAIL. Ambiguity creates confusion, confusion creates bugs, bugs create rework. ELIMINATE ALL AMBIGUITY.
+
+**MANDATORY: Architecture Pattern Selection**
+
+You MUST explicitly choose one or multiple architecture patterns (multiple if they well align with each other) and document it in the task file. There are examples pattern, but many more is possible:
+
+| Pattern | Choose When |
+|---------|------------|
+| **Layered** | Simple CRUD, clear presentation/business/data separation |
+| **Hexagonal (Ports & Adapters)** | Multiple external integrations, swappable adapters needed |
+| **Onion** | High domain complexity, strict dependency inversion required |
+| **Clean** | Complex business logic, multiple delivery mechanisms |
+| **Event-Driven** | Async workflows, decoupled components, real-time requirements |
+| **Microkernel** | Plugin-based systems, extensible feature sets |
+
+State in task file: "**Architecture Pattern**: [Name] — [reasoning tied to patterns from Step 3.2]"
 
 ---
 
@@ -531,6 +575,32 @@ Now copy the selected sections from your scratchpad to the task file after `## A
 
 ---
 
+## Architecture Health: You MUST Leave Architecture Better Than You Found It
+
+When analyzing existing systems, you MUST identify and document architectural improvements. Small improvements prevent systemic debt.
+
+### Mandatory Architecture Rules
+
+| Rule | Criteria | Verification |
+|------|----------|-------------|
+| **Explicit architecture pattern** | Every task file MUST state the chosen architecture pattern (layered/hexagonal/onion/clean/event-driven/etc) with justification | Pattern named in Solution Strategy |
+| **DDD bounded contexts** | All new modules MUST map to bounded contexts with ubiquitous language | Module names match domain terms |
+| **Inward dependencies only** | Domain layer MUST have zero imports from infrastructure, UI, or frameworks | Grep domain files for external imports |
+| **Clean Architecture layers** | You MUST identify applicable layers (Entities → Use Cases → Adapters → Frameworks) and map components to them | Layer assignment in component table |
+| **No generic modules** | NEVER design modules/files/classes/functions named `utils`, `helpers`, `common`, `shared` | No modules/files/classes/functions named utils/helpers/common/shared |
+| **Separation of concerns** | Business logic MUST be independent of delivery mechanism (API, CLI, UI) | Domain code has no HTTP/DB/UI references |
+| **Single responsibility** | Each component MUST have exactly one reason to change | Responsibility column in component table |
+| **Simplify over-engineering** | If existing architecture is over-engineered for current needs, you MUST propose simplification | Simplification noted in scratchpad |
+
+### Incremental Architecture Improvement
+
+- Improve architecture **incrementally**, not through big-bang redesigns
+- Accept designs that are **better than current state**, even if not ideal
+- If you identify architectural debt in analyzed code, try to imrpove it if it align with current task or expected changes
+- Respect existing architecture decisions unless they actively harm the system
+
+---
+
 ### STAGE 7: Self-Critique Loop (in scratchpad)
 
 **YOU MUST complete this self-critique BEFORE selecting sections for the task file.** NO EXCEPTIONS. NEVER skip this step.
@@ -551,6 +621,8 @@ Generate 5 verification questions about critical aspects of your architecture - 
 | 4 | **Decisiveness**: Have I made clear, singular architectural choices, or have I left ambiguous "could do X or Y" statements that will confuse implementers? | Review Step 3.4 (Architecture Decision) for waffling language. ONE approach must be chosen with rationale referencing patterns. |
 | 5 | **Blueprint Completeness**: Can a developer implement this feature using ONLY my blueprint, without needing to ask clarifying questions? | Verify Step 3.5 has file paths, Step 3.6 has integration details, Step 3.8 has phased checklist. No placeholder text allowed. |
 | 6 | **Build Sequence Dependencies**: Does my build sequence (Step 3.8) correctly reflect the dependencies identified in Stage 2? Does each phase only depend on completed phases? | Cross-reference Step 3.8 phases against Stage 2 dependency table. No phase should require work from a later phase. |
+| 7 | **Architecture Pattern Justified**: Did I explicitly select one or multiple architecture patterns and justify it with references to existing codebase patterns from Step 3.2? | Check scratchpad "Architecture Pattern Decision" section. Pattern must be named, justified, and codebase precedent cited. |
+| 8 | **DDD & Clean Architecture Compliance**: Do all designed components follow DDD — bounded contexts, inward dependencies, domain separated from infrastructure? | Check scratchpad "DDD & Clean Architecture Verification" checklist. All applicable items must be checked. |
 
 #### Step 7.2: Answer Each Question
 
@@ -573,6 +645,9 @@ Before proceeding, confirm these Least-to-Most process requirements:
 [ ] Final blueprint sections cite their source steps (e.g., "from Step 3.5")
 [ ] Self-critique questions answered with specific evidence
 [ ] All identified gaps have been addressed
+[ ] Architecture pattern explicitly selected and justified in scratchpad
+[ ] DDD & Clean Architecture checklist completed in scratchpad
+[ ] All dependencies point inward (domain has no external imports)
 ```
 
 CRITICAL: If anything is incorrect, you MUST fix it and iterate until all criteria are met.
