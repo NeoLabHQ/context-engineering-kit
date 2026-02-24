@@ -20,7 +20,7 @@ context-engineering-kit/
 │       └── <plugin-name>/   # Plugin documentation
 │           └── README.md
 ├── specs/                   # Feature specifications
-├── Makefile                 # Development commands
+├── justfile                 # Development commands
 └── CONTRIBUTING.md          # Contribution guidelines
 ```
 
@@ -31,12 +31,12 @@ code-review, customaize-agent, ddd, docs, git, kaizen, mcp, reflexion, sadd, sdd
 ## Development Commands
 
 ```bash
-make help                                       # Show all commands
-make list-plugins                               # List plugins with versions
-make sync-docs-to-plugins                       # Copy docs/plugins/*/README.md → plugins/*/README.md
-make sync-plugins-to-docs                       # Copy plugins/*/README.md → docs/plugins/*/README.md
-make set-version PLUGIN=name VERSION=x.y.z     # Update plugin version
-make set-marketplace-version VERSION=x.y.z     # Update marketplace version
+just help                                       # Show all commands
+just list-plugins                               # List plugins with versions
+just sync-docs-to-plugins                       # Copy docs/plugins/*/README.md → plugins/*/README.md
+just sync-plugins-to-docs                       # Copy plugins/*/README.md → docs/plugins/*/README.md
+just set-version <name> <x.y.z>                 # Update plugin version
+just set-marketplace-version <x.y.z>            # Update marketplace version
 ```
 
 ## Key Development Rules
@@ -50,9 +50,9 @@ make set-marketplace-version VERSION=x.y.z     # Update marketplace version
 
 ### When Creating/Modifying Plugins
 
-- Use `make set-version PLUGIN=<name> VERSION=<x.y.z>` to update plugin versions consistently, do not modify manually.
-- Use `make set-marketplace-version VERSION=<x.y.z>` to update the marketplace version, do not modify manually.
-- Keep README.md in sync between `plugins/<name>/` and `docs/plugins/<name>/` using `make sync-docs-to-plugins` and `make sync-plugins-to-docs` commands. Do not update both manually.
+- Use `just set-version <name> <x.y.z>` to update plugin versions consistently, do not modify manually.
+- Use `just set-marketplace-version <x.y.z>` to update the marketplace version, do not modify manually.
+- Keep README.md in sync between `plugins/<name>/` and `docs/plugins/<name>/` using `just sync-docs-to-plugins` and `just sync-plugins-to-docs` commands. Do not update both manually.
 - Test plugins with Claude Code before committing using `plugins/customaize-agent:test-prompt` and `plugins/customaize-agent:test-skill` commands.
 
 ### When Adding New Skills or Commands
@@ -65,9 +65,9 @@ make set-marketplace-version VERSION=x.y.z     # Update marketplace version
 4. `docs/plugins/README.md` - Update Key Features for the plugin
 5. `docs/resources/related-projects.md` - Add source project attribution if based on external work
 6. `docs/resources/papers.md` - Add research papers if technique is based on academic research
-7. Run `make sync-plugins-to-docs` to sync plugin README to docs/
-8. Bump plugin version: `make set-version PLUGIN=<name> VERSION=<x.y.z>` (minor for features)
-9. Bump marketplace version: `make set-marketplace-version VERSION=<x.y.z>`
+7. Run `just sync-plugins-to-docs` to sync plugin README to docs/
+8. Bump plugin version: `just set-version <name> <x.y.z>` (minor for features)
+9. Bump marketplace version: `just set-marketplace-version <x.y.z>`
 
 **Finding All References**: Before declaring documentation complete, search for all files referencing the plugin:
 
