@@ -306,7 +306,9 @@ Orchestrators who "quickly verify" = skip judge agents = quality collapse = fail
 
 ---
 
-## CRITICAL Configuration Rules
+## CRITICAL
+
+### Configuration Rules
 
 - Use `THRESHOLD_FOR_STANDARD_COMPONENTS` (default 4.0) for standard steps!
 - Use `THRESHOLD_FOR_CRITICAL_COMPONENTS` (default 4.5) for steps marked as critical in task file!
@@ -316,6 +318,16 @@ Orchestrators who "quickly verify" = skip judge agents = quality collapse = fail
 - **If `SKIP_JUDGES` is true: Skip ALL judge validation - proceed directly to next step after each implementation completes!**
 - **If `CONTINUE_MODE` is true: Skip to `RESUME_FROM_STEP` - do not re-implement already completed steps!**
 - **If `REFINE_MODE` is true: Detect changed project files, map to steps, re-verify from `REFINE_FROM_STEP` - preserve user's fixes!**
+
+### Execution & Evaluation Rules
+
+- **Use foreground agents only**: Do not use background agents. Launch parallel agents when possible. Background agents constantly run in permissions issues and other errors.
+
+Relaunch judge till you get valid results, of following happens:
+
+- Reject Long Reports: If an agent returns a very long report instead of using the scratchpad as requested, reject the result. This indicates the agent failed to follow the "use scratchpad" instruction.
+- Judge Score 5.0 is a Hallucination: If a judge returns a score of 5.0/5.0, treat it as a hallucination or lazy evaluation. Reject it and re-run the judge. Perfect scores are practically impossible in this rigorous framework.
+- Reject Missing Scores: If a judge report is missing the numerical score, reject it. This indicates the judge failed to read or follow the rubric instructions.
 
 ---
 

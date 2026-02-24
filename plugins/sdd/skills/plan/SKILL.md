@@ -337,6 +337,16 @@ Update each todo to `in_progress` when starting a phase and `completed` when jud
 - **Task file must exist in `.specs/tasks/draft/` before running this command (unless `--refine` mode)!**
 - **If `REFINE_MODE` is true: Detect changes via git diff, skip unchanged stages, pass user feedback to agents!**
 
+### Execution & Evaluation Rules
+
+- **Use foreground agents only**: Do not use background agents. Launch parallel agents when possible. Background agents constantly run in permissions issues and other errors.
+
+Relaunch judge till you get valid results, of following happens:
+
+- Reject Long Reports: If an agent returns a very long report instead of using the scratchpad as requested, reject the result. This indicates the agent failed to follow the "use scratchpad" instruction.
+- Judge Score 5.0 is a Hallucination: If a judge returns a score of 5.0/5.0, treat it as a hallucination or lazy evaluation. Reject it and re-run the judge. Perfect scores are practically impossible in this rigorous framework.
+- Reject Missing Scores: If a judge report is missing the numerical score, reject it. This indicates the judge failed to read or follow the rubric instructions.
+
 ## Workflow Execution
 
 You MUST launch for each step a separate agent, instead of performing all steps yourself.
