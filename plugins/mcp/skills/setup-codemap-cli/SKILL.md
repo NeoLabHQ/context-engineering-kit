@@ -35,7 +35,7 @@ Store the user's choice and use the appropriate paths in subsequent steps.
 
 ## 2. Check if Codemap is already installed
 
-Check whether codemap is installed by running `codemap --version` or `codemap --help`.
+Check whether codemap is installed by running `codemap -help`.
 
 If not installed, proceed with setup.
 
@@ -65,7 +65,6 @@ scoop install codemap
 After installation, verify codemap works:
 
 ```bash
-codemap --version
 codemap .
 ```
 
