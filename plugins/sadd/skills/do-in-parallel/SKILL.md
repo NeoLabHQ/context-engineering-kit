@@ -1,17 +1,24 @@
 ---
 name: sadd:do-in-parallel
-description: Launch multiple sub-agents in parallel to execute tasks across files or targets with intelligent model selection and quality-focused prompting
+description: Launch multiple sub-agents in parallel to execute tasks across files or targets with intelligent model selection, quality-focused prompting, and LLM-as-a-judge verification
 argument-hint: Task description [--files "file1.ts,file2.ts,..."] [--targets "target1,target2,..."] [--model opus|sonnet|haiku] [--output <path>]
 ---
 
 # do-in-parallel
 
 <task>
-Launch multiple sub-agents in parallel to execute the same task across different files or targets. Analyze the task to intelligently select the optimal model, generate quality-focused prompts with Zero-shot Chain-of-Thought reasoning and mandatory self-critique, then dispatch all agents simultaneously and collect results.
+Launch multiple sub-agents in parallel to execute the same task across different files or targets. Analyze the task to intelligently select the optimal model, generate quality-focused prompts with Zero-shot Chain-of-Thought reasoning and mandatory self-critique, then dispatch all agents simultaneously with LLM-as-a-judge verification after each completes.
 </task>
 
 <context>
-This command implements the **Supervisor/Orchestrator pattern** with parallel dispatch. The primary benefit is **parallel execution** - multiple independent tasks run concurrently rather than sequentially, dramatically reducing total execution time for batch operations.
+This command implements the **Supervisor/Orchestrator pattern** with parallel dispatch and **LLM-as-a-judge verification**. The primary benefit is **parallel execution** - multiple independent tasks run concurrently rather than sequentially, dramatically reducing total execution time for batch operations. Each parallel agent is verified by an independent judge, with automatic retry on failure.
+
+Key benefits:
+- **Parallel execution** - Multiple tasks run simultaneously
+- **Fresh context** - Each sub-agent works with clean context window
+- **External verification** - Judge catches blind spots self-critique misses
+- **Feedback loop** - Retry with specific issues identified by judge
+- **Quality gate** - Work doesn't ship until it meets threshold
 
 **Common use cases:**
 - Apply the same refactoring across multiple files
@@ -19,6 +26,34 @@ This command implements the **Supervisor/Orchestrator pattern** with parallel di
 - Generate documentation for multiple components
 - Execute independent transformations in parallel
 </context>
+
+CRITICAL: You are the orchestrator - you MUST NOT perform the task yourself. Your role is to:
+
+1. Analyze the task and select optimal model
+2. Dispatch parallel implementation sub-agents with structured prompts
+3. Dispatch independent judge sub-agents to verify each target
+4. Parse verdict and iterate if needed (max 2 retries per target)
+5. Collect results and report final summary
+
+## RED FLAGS - Never Do These
+
+**NEVER:**
+
+- Read implementation files to understand code details (let sub-agents do this)
+- Write code or make changes to source files directly
+- Skip judge verification to "save time"
+- Read judge reports in full (only parse structured headers)
+- Proceed after max retries without user decision
+- Wait for one agent to complete before starting another
+
+**ALWAYS:**
+
+- Use Task tool to dispatch sub-agents for ALL implementation work
+- Launch ALL parallel agents in a SINGLE response
+- Use Task tool to dispatch independent judges for verification
+- Wait for each implementation to complete before dispatching its judge
+- Parse only VERDICT/SCORE/ISSUES from judge output
+- Iterate with feedback if verification fails (max 2 retries per target)
 
 ## Process
 
@@ -192,6 +227,12 @@ Work through each step explicitly before implementing.
 
 <output>
 {Expected deliverable location and format}
+
+CRITICAL: At the end of your work, provide a "Summary" section containing:
+- Files modified (full paths)
+- Key changes (3-5 bullet points)
+- Any decisions made and rationale
+- Potential concerns or follow-up needed
 </output>
 ```
 
@@ -252,13 +293,41 @@ If ANY verification reveals a gap:
 CRITICAL: Do not submit until ALL verification questions have satisfactory answers.
 ```
 
-### Phase 5: Parallel Dispatch
+### Phase 5: Parallel Dispatch and Judge Verification
 
-Launch all sub-agents simultaneously using the Task tool.
+Launch all sub-agents simultaneously, then verify each with an independent judge.
+
+#### 5.1 Execution Flow per Target
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ Parallel Targets                                                         │
+│                                                                         │
+│   Target A          Target B          Target C                          │
+│   ┌──────────┐      ┌──────────┐      ┌──────────┐                      │
+│   │Implementer│      │Implementer│      │Implementer│                     │
+│   │(parallel) │      │(parallel) │      │(parallel) │                     │
+│   └─────┬────┘      └─────┬────┘      └─────┬────┘                      │
+│         │                 │                 │                            │
+│         ▼                 ▼                 ▼                            │
+│   ┌──────────┐      ┌──────────┐      ┌──────────┐                      │
+│   │  Judge   │      │  Judge   │      │  Judge   │                      │
+│   │(per-target)│    │(per-target)│    │(per-target)│                     │
+│   └─────┬────┘      └─────┬────┘      └─────┬────┘                      │
+│         │                 │                 │                            │
+│         ▼                 ▼                 ▼                            │
+│   ┌──────────────────────────────────────────────────┐                  │
+│   │ Parse Verdict (per target)                        │                  │
+│   │ ├─ PASS (≥4)? → Complete                          │                  │
+│   │ └─ FAIL (<4)? → Retry (max 2 per target)          │                  │
+│   └──────────────────────────────────────────────────┘                  │
+│                                                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+```
 
 **CRITICAL: Parallel Dispatch Pattern**
 
-Launch ALL agents in a SINGLE response. Do NOT wait for one agent to complete before starting another:
+Launch ALL implementation agents in a SINGLE response. Do NOT wait for one agent to complete before starting another:
 
 ```markdown
 ## Dispatching 3 parallel tasks
@@ -297,9 +366,163 @@ Use Task tool:
 - Let sub-agents discover local patterns through file reading
 - Each agent works in clean context without accumulated confusion
 
+#### 5.2 Judge Verification Protocol
+
+After each implementation agent completes, dispatch an **independent judge** for that target.
+
+**Judge prompt template:**
+
+```markdown
+You are verifying completion of a parallel task for a specific target.
+
+## Task Requirements
+{Original task description from user}
+
+## Target
+{Specific target: file path or component name}
+
+## Implementation Output
+{Summary section from implementation agent}
+{Paths to files modified}
+
+## Evaluation Criteria
+1. **Correctness** (35%) - Does the implementation meet requirements?
+2. **Quality** (25%) - Is the code well-structured and maintainable?
+3. **Completeness** (25%) - Are all required elements present?
+4. **Patterns** (15%) - Does it follow existing codebase conventions?
+
+## Output
+CRITICAL: You must reply with this exact structured header format:
+
+---
+VERDICT: [PASS/FAIL]
+SCORE: [X.X]/5.0
+ISSUES:
+  - {issue_1 or "None"}
+  - {issue_2 or "None"}
+IMPROVEMENTS:
+  - {improvement_1 or "None"}
+---
+
+[Detailed evaluation follows]
+
+## Instructions
+1. Read the implementation files
+2. Verify each requirement was met with specific evidence
+3. Identify any gaps, issues, or missing elements
+4. Score each criterion and calculate weighted total
+
+CRITICAL: List specific issues that must be fixed for retry.
+
+## Scoring Scale
+
+**DEFAULT SCORE IS 2. You must justify ANY deviation upward.**
+
+| Score | Meaning | Evidence Required | Your Attitude |
+|-------|---------|-------------------|---------------|
+| 1 | Unacceptable | Clear failures, missing requirements | Easy call |
+| 2 | Below Average | Multiple issues, partially meets requirements | Common result |
+| 3 | Adequate | Meets basic requirements, minor issues | Need proof that it meets basic requirements |
+| 4 | Good | Meets ALL requirements, very few minor issues | Prove it deserves this |
+| 5 | Excellent | Exceeds requirements, genuinely exemplary | **Extremely rare** - requires exceptional evidence |
+
+### Score Distribution Reality Check
+
+- **Score 5**: Should be given in <5% of evaluations. If you're giving more 5s, you're too lenient.
+- **Score 4**: Reserved for genuinely solid work. Not "pretty good" - actually good.
+- **Score 3**: This is where refined work lands. Not average.
+- **Score 2**: Common for first attempts. Don't be afraid to use it.
+- **Score 1**: Reserved for fundamental failures. But don't avoid it when deserved.
+```
+
+**Dispatch judge for each target:**
+
+```
+Use Task tool:
+  - description: "Judge: {target name}"
+  - prompt: {judge verification prompt}
+  - model: {same as implementation or sonnet}
+  - subagent_type: "general-purpose"
+```
+
+#### 5.3 Parse Verdict and Iterate
+
+Parse judge output for each target (DO NOT read full report):
+
+```
+Extract from judge reply:
+- VERDICT: PASS or FAIL
+- SCORE: X.X/5.0
+- ISSUES: List of problems (if any)
+- IMPROVEMENTS: List of suggestions (if any)
+```
+
+**Decision logic per target:**
+
+```
+If score >= 4:
+  -> VERDICT: PASS
+  -> Mark target complete
+  -> Include IMPROVEMENTS as optional enhancements
+
+If score < 4:
+  -> VERDICT: FAIL
+  -> Check retry count for this target
+
+  If retries < 2:
+    -> Dispatch retry implementation agent with judge feedback
+    -> Return to judge verification for this target
+
+  If retries >= 2:
+    -> Mark target as failed (isolate from other targets)
+    -> Do NOT proceed with more retries without user decision
+```
+
+**IMPORTANT: Failures are isolated**
+- One target failing does NOT affect other targets
+- Other parallel tasks continue independently
+- Only the failed target is retried
+
+#### 5.4 Retry with Feedback (If Needed)
+
+**Retry prompt template:**
+
+```markdown
+## Retry Required for Target: {target_name}
+
+Your previous implementation did not pass judge verification.
+
+## Original Task
+{Original task description}
+
+## Target
+{Specific target}
+
+## Judge Feedback
+VERDICT: FAIL
+SCORE: {score}/5.0
+ISSUES:
+{list of issues from judge}
+
+## Your Previous Changes
+{files modified in previous attempt}
+
+## Instructions
+Let's fix the identified issues step by step.
+
+1. Review each issue the judge identified
+2. For each issue, determine the root cause
+3. Plan the fix for each issue
+4. Implement ALL fixes
+5. Verify your fixes address each issue
+6. Provide updated Summary section
+
+CRITICAL: Focus on fixing the specific issues identified. Do not rewrite everything.
+```
+
 ### Phase 6: Collect and Summarize Results
 
-After all agents complete, aggregate results:
+After all agents complete (with retries as needed), aggregate results:
 
 ```markdown
 ## Parallel Execution Summary
@@ -311,22 +534,31 @@ After all agents complete, aggregate results:
 
 ### Results
 
-| Target | Model | Status | Summary |
-|--------|-------|--------|---------|
-| {target_1} | {model} | SUCCESS/FAILED | {brief outcome} |
-| {target_2} | {model} | SUCCESS/FAILED | {brief outcome} |
-| ... | ... | ... | ... |
+| Target | Model | Judge Score | Retries | Status | Summary |
+|--------|-------|-------------|---------|--------|---------|
+| {target_1} | {model} | {X.X}/5.0 | {0-2} | SUCCESS | {brief outcome} |
+| {target_2} | {model} | {X.X}/5.0 | {0-2} | SUCCESS | {brief outcome} |
+| {target_3} | {model} | {X.X}/5.0 | {2} | FAILED | {failure reason} |
+| ... | ... | ... | ... | ... | ... |
 
 ### Overall Assessment
 - **Completed:** {X}/{total}
 - **Failed:** {Y}/{total}
+- **Total Retries:** {sum of all retries}
 - **Common patterns:** {any patterns across results}
 
 ### Verification Summary
-{Aggregate self-critique results - any common gaps?}
+{Aggregate judge verification results - any common issues?}
 
 ### Files Modified
 - {list of all modified files}
+
+### Failed Targets (If Any)
+{For each failed target after max retries}
+- **Target:** {name}
+- **Final Score:** {X.X}/5.0
+- **Persistent Issues:** {issues that weren't resolved}
+- **Options:** Retry with guidance / Skip / Manual fix
 
 ### Next Steps
 {If any failures, suggest remediation}
@@ -335,8 +567,8 @@ After all agents complete, aggregate results:
 **Failure Handling:**
 - Report failed tasks clearly with error details
 - Successful tasks are NOT affected by failures
-- Do NOT retry automatically (let user decide)
-- Suggest re-running failed targets with `/launch-sub-agent`
+- Failed targets isolated after max retries
+- Suggest options: provide guidance, skip, or manual fix
 
 ## Examples
 
@@ -358,6 +590,38 @@ After all agents complete, aggregate results:
 
 **Dispatch:** 3 parallel agents, one per file
 
+**Execution:**
+
+```
+Phase 5: Parallel Dispatch
+  [All 3 implementation agents launched simultaneously]
+
+  Target: user.ts
+    Implementation (Sonnet)...
+      -> Converted 4 nested if-else blocks to early returns
+    Judge Verification (Sonnet)...
+      -> VERDICT: PASS, SCORE: 4.2/5.0
+      -> IMPROVEMENTS: Consider extracting complex conditions
+
+  Target: order.ts
+    Implementation (Sonnet)...
+      -> Converted 6 nested if-else blocks to early returns
+    Judge Verification (Sonnet)...
+      -> VERDICT: PASS, SCORE: 4.0/5.0
+      -> ISSUES: None
+
+  Target: payment.ts
+    Implementation (Sonnet)...
+      -> Converted 3 nested if-else blocks
+    Judge Verification (Sonnet)...
+      -> VERDICT: FAIL, SCORE: 3.2/5.0
+      -> ISSUES: Missing edge case for null amount
+    Retry Implementation (Sonnet)...
+      -> Added null check for payment amount
+    Judge Verification (Sonnet)...
+      -> VERDICT: PASS, SCORE: 4.1/5.0
+```
+
 **Result:**
 ```markdown
 ## Parallel Execution Summary
@@ -369,14 +633,15 @@ After all agents complete, aggregate results:
 
 ### Results
 
-| Target | Model | Status | Summary |
-|--------|-------|--------|---------|
-| src/services/user.ts | sonnet | SUCCESS | Converted 4 nested if-else blocks to early returns |
-| src/services/order.ts | sonnet | SUCCESS | Converted 6 nested if-else blocks to early returns |
-| src/services/payment.ts | sonnet | SUCCESS | Converted 3 nested if-else blocks to early returns |
+| Target | Model | Judge Score | Retries | Status | Summary |
+|--------|-------|-------------|---------|--------|---------|
+| src/services/user.ts | sonnet | 4.2/5.0 | 0 | SUCCESS | Converted 4 nested if-else blocks |
+| src/services/order.ts | sonnet | 4.0/5.0 | 0 | SUCCESS | Converted 6 nested if-else blocks |
+| src/services/payment.ts | sonnet | 4.1/5.0 | 1 | SUCCESS | Converted 3 blocks, added null check |
 
 ### Overall Assessment
 - **Completed:** 3/3
+- **Total Retries:** 1
 - **Common patterns:** All files followed consistent early return pattern
 ```
 
@@ -400,6 +665,17 @@ After all agents complete, aggregate results:
 
 **Dispatch:** 4 parallel agents
 
+**Execution Summary:**
+
+| Target | Model | Judge Score | Retries | Status |
+|--------|-------|-------------|---------|--------|
+| src/api/users.ts | haiku | 4.0/5.0 | 0 | SUCCESS |
+| src/api/products.ts | haiku | 3.8/5.0 | 0 | SUCCESS |
+| src/api/orders.ts | haiku | 4.2/5.0 | 0 | SUCCESS |
+| src/api/auth.ts | haiku | 4.1/5.0 | 0 | SUCCESS |
+
+Total Agents: 8 (4 implementations + 4 judges)
+
 ---
 
 ### Example 3: Security Analysis
@@ -420,9 +696,19 @@ After all agents complete, aggregate results:
 
 **Dispatch:** 3 parallel agents
 
+**Execution Summary:**
+
+| Target | Model | Judge Score | Retries | Status |
+|--------|-------|-------------|---------|--------|
+| src/db/queries.ts | opus | 4.5/5.0 | 0 | SUCCESS |
+| src/db/migrations.ts | opus | 4.3/5.0 | 0 | SUCCESS |
+| src/api/search.ts | opus | 4.0/5.0 | 1 | SUCCESS |
+
+Total Agents: 7 (3 implementations + 1 retry + 3 judges)
+
 ---
 
-### Example 4: Test Generation
+### Example 4: Test Generation with Partial Failure
 
 **Input:**
 ```
@@ -439,6 +725,50 @@ After all agents complete, aggregate results:
 **Model Selection:** Sonnet (pattern-based, extensive output)
 
 **Dispatch:** 4 parallel agents
+
+**Execution:**
+
+```
+Target: UserService
+  -> Judge: PASS, 4.3/5.0
+
+Target: OrderService
+  -> Judge: FAIL, 3.2/5.0 (missing edge cases)
+  -> Retry: Judge: PASS, 4.0/5.0
+
+Target: PaymentService
+  -> Judge: FAIL, 2.8/5.0 (wrong mock patterns)
+  -> Retry: Judge: FAIL, 3.0/5.0 (still missing scenarios)
+  -> Retry: Judge: FAIL, 3.1/5.0 (coverage only 65%)
+  -> MARKED FAILED after max retries
+
+Target: NotificationService
+  -> Judge: PASS, 4.1/5.0
+```
+
+**Result:**
+
+| Target | Model | Judge Score | Retries | Status |
+|--------|-------|-------------|---------|--------|
+| UserService | sonnet | 4.3/5.0 | 0 | SUCCESS |
+| OrderService | sonnet | 4.0/5.0 | 1 | SUCCESS |
+| PaymentService | sonnet | 3.1/5.0 | 2 | FAILED |
+| NotificationService | sonnet | 4.1/5.0 | 0 | SUCCESS |
+
+**Overall:** 3/4 completed, 1 failed
+
+**Escalation for PaymentService:**
+```markdown
+### Failed Target: PaymentService
+- **Final Score:** 3.1/5.0
+- **Persistent Issues:**
+  - Test coverage at 65%, target is 80%
+  - Complex async scenarios not fully covered
+- **Options:**
+  1. Provide guidance on specific async patterns to test
+  2. Accept 65% coverage as sufficient
+  3. Manual test writing for complex scenarios
+```
 
 ---
 
@@ -458,6 +788,14 @@ After all agents complete, aggregate results:
 **Model Selection:** Haiku (simple, mechanical)
 
 **Dispatch:** 3 parallel agents
+
+**Execution Summary:**
+
+| Target | Model | Judge Score | Retries | Status |
+|--------|-------|-------------|---------|--------|
+| src/handlers/user.ts | haiku | 4.2/5.0 | 0 | SUCCESS |
+| src/handlers/order.ts | haiku | 4.0/5.0 | 0 | SUCCESS |
+| src/handlers/product.ts | haiku | 4.1/5.0 | 0 | SUCCESS |
 
 ## Best Practices
 
@@ -479,6 +817,16 @@ After all agents complete, aggregate results:
 | Code review per file | Sonnet | Balanced capability |
 | Test generation | Sonnet | Extensive but patterned |
 
+### Judge Selection
+
+| Implementation Model | Judge Model | Rationale |
+|---------------------|-------------|-----------|
+| Opus | Opus | Critical work needs strong verification |
+| Sonnet | Sonnet | Balanced verification capability |
+| Haiku | Sonnet | Verify simple work thoroughly |
+
+**Guideline:** Judges should be at least as capable as implementers for critical tasks.
+
 ### Context Isolation
 
 - **Minimal context:** Each sub-agent gets only what it needs
@@ -488,7 +836,11 @@ After all agents complete, aggregate results:
 
 ### Quality Assurance
 
-- **Self-critique is mandatory:** Every sub-agent must verify its work
+- **Two-layer verification:** Self-critique (internal) + Judge (external)
+- **Self-critique first:** Implementation agents verify own work before submission
+- **External judge second:** Independent judge catches blind spots self-critique misses
+- **Iteration loop:** Retry with feedback until passing or max retries
+- **Isolated failures:** One target failing doesn't affect others
 - **Review the summary:** Check for failed or partial completions
 - **Run tests after:** Parallel changes may have subtle interactions
 - **Commit atomically:** All changes from one batch = one commit
@@ -497,12 +849,14 @@ After all agents complete, aggregate results:
 
 | Failure Type | Description | Recovery Action |
 |--------------|-------------|-----------------|
-| **Recoverable** | Sub-agent made a mistake but approach is sound | Retry step with corrected prompt (max 1 retry) |
-| **Approach Failure** | The approach for this step is wrong | Escalate to user with options |
-| **Foundation Issue** | Previous step output is insufficient | May need to revisit earlier step |
+| **Recoverable** | Judge found issues, retry available | Retry with judge feedback (max 2 per target) |
+| **Approach Failure** | The approach for this target is wrong | Escalate to user with options |
+| **Foundation Issue** | Requirements unclear or impossible | Escalate to user for clarification |
+| **Max Retries Exceeded** | Target failed after 2 retries | Mark failed, continue other targets, report at end |
 
 **Critical Rules:**
-- NEVER continue past a failed step
-- NEVER try to "fix forward" without addressing the failure
-- NEVER retry more than once without user input
+- NEVER continue past max retries without user input
+- NEVER try to "fix forward" without addressing judge issues
+- NEVER skip judge verification
 - STOP and report if context is missing (don't guess)
+- ISOLATE failures - one target failing doesn't stop others
