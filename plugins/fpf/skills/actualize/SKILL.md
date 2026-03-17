@@ -1,5 +1,5 @@
 ---
-name: fpf:actualize
+name: actualize
 description: "Reconcile the project's FPF state with recent repository changes"
 ---
 

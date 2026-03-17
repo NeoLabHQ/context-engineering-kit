@@ -1,5 +1,5 @@
 ---
-name: ddd:setup-code-formating
+name: setup-code-formating
 description: Sets up code formatting rules and style guidelines in CLAUDE.md
 argument-hint: None required - creates standard formatting configuration
 ---

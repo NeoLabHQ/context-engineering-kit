@@ -1,5 +1,5 @@
 ---
-name: kaizen:analyse
+name: analyse
 description: Auto-selects best Kaizen method (Gemba Walk, Value Stream, or Muda) for target
 argument-hint: Optional target description (e.g., code, workflow, or inefficiencies)
 ---

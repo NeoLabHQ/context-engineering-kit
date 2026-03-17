@@ -1,5 +1,5 @@
 ---
-name: sdd:create-ideas
+name: create-ideas
 description: Generate ideas in one shot using creative sampling
 argument-hint: Topic or problem to generate ideas for. Optional amount of ideas to generate.
 ---

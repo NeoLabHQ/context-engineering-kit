@@ -1,5 +1,5 @@
 ---
-name: mcp:setup-codemap-cli
+name: setup-codemap-cli
 description: Guide for setup Codemap CLI for intelligent codebase visualization and navigation
 argument-hint: Optional - specific configuration preferences or OS type
 ---
