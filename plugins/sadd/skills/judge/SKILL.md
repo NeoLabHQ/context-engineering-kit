@@ -1,5 +1,5 @@
 ---
-name: sadd:judge
+name: judge
 description: Launch a sub-agent judge to evaluate results produced in the current conversation
 argument-hint: "[evaluation-focus]"
 ---
