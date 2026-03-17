@@ -115,4 +115,6 @@ FROM scripts
 
 USER node
 
+ENV DOCKER_MCP_IN_CONTAINER=1
+
 RUN /opt/devcontainer/configure-claude.sh

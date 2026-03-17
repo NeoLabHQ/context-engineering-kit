@@ -10,7 +10,11 @@
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	"features": {
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {}
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+		"ghcr.io/devcontainers-extra/features/bash-command:1": {
+			// Install docker mcp
+			"command": "git clone https://github.com/docker/mcp-gateway.git /tmp/mcp-gateway && cd /tmp/mcp-gateway && mkdir -p '/home/node/.docker/cli-plugins/' && DOCKER_MCP_CLI_PLUGIN_DST=/home/node/.docker/cli-plugins/docker-mcp && HOME=/home/node && make docker-mcp && chown -R node:node /home/node/"
+		}
     },
 
 	// Configure tool-specific properties.
