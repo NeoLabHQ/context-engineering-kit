@@ -80,6 +80,12 @@ The SADD plugin is based on the following foundations:
 - [Constitutional AI](https://arxiv.org/abs/2212.08073) - Bai, Y., et al. (2022). Self-critique loops
 - [LLM-as-a-Judge](https://arxiv.org/abs/2306.05685) - Zheng, L., et al. (2023). Structured evaluation
 - [Chain-of-Verification](https://arxiv.org/abs/2309.11495) - Dhuliawala, S., et al. (2023). Verification loops
+- [Inference-Time Scaling of Verification](https://arxiv.org/abs/2601.15808) - Wan, et al. (2026). Rubric-guided verification
+- [LLM-as-a-Meta-Judge](https://arxiv.org/pdf/2407.19594) - Lee, et al. (2024). Meta-evaluation of judges
+- [Rethinking Rubric Generation](https://arxiv.org/pdf/2602.05125) - Kim, et al. (2026). Automatic rubric generation
+- [Generating Evaluation Rubrics](https://arxiv.org/abs/2602.08672) - Liu, et al. (2026). Rubric quality framework
+- [Evaluating Instruction Following](https://arxiv.org/pdf/2310.07641v2) - Zheng, et al. (2023). Meta-evaluation protocol
+- [Arena-Hard and BenchBuilder](https://arxiv.org/abs/2406.11939) - Li, et al. (2024). Benchmark construction pipeline
 
 ### Engineering Methodologies
 

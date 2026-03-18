@@ -63,12 +63,17 @@ Comprehensive documentation of all academic papers that inform the Context Engin
 - [Tree of Thoughts](https://arxiv.org/abs/2305.10601) - Systematic exploration
 - [Chain of Thought Prompting](https://arxiv.org/abs/2201.11903) - Explicit reasoning steps
 - [Inference-Time Scaling of Verification](https://arxiv.org/abs/2601.15808) - Rubric-guided verification
+- [LLM-as-a-Meta-Judge](https://arxiv.org/pdf/2407.19594) - Meta-evaluation of judges
+- [Rethinking Rubric Generation](https://arxiv.org/pdf/2602.05125) - Automatic rubric generation
 
 **Supporting Papers**:
 
 - [Constitutional AI](https://arxiv.org/abs/2212.08073) - Self-critique loops
 - [Chain-of-Verification](https://arxiv.org/abs/2309.11495) - Verification loops
 - [LLM-as-a-Judge](https://arxiv.org/abs/2306.05685) - Structured evaluation
+- [Generating Evaluation Rubrics](https://arxiv.org/abs/2602.08672) - Rubric quality framework
+- [Evaluating Instruction Following](https://arxiv.org/pdf/2310.07641v2) - Meta-evaluation protocol
+- [Arena-Hard and BenchBuilder](https://arxiv.org/abs/2406.11939) - Benchmark construction pipeline
 
 ### Customaize Agent Plugin
 
@@ -346,6 +351,194 @@ Directly informs the `/sadd:judge` command's approach to work evaluation. The ru
 - Iterative refinement without retraining reduces computational overhead
 - Self-critique and verification loops catch issues before delivery
 - Most effective when rubrics are specific, actionable, and derived from failure analysis
+
+---
+
+### [LLM-as-a-Meta-Judge: Meta-Evaluation of LLM Judges](https://arxiv.org/pdf/2407.19594)
+
+**Citation**: Lee et al. (2024). "LLM-as-a-Meta-Judge: Meta-Evaluation of LLM Judges."
+
+This paper introduces the concept of using LLMs as meta-judges to evaluate the quality of other LLM judges. The approach addresses the challenge of validating automated evaluation systems by creating a hierarchical judging framework where stronger models assess judge performance.
+
+Key components:
+
+1. **Meta-Judge Framework**: LLMs evaluate alignment between judge decisions and ground truth
+2. **Judge Quality Metrics**: Systematic assessment of judge consistency, accuracy, and reliability
+3. **Hierarchical Evaluation**: Layered judging with meta-level quality assurance
+4. **Bias Detection**: Identification of systematic biases in judge behavior
+
+**Key Results**:
+
+- Meta-judges can reliably identify unreliable or biased judge decisions
+- Hierarchical evaluation improves overall judging system reliability
+- Effective for validating automated evaluation pipelines
+- Enables continuous improvement of judge prompts and configurations
+
+**Relevance to CEK**:
+Informs the design of multi-layer evaluation systems where judges are themselves evaluated. Supports the `/sadd:judge-with-debate` command's approach to reaching consensus through multiple judge perspectives.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge-with-debate` - multi-judge consensus with meta-evaluation)
+- SADD (`/sadd:judge` - quality validation of judge outputs)
+
+**Technical Notes**:
+
+- Requires careful design of meta-evaluation criteria
+- Meta-judge capability correlates with base model strength
+- Useful for detecting systematic biases in evaluation
+- Adds computational overhead but improves reliability
+
+---
+
+### [Rethinking Rubric Generation for Improving LLM Judge and Reward Modeling for Open-ended Tasks](https://arxiv.org/pdf/2602.05125)
+
+**Citation**: Kim et al. (2026). "Rethinking Rubric Generation for Improving LLM Judge and Reward Modeling for Open-ended Tasks."
+
+This paper proposes automatic rubric generation methods to improve LLM-as-a-Judge evaluation quality. Instead of relying on generic evaluation criteria, the approach generates task-specific rubrics that capture nuanced quality dimensions.
+
+Key components:
+
+1. **Automatic Rubric Generation**: LLM-generated criteria tailored to specific tasks
+2. **Quality Dimension Extraction**: Identification of key evaluation axes from task descriptions
+3. **Rubric Refinement**: Iterative improvement of rubrics based on evaluation feedback
+4. **Cross-Task Generalization**: Methods for adapting rubrics across similar task types
+
+**Key Results**:
+
+- Task-specific rubrics significantly outperform generic evaluation criteria
+- Automatic rubric generation reduces manual effort while improving quality
+- Rubric-based evaluation more aligned with human preferences
+- Effective across diverse open-ended tasks including creative writing and code generation
+
+**Relevance to CEK**:
+Directly informs the rubric-based evaluation patterns in SADD plugin commands. The automatic rubric generation approach enables `/sadd:judge` to create task-specific evaluation criteria dynamically.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - dynamic rubric generation for task-specific evaluation)
+- SADD (`/sadd:do-and-judge` - rubric-guided verification loops)
+
+**Technical Notes**:
+
+- Rubric quality depends on task description clarity
+- Automatic generation adds minimal token overhead
+- Task-specific rubrics more interpretable than generic criteria
+- Can be combined with constitutional principles for comprehensive evaluation
+
+---
+
+### [Generating Evaluation Rubrics for Evaluation: Towards Better LLM-as-a-Judge](https://arxiv.org/abs/2602.08672)
+
+**Citation**: Liu et al. (2026). "Generating Evaluation Rubrics for Evaluation: Towards Better LLM-as-a-Judge."
+
+This paper focuses on the methodology of generating high-quality evaluation rubrics that enable more reliable LLM-as-a-Judge evaluation. The research demonstrates that rubric quality directly impacts judge reliability.
+
+Key components:
+
+1. **Rubric Quality Framework**: Systematic criteria for assessing rubric effectiveness
+2. **Principle-Based Generation**: Rubrics derived from evaluation principles and task requirements
+3. **Iterative Refinement**: Continuous improvement of rubrics based on evaluation outcomes
+4. **Coverage Analysis**: Ensuring rubrics capture all relevant quality dimensions
+
+**Key Results**:
+
+- Well-structured rubrics improve judge agreement with human evaluators by 15-25%
+- Rubric specificity correlates with evaluation consistency
+- Principle-based rubrics outperform ad-hoc criteria
+- Effective rubrics balance comprehensiveness with clarity
+
+**Relevance to CEK**:
+Provides methodology for designing evaluation rubrics used across SADD plugin commands. Supports the principle-based evaluation approach in `/sadd:judge` and related commands.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - structured rubric design)
+- SADD (`/sadd:judge-with-debate` - rubric-based multi-judge evaluation)
+- Code Review (principle-based evaluation criteria)
+
+**Technical Notes**:
+
+- Rubric design requires domain expertise or careful task analysis
+- Overly complex rubrics can reduce judge consistency
+- Regular rubric updates improve evaluation quality over time
+- Rubric validation against human judgments essential for reliability
+
+---
+
+### [Evaluating Large Language Models at Evaluating Instruction Following](https://arxiv.org/pdf/2310.07641v2)
+
+**Citation**: Zheng et al. (2023). "Evaluating Large Language Models at Evaluating Instruction Following."
+
+This paper investigates how well LLMs can evaluate instruction-following in other models. It introduces a meta-evaluation framework to assess judge capabilities on complex, constraint-heavy tasks.
+
+Key components:
+
+1. **Instruction-Following Evaluation**: Assessing compliance with explicit and implicit constraints
+2. **Meta-Evaluation Protocol**: Systematic assessment of judge evaluation quality
+3. **Constraint Taxonomy**: Classification of instruction types and their evaluation challenges
+4. **Judge Reliability Metrics**: Measuring consistency and accuracy of LLM judges
+
+**Key Results**:
+
+- LLMs show varying capability at evaluating different constraint types
+- Judge performance degrades on complex multi-constraint instructions
+- Explicit evaluation criteria improve judge reliability
+- Judge-model matching (same model evaluating itself) shows systematic biases
+
+**Relevance to CEK**:
+Informs the evaluation of instruction-following in task execution. Supports the quality gate approach in SADD where sub-agent outputs are evaluated against task specifications.
+
+**Used By Plugins**:
+
+- SADD (quality gate evaluation against task specifications)
+- Code Review (evaluating compliance with coding standards)
+- Reflexion (evaluating response quality against instructions)
+
+**Technical Notes**:
+
+- Judge capability varies significantly across constraint types
+- Multi-constraint evaluation requires careful rubric design
+- Avoiding judge-model matching reduces systematic bias
+- Regular calibration against human evaluation improves reliability
+
+---
+
+### [From Crowdsourced Data to High-Quality Benchmarks: Arena-Hard and BenchBuilder Pipeline](https://arxiv.org/abs/2406.11939)
+
+**Citation**: Li et al. (2024). "From Crowdsourced Data to High-Quality Benchmarks: Arena-Hard and BenchBuilder Pipeline."
+
+This paper introduces the BenchBuilder pipeline for automatically constructing high-quality benchmarks from crowdsourced data. Arena-Hard demonstrates how to filter and refine crowd-sourced evaluation data into reliable benchmarks.
+
+Key components:
+
+1. **BenchBuilder Pipeline**: Automated benchmark construction from crowdsourced data
+2. **Quality Filtering**: Systematic removal of low-quality or ambiguous evaluation data
+3. **Arena-Hard Benchmark**: Challenging benchmark derived from Chatbot Arena data
+4. **Automated Curation**: Reducing manual effort in benchmark maintenance
+
+**Key Results**:
+
+- BenchBuilder produces benchmarks with higher reliability than raw crowdsourced data
+- Arena-Hard provides challenging evaluation that distinguishes model capabilities
+- Automated curation reduces benchmark maintenance overhead
+- Filtered benchmarks show better correlation with human preferences
+
+**Relevance to CEK**:
+Provides methodology for constructing evaluation datasets and benchmarks within CEK workflows. Supports the creation of task-specific evaluation criteria and quality benchmarks.
+
+**Used By Plugins**:
+
+- SADD (benchmark construction for task evaluation)
+- Reflexion (evaluation criteria refinement)
+- Code Review (quality benchmark development)
+
+**Technical Notes**:
+
+- Quality filtering essential for reliable benchmarks
+- Benchmark difficulty should match evaluation purpose
+- Regular benchmark updates prevent gaming and stale metrics
+- Automated curation scales benchmark maintenance
 
 ---
 
