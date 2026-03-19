@@ -1,6 +1,6 @@
 ---
 name: customaize-agent:create-rule
-description: Use when creating, updating, or refining .claude/rules files that guide agent behavior with contrastive examples - applies LLMBar-style explicit high-level rules with Description, Incorrect, Correct patterns to improve agent accuracy and reduce hallucinations
+description: Use when found gap or repetative issue, that produced by you or implemenataion agent. Esentially use it each time when you say "You absolutly right, I should have done it differently." -> need create rule for this issue so it not appears again.
 ---
 
 # Create Rule
@@ -304,6 +304,9 @@ Before finishing, verify:
 
 ### Step 7: Iterate Based on Feedback or Observations
 
+
+// TODO: need rewrite this step, not enough to simplify write the rule, need follow Recursive Rubric Decomposition pattern. Agent should go through decompose → filter → reweight in order to revise existing rules and avoid duplicates.
+
 After rules is written, ask for feedback from user, or if it was working for some time, observe how agents use it:
 
 1. Does the agent follow the rule consistently?
@@ -311,6 +314,7 @@ After rules is written, ask for feedback from user, or if it was working for som
 3. Are there new Incorrect patterns to add?
 
 Update the rule to close gaps. Consider splitting complex rules into multiple focused rules.
+
 
 ## Complete Rule Example
 
@@ -424,43 +428,6 @@ export async function POST(req: Request) {
 \`\`\`
 ```
 
-## Evaluation Priority Rule Example
-
-Rules that guide evaluator/judge behavior use the LLMBar pattern of explicit high-level priorities:
-
-```markdown
----
-title: Evaluation Priorities
----
-
-# Evaluation Priorities
-
-These priorities govern how agent output quality is assessed. Apply them in order of precedence.
-
-## Incorrect
-
-Evaluating style over substance. Rewarding verbose but inaccurate responses.
-
-\`\`\`
-Score: 4/5
-Reason: The response is well-formatted with clear headings and detailed
-explanations. Some information may not be fully accurate but the
-presentation is professional.
-\`\`\`
-
-## Correct
-
-Evaluating correctness first. Penalizing confident inaccuracies regardless of presentation.
-
-\`\`\`
-Score: 2/5
-Reason: The response contains two factual errors in the API usage
-examples (lines 3 and 7 reference deprecated methods). While well-
-formatted, incorrect guidance is actively harmful. Deducting for
-confident presentation of wrong information.
-\`\`\`
-```
-
 ## Anti-Patterns
 
 ### Vague Rules Without Examples
@@ -531,3 +498,90 @@ Every rule should answer three questions:
 1. **What** behavior does this enforce?
 2. **Why** does it matter?
 3. **How** does right differ from wrong? (shown through contrastive examples)
+
+
+## Claude Code Official Rules Guidlines
+
+For larger projects, you can organize instructions into multiple files using the `.claude/rules/` directory. This keeps instructions modular and easier for teams to maintain. Rules can also be [scoped to specific file paths](#path-specific-rules), so they only load into context when Claude works with matching files, reducing noise and saving context space.
+
+<Note>
+  Rules load into context every session or when matching files are opened. For task-specific instructions that don't need to be in context all the time, use [skills](/en/skills) instead, which only load when you invoke them or when Claude determines they're relevant to your prompt.
+</Note>
+
+### Set up rules
+
+Place markdown files in your project's `.claude/rules/` directory. Each file should cover one topic, with a descriptive filename like `testing.md` or `api-design.md`. All `.md` files are discovered recursively, so you can organize rules into subdirectories like `frontend/` or `backend/`:
+
+```text  theme={null}
+your-project/
+├── .claude/
+│   ├── CLAUDE.md           # Main project instructions
+│   └── rules/
+│       ├── code-style.md   # Code style guidelines
+│       ├── testing.md      # Testing conventions
+│       └── security.md     # Security requirements
+```
+
+Rules without [`paths` frontmatter](#path-specific-rules) are loaded at launch with the same priority as `.claude/CLAUDE.md`.
+
+### Path-specific rules
+
+Rules can be scoped to specific files using YAML frontmatter with the `paths` field. These conditional rules only apply when Claude is working with files matching the specified patterns.
+
+```markdown  theme={null}
+---
+paths:
+  - "src/api/**/*.ts"
+---
+
+# API Development Rules
+
+- All API endpoints must include input validation
+- Use the standard error response format
+- Include OpenAPI documentation comments
+```
+
+Rules without a `paths` field are loaded unconditionally and apply to all files. Path-scoped rules trigger when Claude reads files matching the pattern, not on every tool use.
+
+Use glob patterns in the `paths` field to match files by extension, directory, or any combination:
+
+| Pattern                | Matches                                  |
+| ---------------------- | ---------------------------------------- |
+| `**/*.ts`              | All TypeScript files in any directory    |
+| `src/**/*`             | All files under `src/` directory         |
+| `*.md`                 | Markdown files in the project root       |
+| `src/components/*.tsx` | React components in a specific directory |
+
+You can specify multiple patterns and use brace expansion to match multiple extensions in one pattern:
+
+```markdown  theme={null}
+---
+paths:
+  - "src/**/*.{ts,tsx}"
+  - "lib/**/*.ts"
+  - "tests/**/*.test.ts"
+---
+```
+
+### Share rules across projects with symlinks
+
+The `.claude/rules/` directory supports symlinks, so you can maintain a shared set of rules and link them into multiple projects. Symlinks are resolved and loaded normally, and circular symlinks are detected and handled gracefully.
+
+This example links both a shared directory and an individual file:
+
+```bash  theme={null}
+ln -s ~/shared-claude-rules .claude/rules/shared
+ln -s ~/company-standards/security.md .claude/rules/security.md
+```
+
+### User-level rules
+
+Personal rules in `~/.claude/rules/` apply to every project on your machine. Use them for preferences that aren't project-specific:
+
+```text  theme={null}
+~/.claude/rules/
+├── preferences.md    # Your personal coding preferences
+└── workflows.md      # Your preferred workflows
+```
+
+User-level rules are loaded before project rules, giving project rules higher priority.
