@@ -2,6 +2,8 @@
 
 Claude Code plugin marketplace with advanced context engineering techniques focused on improving agent result quality.
 
+See @README for project overview and @CONTRIBUTING.md for contributing guidelines.
+
 ## Project Structure
 
 ```
