@@ -59,7 +59,7 @@ The plugin supports multiple execution strategies based on task characteristics,
 - [subagent-driven-development](./subagent-driven-development.md) - Task Execution with Quality Gates. Allow it to dispatch fresh subagent for each task with code review between tasks.
 - [multi-agent-patterns](./multi-agent-patterns.md) - Multi-Agent Architecture Patterns. Provide guidence for parallel, sequential and debate execution strategies.
 
-## Foundation
+## Theoretical Foundation
 
 The SADD plugin is based on the following foundations:
 
@@ -86,6 +86,31 @@ The SADD plugin is based on the following foundations:
 - [Generating Evaluation Rubrics](https://arxiv.org/abs/2602.08672) - Liu, et al. (2026). Rubric quality framework
 - [Evaluating Instruction Following](https://arxiv.org/pdf/2310.07641v2) - Zheng, et al. (2023). Meta-evaluation protocol
 - [Arena-Hard and BenchBuilder](https://arxiv.org/abs/2406.11939) - Li, et al. (2024). Benchmark construction pipeline
+- [Branch-Solve-Merge](https://arxiv.org/abs/2310.15123) - Saha, et al. (2023). Decomposed evaluation and generation
+
+**Checklist-Based Evaluation:**
+
+- [TICKing All the Boxes](https://arxiv.org/abs/2410.03608) - Cook, et al. (2024). Boolean checklist decomposition
+- [CheckEval](https://arxiv.org/abs/2403.18771) - Kim, et al. (2024). Reliable checklist-based LLM-as-Judge
+- [RocketEval](https://arxiv.org/abs/2503.05142) - Li, et al. (2025). Efficient checklist grading (0.986 Spearman)
+- [LMUnit](https://arxiv.org/abs/2412.13091) - Zhu, et al. (2024). Natural language unit tests
+- [AutoChecklist](https://arxiv.org/abs/2603.07019) - Fisch, et al. (2026). Composable checklist generation pipelines
+- [Checklists Are Better Than Reward Models](https://arxiv.org/abs/2507.18624) - Wen, et al. (2025). Checklist vs. reward model alignment
+- [Are Checklists Really Useful?](https://arxiv.org/abs/2508.15218) - Chen, et al. (2025). Critical analysis of checklist evaluation
+
+**Rubric Generation and Adaptation:**
+
+- [OpenRubrics](https://arxiv.org/abs/2510.07743) - Zhang, et al. (2025). Contrastive rubric generation (CRG)
+- [RubricHub](https://arxiv.org/abs/2601.08430) - Park, et al. (2026). Coarse-to-fine rubric dataset
+- [Rubrics as Rewards](https://arxiv.org/abs/2507.17746) - Li, et al. (2025). Criteria importance weighting (Essential/Important/Optional/Pitfall)
+- [CARMO](https://arxiv.org/abs/2410.21545) - Chen, et al. (2024). Dynamic context-aware criteria generation
+- [SedarEval](https://arxiv.org/abs/2501.15595) - Yang, et al. (2025). Self-adaptive rubrics
+
+**Benchmarking and Instruction Following:**
+
+- [WildBench](https://arxiv.org/abs/2406.04770) - Lin, et al. (2024). Real-world evaluation benchmark (0.98 Pearson)
+- [InFoBench](https://arxiv.org/abs/2401.03601) - Qin, et al. (2024). Decomposed instruction following requirements
+- [AdvancedIF](https://arxiv.org/abs/2511.10507) - Xia, et al. (2025). Rubric-based instruction following evaluation
 
 ### Engineering Methodologies
 

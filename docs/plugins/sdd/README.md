@@ -167,3 +167,10 @@ The SDD plugin is based on established software engineering methodologies and re
 - [Tree of Thoughts](https://arxiv.org/abs/2305.10601) - Structured exploration of complex solution spaces.
 - [Constitutional AI](https://arxiv.org/abs/2212.08073) - Defining core principles for agent behavior.
 - [Chain of Thought Prompting](https://arxiv.org/abs/2201.11903) - Enabling step-by-step reasoning.
+- [TICKing All the Boxes](https://arxiv.org/abs/2410.03608) - Checklist decomposition for LLM evaluation and generation.
+- [RocketEval](https://arxiv.org/abs/2503.05142) - Efficient automated LLM evaluation via grading checklists (0.986 Spearman).
+- [AutoChecklist](https://arxiv.org/abs/2603.07019) - Composable pipelines for checklist generation and scoring.
+- [Branch-Solve-Merge](https://arxiv.org/abs/2310.15123) - Decomposed evaluation improving LLM evaluation and generation.
+- [InFoBench](https://arxiv.org/abs/2401.03601) - Decomposed requirements following ratio for instruction-following evaluation.
+- [Rethinking Rubric Generation](https://arxiv.org/pdf/2602.05125) - Automatic rubric generation for improving LLM judges.
+- [LLM-as-a-Meta-Judge](https://arxiv.org/pdf/2407.19594) - Meta-evaluation of LLM judges for quality assurance.
