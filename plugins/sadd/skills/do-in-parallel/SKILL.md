@@ -7,17 +7,18 @@ argument-hint: Task description [--files "file1.ts,file2.ts,..."] [--targets "ta
 # do-in-parallel
 
 <task>
-Launch multiple sub-agents in parallel to execute the same task across different files or targets. Analyze the task to intelligently select the optimal model, generate quality-focused prompts with Zero-shot Chain-of-Thought reasoning and mandatory self-critique, then dispatch all agents simultaneously with meta-judge → LLM-as-a-judge verification after each completes.
+Launch multiple sub-agents in parallel to execute the same task across different files or targets. Analyze the task to intelligently select the optimal model, generate quality-focused prompts with Zero-shot Chain-of-Thought reasoning and mandatory self-critique, then dispatch one meta-judge per target (all in parallel), followed by implementors for each target in parallel, with LLM-as-a-judge verification using target-specific evaluation specs after each completes.
 </task>
 
 <context>
-This command implements the **Supervisor/Orchestrator pattern** with parallel dispatch and **meta-judge → LLM-as-a-judge verification**. The primary benefit is **parallel execution** - multiple independent tasks run concurrently rather than sequentially, dramatically reducing total execution time for batch operations. A single meta-judge generates tailored evaluation criteria once, then each parallel agent is verified by an independent judge using that specification, with automatic retry on failure.
+This command implements the **Supervisor/Orchestrator pattern** with parallel dispatch and **meta-judge → LLM-as-a-judge verification**. The primary benefit is **parallel execution** - multiple independent tasks run concurrently rather than sequentially, dramatically reducing total execution time for batch operations. One meta-judge per task generates tailored evaluation criteria specific to that task, then each parallel implementor is verified by an independent judge using its task-specific specification, with automatic retry on failure.
+
 
 Key benefits:
 - **Parallel execution** - Multiple tasks run simultaneously
 - **Fresh context** - Each sub-agent works with clean context window
-- **Structured evaluation** - Meta-judge produces tailored rubrics and checklists before judging
-- **External verification** - Judge applies meta-judge specification mechanically — catches blind spots self-critique misses
+- **task-specific evaluation** - Each meta-judge produces tailored rubrics and checklists for its specific task
+- **External verification** - Judge applies target-specific meta-judge specification mechanically — catches blind spots self-critique misses
 - **Feedback loop** - Retry with specific issues identified by judge
 - **Quality gate** - Work doesn't ship until it meets threshold
 
@@ -31,9 +32,9 @@ Key benefits:
 **CRITICAL:** You are the orchestrator only - you MUST NOT perform the task yourself. IF you read, write or run bash tools you failed task imidiatly. It is single most critical criteria for you. If you used anyting except sub-agents you will be killed immediatly!!!! Your role is to:
 
 1. Analyze the task and select optimal model
-2. Dispatch meta-judge to generate evaluation specification
-3. Dispatch parallel implementation sub-agents with structured prompts
-4. Dispatch independent judge sub-agents to verify each target using the meta-judge specification
+2. Dispatch ALL meta-judges in parallel (one per target) to generate target-specific evaluation specifications
+3. After each meta-judge completes, dispatch the implementation sub-agent for that target with structured prompts
+4. After each implementor completes, dispatch its independent judge with the target-specific meta-judge specification
 5. Parse verdict and iterate if needed (max 3 retries per target)
 6. Collect results and report final summary
 
@@ -47,20 +48,22 @@ Key benefits:
 - Read judge reports in full (only parse structured headers)
 - Proceed after max retries without user decision
 - Wait for one agent to complete before starting another
-- Re-run meta-judge on retries or per-target (run it ONCE)
+- Re-run meta-judge on retries
+- Wait to launch implementors until ALL meta-judges have completed
 
 **ALWAYS:**
 
 - Use Task tool to dispatch sub-agents for ALL implementation work
-- Dispatch meta-judge ONCE before parallel implementation dispatch
-- Launch ALL parallel agents in a SINGLE response
-- Pass meta-judge evaluation specification to ALL judge agents
+- Dispatch one meta-judge PER task, all in parallel in a SINGLE response
+- Do not wait for ALL meta-judges to complete before dispatching implementors, launch them immediately after each meta-judge completes
+- Launch each implementor for a task immediately after its meta-judge completes. If all meta-judges are completed, launch all implementaion agents in SINGLE response.
+- Pass each target's specific meta-judge evaluation specification to its judge agent
 - Include `CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}` in prompts to meta-judge and judge agents
 - Use Task tool to dispatch independent judges for verification
 - Wait for each implementation to complete before dispatching its judge
 - Parse only VERDICT/SCORE/ISSUES from judge output
 - Iterate with feedback if verification fails (max 3 retries per target)
-- Reuse same meta-judge specification for all targets (never re-run meta-judge)
+- Reuse same task-specific meta-judge specification for all retries of that task (never re-run meta-judge)
 
 ## Process
 
@@ -183,21 +186,26 @@ Skip specialized agent when:
 - No clear domain match exists
 - General-purpose execution is sufficient
 
-### Phase 3.5: Dispatch Meta-Judge
+### Phase 3.5: Dispatch Meta-Judges (One Per Target, All in Parallel)
 
-Before dispatching parallel implementation agents, dispatch a single meta-judge to generate an evaluation specification. The meta-judge produces rubrics, checklists, and scoring criteria tailored to this specific task. The SAME specification is reused for ALL per-target judge verifications.
+Before dispatching implementation agents, dispatch one meta-judge per target in parallel. Each meta-judge receives task-specific context so it produces a tailored evaluation specification for that specific task. Each meta-judge produces rubrics, checklists, and scoring criteria tailored to the specific task. Each target's specification is reused for all retries of that target ONLY.
 
-**Meta-judge prompt template:**
+
+Important: Follow context isolation principle - Pass each agent only context relevant to its specific target.
+
+**Meta-judge prompt template (per target):**
 
 ```markdown
 ## Task
 
-Generate an evaluation specification yaml for the following task. You will produce rubrics, checklists, and scoring criteria that a judge agent will use to evaluate the implementation artifact.
+Generate an evaluation specification yaml for the following task applied to a specific target. You will produce rubrics, checklists, and scoring criteria that a judge agent will use to evaluate the implementation artifact for this specific target.
 
 CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
 
-## User Prompt
-{Original task description from user}
+
+## Task from User Prompt
+{Specific target for this meta-judge: file path, component name, etc. extracted from User Prompt}
+
 
 ## Context
 {Any relevant codebase context, file paths, constraints}
@@ -209,17 +217,33 @@ CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
 Return only the final evaluation specification YAML in your response.
 ```
 
-**Dispatch:**
+**Dispatch ALL meta-judges in a SINGLE response:**
 
 ```
-Use Task tool:
-  - description: "Meta-judge: {brief task summary}"
-  - prompt: {meta-judge prompt}
+Use Task tool (one per target, all in same message):
+
+[Meta-judge for Target A]
+  - description: "Meta-judge: {brief task summary} for {target_A}"
+  - prompt: {meta-judge prompt with target_A context}
   - model: opus
   - subagent_type: "sadd:meta-judge"
+
+[Meta-judge for Target B]
+  - description: "Meta-judge: {brief task summary} for {target_B}"
+  - prompt: {meta-judge prompt with target_B context}
+  - model: opus
+  - subagent_type: "sadd:meta-judge"
+
+[Meta-judge for Target C]
+  - description: "Meta-judge: {brief task summary} for {target_C}"
+  - prompt: {meta-judge prompt with target_C context}
+  - model: opus
+  - subagent_type: "sadd:meta-judge"
+
+[All meta-judges launched simultaneously - wait for ALL to complete before Phase 4]
 ```
 
-Wait for meta-judge to complete before proceeding to Phase 4.
+**CRITICAL:** Do not wait for ALL meta-judges to complete before proceeding to Phase 4. Launch implementors immediately after each meta-judge completes. If all meta-judges are completed, launch all implementaion agents in SINGLE response.
 
 ### Phase 4: Construct Per-Target Prompts
 
@@ -338,44 +362,48 @@ If ANY verification reveals a gap:
 CRITICAL: Do not submit until ALL verification questions have satisfactory answers.
 ```
 
-### Phase 5: Parallel Dispatch and Judge Verification
+### Phase 5: Parallel Implementation Dispatch and Judge Verification
 
-Launch all sub-agents simultaneously, then verify each with an independent judge using the meta-judge's evaluation specification.
+After ALL meta-judges complete, launch all implementation sub-agents simultaneously, then verify each with an independent judge using the target-specific meta-judge evaluation specification.
 
-#### 5.1 Execution Flow per Target
+#### 5.1 Execution Flow
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
 │                                                                         │
-│   Phase 3.5: Meta-Judge (ONCE)                                          │
-│   ┌──────────────────────────────────────┐                              │
-│   │ Meta-Judge (Opus)                     │                              │
-│   │ → Evaluation Specification YAML       │                              │
-│   └──────────────────┬───────────────────┘                              │
-│                      │ (shared across all targets)                      │
-│                      ▼                                                  │
-│   Parallel Targets                                                      │
+│   Phase 3.5: Meta-Judge Batch (ALL in parallel)                         │
 │                                                                         │
-│   Target A          Target B          Target C                          │
-│   ┌──────────┐      ┌──────────┐      ┌──────────┐                      │
-│   │Implementer│      │Implementer│      │Implementer│                     │
-│   │(parallel) │      │(parallel) │      │(parallel) │                     │
-│   └─────┬────┘      └─────┬────┘      └─────┬────┘                      │
-│         │                 │                 │                            │
-│         ▼                 ▼                 ▼                            │
-│   ┌──────────┐      ┌──────────┐      ┌──────────┐                      │
-│   │  Judge   │      │  Judge   │      │  Judge   │                      │
-│   │(per-target)│    │(per-target)│    │(per-target)│                     │
-│   │+meta-spec │     │+meta-spec │     │+meta-spec │                     │
-│   └─────┬────┘      └─────┬────┘      └─────┬────┘                      │
-│         │                 │                 │                            │
-│         ▼                 ▼                 ▼                            │
-│   ┌──────────────────────────────────────────────────┐                  │
-│   │ Parse Verdict (per target)                        │                  │
-│   │ ├─ PASS (≥4)? → Complete                          │                  │
-│   │ ├─ Soft PASS (≥3 + low priority issues)? → Complete│                 │
-│   │ └─ FAIL (<4)? → Retry (max 3 per target)          │                  │
-│   └──────────────────────────────────────────────────┘                  │
+│   Target A              Target B              Target C                  │
+│   ┌──────────────┐      ┌──────────────┐      ┌──────────────┐          │
+│   │ Meta-Judge A  │      │ Meta-Judge B  │      │ Meta-Judge C  │         │
+│   │ (Opus)        │      │ (Opus)        │      │ (Opus)        │         │
+│   │ → Spec YAML A │      │ → Spec YAML B │      │ → Spec YAML C │         │
+│   └──────┬───────┘      └──────┬───────┘      └──────┬───────┘          │
+│          │                     │                     │                   │
+│          ▼                     ▼                     ▼                   │
+│   Phase 5: Implementation Batch  (after each meta-judge completes)      │
+│                             │                                           │
+│   Target A              Target B              Target C                  │
+│   ┌──────────────┐      ┌──────────────┐      ┌──────────────┐          │
+│   │ Implementer A │      │ Implementer B │      │ Implementer C │         │
+│   │ (parallel)    │      │ (parallel)    │      │ (parallel)    │         │
+│   └──────┬───────┘      └──────┬───────┘      └──────┬───────┘          │
+│          │                     │                     │                   │
+│          ▼                     ▼                     ▼                   │
+│   Phase 5.2: Judge per target (after each implementor completes)        │
+│                                                                         │
+│   ┌──────────────┐      ┌──────────────┐      ┌──────────────┐          │
+│   │  Judge A      │      │  Judge B      │      │  Judge C      │         │
+│   │ +Spec YAML A  │      │ +Spec YAML B  │      │ +Spec YAML C  │         │
+│   └──────┬───────┘      └──────┬───────┘      └──────┬───────┘          │
+│          │                     │                     │                   │
+│          ▼                     ▼                     ▼                   │
+│   ┌──────────────────────────────────────────────────────────┐          │
+│   │ Parse Verdict (per target)                                │          │
+│   │ ├─ PASS (≥4)? → Complete                                  │          │
+│   │ ├─ Soft PASS (≥3 + low priority issues)? → Complete       │          │
+│   │ └─ FAIL (<4)? → Retry (max 3 per target, reuse Spec YAML)│          │
+│   └──────────────────────────────────────────────────────────┘          │
 │                                                                         │
 └─────────────────────────────────────────────────────────────────────────┘
 ```
@@ -423,9 +451,9 @@ Use Task tool:
 
 #### 5.2 Judge Verification Protocol
 
-After each implementation agent completes, dispatch an **independent judge** for that target using the meta-judge's evaluation specification.
+After each implementation agent completes, dispatch an **independent judge** for that target using that target's specific meta-judge evaluation specification.
 
-CRITICAL: Provide to the judge EXACT meta-judge's evaluation specification YAML, do not skip or add anything, do not modify it in any way, do not shorten or summarize any text in it!
+CRITICAL: Provide to the judge the EXACT meta-judge evaluation specification YAML for that specific target, do not skip or add anything, do not modify it in any way, do not shorten or summarize any text in it! Each target's judge receives only that target's meta-judge YAML, not another target's specification or some combination of them.
 
 **Judge prompt template:**
 
@@ -502,7 +530,7 @@ If score < 4:
 
   If retries < 3:
     -> Dispatch retry implementation agent with judge feedback
-    -> Return to judge verification with same meta-judge specification
+    -> Return to judge verification with same target-specific meta-judge specification
 
   If retries >= 3:
     -> Mark target as failed (isolate from other targets)
@@ -622,37 +650,44 @@ After all agents complete (with retries as needed), aggregate results:
 **Execution:**
 
 ```
-Phase 3.5: Dispatch Meta-Judge (ONCE)
-  Meta-judge (Opus)...
-    → Generated evaluation specification YAML
-    → 3 rubric dimensions, 5 checklist items
+Phase 3.5: Dispatch Meta-Judges (3 in parallel, one per target)
+  [All 3 meta-judges launched simultaneously]
+  Meta-judge for user.ts (Opus)...
+    → Generated target-specific evaluation specification YAML
+    → 3 rubric dimensions, 5 checklist items tailored to user.ts
+  Meta-judge for order.ts (Opus)...
+    → Generated target-specific evaluation specification YAML
+    → 3 rubric dimensions, 6 checklist items tailored to order.ts
+  Meta-judge for payment.ts (Opus)...
+    → Generated target-specific evaluation specification YAML
+    → 3 rubric dimensions, 5 checklist items tailored to payment.ts
 
-Phase 5: Parallel Dispatch
+Phase 5: Parallel Implementation Dispatch (after all meta-judges complete)
   [All 3 implementation agents launched simultaneously]
 
   Target: user.ts
     Implementation (Sonnet)...
       -> Converted 4 nested if-else blocks to early returns
-    Judge Verification (Opus, with meta-judge spec)...
+    Judge Verification (Opus, with user.ts meta-judge spec)...
       -> VERDICT: PASS, SCORE: 4.2/5.0
       -> IMPROVEMENTS: Consider extracting complex conditions
 
   Target: order.ts
     Implementation (Sonnet)...
       -> Converted 6 nested if-else blocks to early returns
-    Judge Verification (Opus, with meta-judge spec)...
+    Judge Verification (Opus, with order.ts meta-judge spec)...
       -> VERDICT: PASS, SCORE: 4.0/5.0
       -> ISSUES: None
 
   Target: payment.ts
     Implementation (Sonnet)...
       -> Converted 3 nested if-else blocks
-    Judge Verification (Opus, with meta-judge spec)...
+    Judge Verification (Opus, with payment.ts meta-judge spec)...
       -> VERDICT: FAIL, SCORE: 3.2/5.0
       -> ISSUES: Missing edge case for null amount
     Retry Implementation (Sonnet)...
       -> Added null check for payment amount
-    Judge Verification (Opus, with same meta-judge spec)...
+    Judge Verification (Opus, with same payment.ts meta-judge spec)...
       -> VERDICT: PASS, SCORE: 4.1/5.0
 ```
 
@@ -676,7 +711,7 @@ Phase 5: Parallel Dispatch
 ### Overall Assessment
 - **Completed:** 3/3
 - **Total Retries:** 1
-- **Total Agents:** 9 (1 meta-judge + 3 implementations + 1 retry + 4 judges)
+- **Total Agents:** 11 (3 meta-judges + 3 implementations + 1 retry + 4 judges)
 - **Common patterns:** All files followed consistent early return pattern
 ```
 
@@ -698,7 +733,7 @@ Phase 5: Parallel Dispatch
 
 **Model Selection:** Haiku (mechanical, well-defined rules)
 
-**Dispatch:** 1 meta-judge + 4 parallel agents
+**Dispatch:** 4 meta-judges (parallel) → 4 implementors (parallel) → 4 judges
 
 **Execution Summary:**
 
@@ -709,7 +744,7 @@ Phase 5: Parallel Dispatch
 | src/api/orders.ts | haiku | 4.2/5.0 | 0 | SUCCESS |
 | src/api/auth.ts | haiku | 4.1/5.0 | 0 | SUCCESS |
 
-Total Agents: 9 (1 meta-judge + 4 implementations + 4 judges)
+Total Agents: 12 (4 meta-judges + 4 implementations + 4 judges)
 
 ---
 
@@ -729,7 +764,7 @@ Total Agents: 9 (1 meta-judge + 4 implementations + 4 judges)
 
 **Model Selection:** Opus (security-critical, requires deep analysis)
 
-**Dispatch:** 1 meta-judge + 3 parallel agents
+**Dispatch:** 3 meta-judges (parallel) → 3 implementors (parallel) → 3 judges + retries
 
 **Execution Summary:**
 
@@ -739,7 +774,7 @@ Total Agents: 9 (1 meta-judge + 4 implementations + 4 judges)
 | src/db/migrations.ts | opus | 4.3/5.0 | 0 | SUCCESS |
 | src/api/search.ts | opus | 4.0/5.0 | 1 | SUCCESS |
 
-Total Agents: 8 (1 meta-judge + 3 implementations + 1 retry + 3 judges)
+Total Agents: 11 (3 meta-judges + 3 implementations + 1 retry + 4 judges)
 
 ---
 
@@ -759,31 +794,37 @@ Total Agents: 8 (1 meta-judge + 3 implementations + 1 retry + 3 judges)
 
 **Model Selection:** Sonnet (pattern-based, extensive output)
 
-**Dispatch:** 1 meta-judge + 4 parallel agents
+**Dispatch:** 4 meta-judges (parallel) → 4 implementors (parallel) → judges + retries
 
 **Execution:**
 
 ```
-Phase 3.5: Meta-judge (Opus)
-  → Generated evaluation specification YAML
-  → 4 rubric dimensions, 7 checklist items
+Phase 3.5: Meta-judge Batch (4 in parallel, one per target)
+  [All 4 meta-judges launched simultaneously]
+  Meta-judge for UserService (Opus) → target-specific evaluation spec YAML
+  Meta-judge for OrderService (Opus) → target-specific evaluation spec YAML
+  Meta-judge for PaymentService (Opus) → target-specific evaluation spec YAML
+  Meta-judge for NotificationService (Opus) → target-specific evaluation spec YAML
+
+Phase 5: Implementation Batch (4 in parallel, after all meta-judges complete)
+  [All 4 implementors launched simultaneously]
 
 Target: UserService
-  -> Judge (Opus, with meta-judge spec): PASS, 4.3/5.0
+  -> Judge (Opus, with UserService meta-judge spec): PASS, 4.3/5.0
 
 Target: OrderService
-  -> Judge (Opus, with meta-judge spec): FAIL, 3.2/5.0 (missing edge cases)
-  -> Retry: Judge (Opus, same meta-judge spec): PASS, 4.0/5.0
+  -> Judge (Opus, with OrderService meta-judge spec): FAIL, 3.2/5.0 (missing edge cases)
+  -> Retry: Judge (Opus, same OrderService spec): PASS, 4.0/5.0
 
 Target: PaymentService
-  -> Judge (Opus, with meta-judge spec): FAIL, 2.8/5.0 (wrong mock patterns)
-  -> Retry 1: Judge (Opus, same meta-judge spec): FAIL, 3.0/5.0 (still missing scenarios)
-  -> Retry 2: Judge (Opus, same meta-judge spec): FAIL, 3.1/5.0 (coverage only 65%)
-  -> Retry 3: Judge (Opus, same meta-judge spec): FAIL, 3.2/5.0 (coverage at 72%)
+  -> Judge (Opus, with PaymentService meta-judge spec): FAIL, 2.8/5.0 (wrong mock patterns)
+  -> Retry 1: Judge (Opus, same PaymentService spec): FAIL, 3.0/5.0 (still missing scenarios)
+  -> Retry 2: Judge (Opus, same PaymentService spec): FAIL, 3.1/5.0 (coverage only 65%)
+  -> Retry 3: Judge (Opus, same PaymentService spec): FAIL, 3.2/5.0 (coverage at 72%)
   -> MARKED FAILED after max retries
 
 Target: NotificationService
-  -> Judge (Opus, with meta-judge spec): PASS, 4.1/5.0
+  -> Judge (Opus, with NotificationService meta-judge spec): PASS, 4.1/5.0
 ```
 
 **Result:**
@@ -827,7 +868,7 @@ Target: NotificationService
 
 **Model Selection:** Haiku (simple, mechanical)
 
-**Dispatch:** 1 meta-judge + 3 parallel agents
+**Dispatch:** 3 meta-judges (parallel) → 3 implementors (parallel) → 3 judges
 
 **Execution Summary:**
 
@@ -836,6 +877,8 @@ Target: NotificationService
 | src/handlers/user.ts | haiku | 4.2/5.0 | 0 | SUCCESS |
 | src/handlers/order.ts | haiku | 4.0/5.0 | 0 | SUCCESS |
 | src/handlers/product.ts | haiku | 4.1/5.0 | 0 | SUCCESS |
+
+Total Agents: 9 (3 meta-judges + 3 implementations + 3 judges)
 
 ## Best Practices
 
@@ -859,11 +902,12 @@ Target: NotificationService
 
 ### Meta-Judge + Judge Verification
 
-- **Never skip meta-judge** - Tailored evaluation criteria produce better judgments than generic ones
-- **Reuse meta-judge spec across all targets** - The evaluation specification stays constant; only the implementation changes
+- **One meta-judge per target** - Each target gets its own tailored evaluation specification, producing more relevant and precise judgments than a shared generic one
+- **Batch meta-judges first** - Launch all meta-judges in parallel, then launch implementors
+- **Reuse target-specific spec on retries** - Each target's evaluation specification stays constant across retries; only the implementation changes
 - **Parse only headers from judge** - Don't read full reports to avoid context pollution
 - **Include CLAUDE_PLUGIN_ROOT** - Both meta-judge and judge need the resolved plugin root path
-- **Meta-judge YAML** - Pass only the meta-judge YAML to the judge, do not add any additional text or comments to it!
+- **Target-specific YAML** - Pass only the target's own meta-judge YAML to its judge, do not add any additional text or comments to it!
 
 ### Judge Selection
 
@@ -884,10 +928,10 @@ Target: NotificationService
 
 ### Quality Assurance
 
-- **Three-layer verification:** Self-critique (internal) + Meta-judge specification (structured) + Judge (external)
+- **Three-layer verification:** Self-critique (internal) + Target-specific meta-judge specification (structured) + Judge (external)
 - **Self-critique first:** Implementation agents verify own work before submission
-- **Meta-judge specification:** Tailored rubrics ensure consistent, relevant evaluation criteria
-- **External judge second:** Independent judge applies meta-judge specification mechanically — catches blind spots self-critique misses
+- **Target-specific meta-judge specification:** Each target gets tailored rubrics that account for its unique characteristics, producing more precise evaluation criteria
+- **External judge second:** Independent judge applies target-specific meta-judge specification mechanically — catches blind spots self-critique misses
 - **Iteration loop:** Retry with feedback until passing or max retries
 - **Isolated failures:** One target failing doesn't affect others
 - **Review the summary:** Check for failed or partial completions
