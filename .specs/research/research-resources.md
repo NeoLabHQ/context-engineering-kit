@@ -55,3 +55,5 @@ claude --agents '{
 [] Research how git notes can be used during code writing and review
 [] Research how to add RAG style pipline with vector search to prepent relevant code to context window before code writing
 [] Check "Prompting Science" series. https://arxiv.org/abs/2503.04818, https://arxiv.org/abs/2512.05858, https://chatpaper.com/paper/172346, https://arxiv.org/abs/2508.00614, https://www.researchgate.net/publication/392530384_Prompting_Science_Report_2_The_Decreasing_Value_of_Chain_of_Thought_in_Prompting
+[] https://arxiv.org/html/2602.16666v1 - Towards a Science of AI Agent Reliability
+[] https://arxiv.org/html/2601.06112v1 - ReliabilityBench: Evaluating LLM Agent Reliability Under Production-Like Stress Conditions

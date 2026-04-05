@@ -731,7 +731,7 @@ CRITICAL: You must reply with this exact structured evaluation report format in 
 ```
 Use Task tool:
   - description: "Judge: {target name}"
-  - prompt: {judge verification prompt with exact meta-judge specification YAML, and Pre-existing Changes section if applicable}
+  - prompt: {judge verification prompt with exact meta-judge specification YAML, and Pre-existing or Expected Parallel Changes section if applicable}
   - model: opus
   - subagent_type: "sadd:judge"
 ```
@@ -914,304 +914,13 @@ After all agents complete (with retries as needed), aggregate results:
 
 ## Examples
 
-### Example 1: Parallel Agents After a Previous Task (Pre-existing Changes from Prior Batch)
+### Example 1: Requirement Grouping -- Mixed Repeatable + Independent (with Pre-existing Changes from Prior Batch)
 
 **Scenario:**
 
-A team runs two sequential do-in-parallel batches. The first batch updates API documentation across 3 endpoint files. The second batch adds input validation to those same 3 endpoints. Each agent's judge in the second batch needs to know about the documentation changes from the first batch.
+A team runs two sequential do-in-parallel batches. The first batch updates API documentation across 3 endpoint files (`src/api/users.ts`, `src/api/orders.ts`, `src/api/products.ts`). The second batch adds tests to all 3 modules in src folder and adds a tests step to GitHub Actions. Each agent's judge in the second batch needs to know about the documentation changes from the first batch AND the expected changes from other parallel agents in the same second batch.
 
-**Input (first run):**
-
-```
-/do-in-parallel "Update API documentation for all endpoints" \
-  --files "src/api/users.ts,src/api/orders.ts,src/api/products.ts"
-```
-
-**Execution (first run):**
-
-```
-Phase 1: Task Analysis
-  - Task type: Documentation generation
-  - Per-target complexity: Low (mechanical documentation)
-  - Independence: Yes (separate files)
-  → Model: haiku
-  - Pre-existing Changes: None
-
-Phase 3.5: Dispatch Meta-Judges (3 in parallel, one per target)
-  [All 3 meta-judges launched simultaneously]
-  Meta-judge for users.ts (Opus) → target-specific evaluation spec YAML
-  Meta-judge for orders.ts (Opus) → target-specific evaluation spec YAML
-  Meta-judge for products.ts (Opus) → target-specific evaluation spec YAML
-
-Phase 5: Parallel Implementation Dispatch (after all meta-judges complete)
-  [All 3 implementation agents launched simultaneously]
-
-  Target: src/api/users.ts
-    Implementation (Haiku)...
-      -> Added JSDoc to 5 public methods, updated module header
-    Judge Verification (Opus, with users.ts meta-judge spec)...
-      NOTE: No pre-existing changes — first run on clean codebase.
-      "Pre-existing Changes" section OMITTED from judge prompt.
-      -> VERDICT: PASS, SCORE: 4.1/5.0
-
-  Target: src/api/orders.ts
-    Implementation (Haiku)...
-      -> Added JSDoc to 4 public methods, added @example tags
-    Judge Verification (Opus, with orders.ts meta-judge spec)...
-      NOTE: No pre-existing changes — "Pre-existing Changes" section OMITTED.
-      -> VERDICT: PASS, SCORE: 4.0/5.0
-
-  Target: src/api/products.ts
-    Implementation (Haiku)...
-      -> Added JSDoc to 6 public methods, updated type annotations
-    Judge Verification (Opus, with products.ts meta-judge spec)...
-      NOTE: No pre-existing changes — "Pre-existing Changes" section OMITTED.
-      -> VERDICT: PASS, SCORE: 4.2/5.0
-
-Phase 6: Summary
-  ✅ 3/3 completed
-  Total Agents: 9 (3 meta-judges + 3 implementations + 3 judges)
-```
-
-**Input (second run, same session):**
-
-```
-/do-in-parallel "Add input validation to all API endpoints" \
-  --files "src/api/users.ts,src/api/orders.ts,src/api/products.ts"
-```
-
-**Execution (second run):**
-
-```
-Phase 1: Task Analysis
-  - Task type: Code transformation
-  - Per-target complexity: Medium (validation logic, error handling)
-  - Independence: Yes (separate files)
-  → Model: sonnet
-  - Pre-existing Changes: Documentation added to all 3 files in previous batch
-
-Phase 3.5: Dispatch Meta-Judges (3 in parallel, one per target)
-  [All 3 meta-judges launched simultaneously]
-  Meta-judge for users.ts (Opus) → target-specific evaluation spec YAML
-  Meta-judge for orders.ts (Opus) → target-specific evaluation spec YAML
-  Meta-judge for products.ts (Opus) → target-specific evaluation spec YAML
-
-Phase 5: Parallel Implementation Dispatch (after all meta-judges complete)
-  [All 3 implementation agents launched simultaneously]
-
-  Target: src/api/users.ts
-    Implementation (Sonnet)...
-      -> Added Zod schemas for user input validation
-      -> Added validation middleware to user routes
-    Judge Verification (Opus, with users.ts meta-judge spec)...
-      NOTE: Pre-existing changes detected from previous do-in-parallel run.
-      Include "Pre-existing Changes" section.
-
-      Judge prompt sent:
-      ┌─────────────────────────────────────────────────────────
-      │ You are evaluating an implementation artifact for
-      │ target src/api/users.ts against an evaluation
-      │ specification produced by the meta judge.
-      │
-      │ CLAUDE_PLUGIN_ROOT=...
-      │
-      │ ## User Prompt
-      │ Add input validation to all API endpoints
-      │
-      │ ## Target
-      │ src/api/users.ts
-      │
-      │ ## Pre-existing Changes (Context Only)
-      │
-      │ The following changes were made BEFORE the current
-      │ parallel dispatch started. They are NOT part of the
-      │ current implementation agent's output. Focus your
-      │ evaluation on the current agent's changes to its
-      │ specific target. Only verify pre-existing changed
-      │ files/logic if they directly relate to the current
-      │ target's task requirements.
-      │
-      │ ### Previous do-in-parallel: "Update API documentation for all endpoints"
-      │ The following files were modified as part of a
-      │ previous parallel batch:
-      │ - src/api/users.ts (modified) - Added JSDoc to public
-      │   methods, updated module header
-      │ - src/api/orders.ts (modified) - Added JSDoc to public
-      │   methods, added @example tags
-      │ - src/api/products.ts (modified) - Added JSDoc to
-      │   public methods, updated type annotations
-      │
-      │ These documentation changes exist in the codebase.
-      │ Evaluate only the input validation changes made by the
-      │ current implementation agent.
-      │
-      │ ## Evaluation Specification
-      │ ```yaml
-      │ {users.ts meta-judge's evaluation specification YAML}
-      │ ```
-      │
-      │ ## Implementation Output
-      │ Files: src/api/users.ts (modified)
-      │ Key changes: Added Zod schemas, validation middleware
-      │
-      │ ## Instructions
-      │ User prompt is provided as context...
-      │ Follow your full judge process...
-      └─────────────────────────────────────────────────────────
-      -> VERDICT: PASS, SCORE: 4.3/5.0
-
-  Target: src/api/orders.ts
-    Implementation (Sonnet)...
-      -> Added Zod schemas for order input validation
-    Judge Verification (Opus, with orders.ts meta-judge spec)...
-      NOTE: Same pre-existing changes section included.
-      -> VERDICT: PASS, SCORE: 4.0/5.0
-
-  Target: src/api/products.ts
-    Implementation (Sonnet)...
-      -> Added Zod schemas for product input validation
-    Judge Verification (Opus, with products.ts meta-judge spec)...
-      NOTE: Same pre-existing changes section included.
-      -> VERDICT: FAIL, SCORE: 3.1/5.0
-      -> ISSUES: Missing validation for nested product variants
-    Retry Implementation (Sonnet)...
-      -> Added nested variant validation schemas
-    Judge Verification (Opus, with same products.ts meta-judge spec)...
-      NOTE: Retry within SAME target — do NOT include the
-      implementation agent's previous attempt as "pre-existing changes".
-      Pre-existing Changes section still includes only the documentation batch.
-      -> VERDICT: PASS, SCORE: 4.2/5.0
-
-Phase 6: Summary
-  ✅ 3/3 completed, 1 retry
-  Total Agents: 11 (3 meta-judges + 3 implementations + 1 retry + 4 judges)
-```
-
----
-
-### Example 2: User-Modified Codebase Before Parallel Dispatch (Pre-existing Changes from User)
-
-**Scenario:**
-
-A developer has been working on a Node.js backend during the conversation. They refactored the database connection layer and updated several service modules manually. They then invoke do-in-parallel to fix linting issues across all service modules. Each agent's judge needs to know about the user's prior modifications so it does not confuse them with the linting fixes.
-
-**Input:**
-
-```
-/do-in-parallel "Fix all ESLint errors and warnings" \
-  --files "src/services/auth.ts,src/services/billing.ts,src/services/notifications.ts"
-```
-
-**Execution:**
-
-```
-Phase 1: Task Analysis
-  - Task type: Code transformation (linting fixes)
-  - Per-target complexity: Low (mechanical, rule-based)
-  - Independence: Yes (separate service files)
-  → Model: haiku
-  - Pre-existing Changes: User modified database layer and service modules
-
-Phase 3.5: Dispatch Meta-Judges (3 in parallel, one per target)
-  [All 3 meta-judges launched simultaneously]
-  Meta-judge for auth.ts (Opus) → target-specific evaluation spec YAML
-  Meta-judge for billing.ts (Opus) → target-specific evaluation spec YAML
-  Meta-judge for notifications.ts (Opus) → target-specific evaluation spec YAML
-
-Phase 5: Parallel Implementation Dispatch (after all meta-judges complete)
-  [All 3 implementation agents launched simultaneously]
-
-  Target: src/services/auth.ts
-    Implementation (Haiku)...
-      -> Fixed 12 ESLint errors: unused imports, missing semicolons, any types
-    Judge Verification (Opus, with auth.ts meta-judge spec)...
-      NOTE: User modifications detected from conversation context.
-      Include "Pre-existing Changes" section.
-
-      Judge prompt sent:
-      ┌─────────────────────────────────────────────────────────
-      │ You are evaluating an implementation artifact for
-      │ target src/services/auth.ts against an evaluation
-      │ specification produced by the meta judge.
-      │
-      │ CLAUDE_PLUGIN_ROOT=...
-      │
-      │ ## User Prompt
-      │ Fix all ESLint errors and warnings
-      │
-      │ ## Target
-      │ src/services/auth.ts
-      │
-      │ ## Pre-existing Changes (Context Only)
-      │
-      │ The following changes were made BEFORE the current
-      │ parallel dispatch started. They are NOT part of the
-      │ current implementation agent's output. Focus your
-      │ evaluation on the current agent's changes to its
-      │ specific target. Only verify pre-existing changed
-      │ files/logic if they directly relate to the current
-      │ target's task requirements.
-      │
-      │ ### User modifications (before current task)
-      │ The user made changes to the following files/modules
-      │ before this task was started:
-      │ - src/db/connection.ts (modified) - Refactored database
-      │   connection pooling
-      │ - src/db/queries.ts (modified) - Updated query builder
-      │   patterns
-      │ - src/services/auth.ts (modified) - Updated auth service
-      │   to use new DB connection API
-      │ - src/services/billing.ts (modified) - Updated billing
-      │   queries for new query builder
-      │ - src/services/notifications.ts (modified) - Minor
-      │   refactoring of notification queries
-      │
-      │ The current task focuses specifically on fixing ESLint
-      │ errors. Some user modifications may have introduced new
-      │ linting issues — those are the current agent's
-      │ responsibility to fix. Pre-existing structural changes
-      │ to the code should not be evaluated as part of the
-      │ linting task.
-      │
-      │ ## Evaluation Specification
-      │ ```yaml
-      │ {auth.ts meta-judge's evaluation specification YAML}
-      │ ```
-      │
-      │ ## Implementation Output
-      │ Files: src/services/auth.ts (modified)
-      │ Key changes: Fixed 12 ESLint errors...
-      │
-      │ ## Instructions
-      │ User prompt is provided as context...
-      │ Follow your full judge process...
-      └─────────────────────────────────────────────────────────
-      -> VERDICT: PASS, SCORE: 4.0/5.0
-
-  Target: src/services/billing.ts
-    Implementation (Haiku)...
-      -> Fixed 8 ESLint errors: type assertions, unused variables
-    Judge Verification (Opus, with billing.ts meta-judge spec)...
-      NOTE: Same pre-existing changes section included.
-      -> VERDICT: PASS, SCORE: 4.1/5.0
-
-  Target: src/services/notifications.ts
-    Implementation (Haiku)...
-      -> Fixed 5 ESLint errors: consistent return types, import ordering
-    Judge Verification (Opus, with notifications.ts meta-judge spec)...
-      NOTE: Same pre-existing changes section included.
-      -> VERDICT: PASS, SCORE: 4.3/5.0
-
-Phase 6: Summary
-  ✅ 3/3 completed, 0 retries
-  Total Agents: 9 (3 meta-judges + 3 implementations + 3 judges)
-```
-
----
-
-### Example 3: Requirement Grouping -- Mixed Repeatable + Independent
-
-**Input:**
+**Input (second batch -- first batch already completed earlier in session):**
 
 ```
 /do-in-parallel add tests to all 3 modules in src folder and add tests step to github actions
@@ -1234,7 +943,13 @@ Phase 2: Task Analysis + Requirement Grouping
    - Task D: INDEPENDENT — different task type (CI configuration)
      → Separate meta-judge
 
-3. Agent Count:
+3. Pre-existing and Expected Parallel Changes Assessment:
+   - Pre-existing (from prior batch): API documentation updated across
+     src/api/users.ts, src/api/orders.ts, src/api/products.ts
+   - Expected parallel: Each agent should be aware that other agents in this
+     batch are adding tests to other modules and updating GH Actions simultaneously
+
+4. Agent Count:
    - Meta-judges: 2 (1 repeatable for tests + 1 independent for GH Actions)
    - Implementation agents: 4 (one per task, always isolated)
    - Judges: 4 (3 using shared test spec + 1 for GH Actions)
@@ -1465,6 +1180,30 @@ Use Task tool:
     ## Target
     src/modules/auth.ts
 
+    ## Pre-existing and expected parallel changes (Context Only)
+
+    The following changes were made before or expected to be done by
+    other parallel agents in the same batch now. They are NOT part of
+    the current implementation agent's output. Focus your evaluation
+    on the current agent's changes to its specific target. Only verify
+    other changed files/logic if they directly relate to the current
+    target's task requirements.
+
+    ### Previous do-in-parallel: "Update API documentation for all endpoints"
+    The following files were modified as part of a previous parallel batch:
+    - src/api/users.ts (modified) - Added JSDoc to public methods,
+      updated module header
+    - src/api/orders.ts (modified) - Added JSDoc to public methods,
+      added @example tags
+    - src/api/products.ts (modified) - Added JSDoc to public methods,
+      updated type annotations
+
+    ### Expected parallel changes (current batch)
+    Other agents in this batch are simultaneously:
+    - Adding tests to src/modules/cart.ts and src/modules/payments.ts
+      (repeatable group — same task on other modules)
+    - Adding a tests step to .github/workflows/ci.yml (independent task)
+
     ## Evaluation Specification
     ```yaml
     {EXACT reusable spec YAML from repeatable meta-judge — same for all 3 module judges}
@@ -1488,14 +1227,18 @@ Use Task tool:
 [Judge 2: cart module — uses SAME shared reusable spec]
 Use Task tool:
   - description: "Judge: src/modules/cart.ts"
-  - prompt: [Same judge template, same reusable spec YAML, cart implementation output]
+  - prompt: [Same judge template, same reusable spec YAML, cart implementation output.
+    Pre-existing and expected parallel changes section: same prior batch info,
+    expected parallel changes list auth.ts, payments.ts, and GH Actions instead]
   - model: opus
   - subagent_type: "sadd:judge"
 
 [Judge 3: payments module — uses SAME shared reusable spec]
 Use Task tool:
   - description: "Judge: src/modules/payments.ts"
-  - prompt: [Same judge template, same reusable spec YAML, payments implementation output]
+  - prompt: [Same judge template, same reusable spec YAML, payments implementation output.
+    Pre-existing and expected parallel changes section: same prior batch info,
+    expected parallel changes list auth.ts, cart.ts, and GH Actions instead]
   - model: opus
   - subagent_type: "sadd:judge"
 
@@ -1514,6 +1257,29 @@ Use Task tool:
 
     ## Target
     .github/workflows/ci.yml
+
+    ## Pre-existing and expected parallel changes (Context Only)
+
+    The following changes were made before or expected to be done by
+    other parallel agents in the same batch now. They are NOT part of
+    the current implementation agent's output. Focus your evaluation
+    on the current agent's changes to its specific target. Only verify
+    other changed files/logic if they directly relate to the current
+    target's task requirements.
+
+    ### Previous do-in-parallel: "Update API documentation for all endpoints"
+    The following files were modified as part of a previous parallel batch:
+    - src/api/users.ts (modified) - Added JSDoc to public methods,
+      updated module header
+    - src/api/orders.ts (modified) - Added JSDoc to public methods,
+      added @example tags
+    - src/api/products.ts (modified) - Added JSDoc to public methods,
+      updated type annotations
+
+    ### Expected parallel changes (current batch)
+    Other agents in this batch are simultaneously:
+    - Adding tests to src/modules/auth.ts, src/modules/cart.ts,
+      and src/modules/payments.ts (repeatable group — test generation)
 
     ## Evaluation Specification
     ```yaml
@@ -1551,7 +1317,11 @@ Use Task tool:
 
 ---
 
-### Example 4: Requirement Grouping -- Shared + Repeatable Combined
+### Example 2: Requirement Grouping -- Shared + Repeatable Combined (with Pre-existing User Changes)
+
+**Scenario:**
+
+A developer has been working on a Node.js backend during the conversation. They refactored the database connection layer and updated several service modules manually, including adding S3 class interface. Then they invoked do-in-parallel to implement and integrate the S3 interface, and also refactor the cart module. Each agent's judge needs to know about the user's prior modifications AND the expected changes from other parallel agents in the same batch.
 
 **Input:**
 
@@ -1579,7 +1349,15 @@ Phase 2: Task Analysis + Requirement Grouping
      to 3 different files in cart module
      → ONE reusable meta-judge
 
-3. Agent Count:
+3. Pre-existing and Expected Parallel Changes Assessment:
+   - Pre-existing (user modifications): Refactored database connection layer
+     (src/db/connection.ts, src/db/queries.ts), updated service modules,
+     and added S3 class interface in src/adapters/s3.adapter.ts
+   - Expected parallel: S3 adapter implementation and analytics integration
+     run in parallel (shared group); cart refactoring agents run in parallel
+     (repeatable group); both groups run simultaneously
+
+4. Agent Count:
    - Meta-judges: 2 (1 shared for S3 work + 1 repeatable for cart refactoring)
    - Implementation agents: 5 (one per task, always isolated)
    - Judges: 4 (1 shared for S3 group + 3 individual for cart)
@@ -1823,6 +1601,30 @@ Use Task tool:
     - Task A: Implement S3 adapter with tests -> src/adapters/s3.adapter.ts
     - Task B: Integrate S3 adapter into analytics module -> src/modules/analytics.module.ts
 
+    ## Pre-existing and expected parallel changes (Context Only)
+
+    The following changes were made before or expected to be done by
+    other parallel agents in the same batch now. They are NOT part of
+    the current implementation agents' output for this shared group.
+    Focus your evaluation on the S3 group's changes. Only verify other
+    changed files/logic if they directly relate to these tasks.
+
+    ### User modifications (before current task)
+    The user made changes to the following files/modules before this
+    task was started:
+    - src/db/connection.ts (modified) - Refactored database connection
+      pooling
+    - src/db/queries.ts (modified) - Updated query builder patterns
+    - src/adapters/s3.adapter.ts (created) - Added S3 class interface
+      (the interface that Task A implements)
+    - Several service modules updated to use new DB connection API
+
+    ### Expected parallel changes (current batch)
+    Other agents in this batch are simultaneously:
+    - Refactoring src/modules/cart/cart.service.ts (repeatable group)
+    - Refactoring src/modules/cart/cart.repository.ts (repeatable group)
+    - Refactoring src/modules/cart/cart.controller.ts (repeatable group)
+
     ## Evaluation Specification
     ```yaml
     {EXACT combined spec YAML from shared S3 meta-judge}
@@ -1868,6 +1670,31 @@ Use Task tool:
     ## Target
     src/modules/cart/cart.service.ts
 
+    ## Pre-existing and expected parallel changes (Context Only)
+
+    The following changes were made before or expected to be done by
+    other parallel agents in the same batch now. They are NOT part of
+    the current implementation agent's output. Focus your evaluation
+    on the current agent's changes to its specific target. Only verify
+    other changed files/logic if they directly relate to the current
+    target's task requirements.
+
+    ### User modifications (before current task)
+    The user made changes to the following files/modules before this
+    task was started:
+    - src/db/connection.ts (modified) - Refactored database connection
+      pooling
+    - src/db/queries.ts (modified) - Updated query builder patterns
+    - src/adapters/s3.adapter.ts (created) - Added S3 class interface
+    - Several service modules updated to use new DB connection API
+
+    ### Expected parallel changes (current batch)
+    Other agents in this batch are simultaneously:
+    - Implementing S3 adapter in src/adapters/s3.adapter.ts (shared group)
+    - Integrating S3 adapter into src/modules/analytics.module.ts (shared group)
+    - Refactoring src/modules/cart/cart.repository.ts (repeatable group)
+    - Refactoring src/modules/cart/cart.controller.ts (repeatable group)
+
     ## Evaluation Specification
     ```yaml
     {EXACT reusable spec YAML from repeatable cart meta-judge — same for all 3 cart judges}
@@ -1891,14 +1718,18 @@ Use Task tool:
 [Judge 3: cart.repository.ts — uses SAME shared reusable spec]
 Use Task tool:
   - description: "Judge: src/modules/cart/cart.repository.ts"
-  - prompt: [Same judge template, same reusable spec YAML, cart.repository implementation output]
+  - prompt: [Same judge template, same reusable spec YAML, cart.repository implementation output.
+    Pre-existing and expected parallel changes section: same user modifications,
+    expected parallel changes list S3 group, cart.service.ts, and cart.controller.ts instead]
   - model: opus
   - subagent_type: "sadd:judge"
 
 [Judge 4: cart.controller.ts — uses SAME shared reusable spec]
 Use Task tool:
   - description: "Judge: src/modules/cart/cart.controller.ts"
-  - prompt: [Same judge template, same reusable spec YAML, cart.controller implementation output]
+  - prompt: [Same judge template, same reusable spec YAML, cart.controller implementation output.
+    Pre-existing and expected parallel changes section: same user modifications,
+    expected parallel changes list S3 group, cart.service.ts, and cart.repository.ts instead]
   - model: opus
   - subagent_type: "sadd:judge"
 
@@ -1934,7 +1765,7 @@ Retry Decision:
 
 ---
 
-### Example 5: Requirement Grouping -- All Independent
+### Example 3: Requirement Grouping -- All Independent
 
 **Input:**
 
