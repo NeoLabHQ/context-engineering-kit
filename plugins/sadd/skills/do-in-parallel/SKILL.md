@@ -457,6 +457,35 @@ After each implementation agent completes, dispatch an **independent judge** for
 
 CRITICAL: Provide to the judge the EXACT meta-judge evaluation specification YAML for that specific target, do not skip or add anything, do not modify it in any way, do not shorten or summarize any text in it! Each target's judge receives only that target's meta-judge YAML, not another target's specification or some combination of them.
 
+##### 5.2.1 Analyze the Pre-existing Changes Section
+
+Before dispatching each target's judge, assess whether there are pre-existing changes in the codebase that the judge needs to be aware of. The "Pre-existing Changes" section prevents the judge from confusing prior modifications with the current implementation agent's work.
+
+**When to include:**
+
+- Previous do-in-parallel runs completed earlier in the same session (all targets from a prior batch)
+- User's manual modifications made before invoking the skill (visible from conversation context or in git)
+- Changes from other tools or agents that ran before this parallel dispatch
+
+**When to omit:**
+
+- This is the first run with no known prior changes — omit the section entirely
+- On retries within the SAME target, do NOT include the implementation agent's own previous attempt as "pre-existing changes" — those are part of the current target's iteration cycle
+- Do NOT include changes from other parallel agents in the SAME batch as "pre-existing changes" — since agents run in parallel, they each work on independent targets and their changes should not be attributed to each other
+
+**Content guidelines:**
+
+- Use a high-level summary: task description, list of affected files/modules, general nature of changes (created, modified, deleted)
+- Do NOT include code blocks, diffs, or line-level details — keep it concise
+- Label the source clearly: "Previous do-in-parallel: {description}", "User modifications (before current task)", etc.
+- If multiple sources of pre-existing changes exist, use separate subsections for each
+
+**CRITICAL for do-in-parallel:** The pre-existing changes context is for changes that existed BEFORE the parallel dispatch. Since all agents in the same batch run in parallel on independent targets, each agent's judge should focus exclusively on that agent's target files. Do NOT cross-reference changes from agents B and C when judging agent A's work within the same batch.
+
+CRITICAL: avoid reading full codebase or git history, just use high-level git diff/status to determine which files were changed, or use conversation context to determine if there are any pre-existing changes.
+
+##### 5.2.2 Launch Judge with prompt and target-specific specification YAML
+
 **Judge prompt template:**
 
 ```markdown
@@ -469,6 +498,17 @@ CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
 
 ## Target
 {Specific target: file path or component name}
+
+{IF pre-existing changes are known, include the following section — otherwise omit entirely}
+
+## Pre-existing Changes (Context Only)
+
+The following changes were made BEFORE the current parallel dispatch started. They are NOT part of the current implementation agent's output. Focus your evaluation on the current agent's changes to its specific target. Only verify pre-existing changed files/logic if they directly relate to the current target's task requirements.
+
+### {Source of changes: e.g., "Previous do-in-parallel: {task description}" or "User modifications (before current task)"}
+{High-level summary: what was done, which files/modules were created or modified}
+
+{END conditional section}
 
 ## Evaluation Specification
 
@@ -496,7 +536,7 @@ CRITICAL: NEVER provide score threshold, in any format, including `threshold_pas
 ```
 Use Task tool:
   - description: "Judge: {target name}"
-  - prompt: {judge verification prompt with exact meta-judge specification YAML}
+  - prompt: {judge verification prompt with exact meta-judge specification YAML, and Pre-existing Changes section if applicable}
   - model: opus
   - subagent_type: "sadd:judge"
 ```
@@ -882,6 +922,301 @@ Target: NotificationService
 
 Total Agents: 9 (3 meta-judges + 3 implementations + 3 judges)
 
+---
+
+### Example 6: Parallel Agents After a Previous Task (Pre-existing Changes from Prior Batch)
+
+**Scenario:**
+
+A team runs two sequential do-in-parallel batches. The first batch updates API documentation across 3 endpoint files. The second batch adds input validation to those same 3 endpoints. Each agent's judge in the second batch needs to know about the documentation changes from the first batch.
+
+**Input (first run):**
+
+```
+/do-in-parallel "Update API documentation for all endpoints" \
+  --files "src/api/users.ts,src/api/orders.ts,src/api/products.ts"
+```
+
+**Execution (first run):**
+
+```
+Phase 1: Task Analysis
+  - Task type: Documentation generation
+  - Per-target complexity: Low (mechanical documentation)
+  - Independence: Yes (separate files)
+  → Model: haiku
+  - Pre-existing Changes: None
+
+Phase 3.5: Dispatch Meta-Judges (3 in parallel, one per target)
+  [All 3 meta-judges launched simultaneously]
+  Meta-judge for users.ts (Opus) → target-specific evaluation spec YAML
+  Meta-judge for orders.ts (Opus) → target-specific evaluation spec YAML
+  Meta-judge for products.ts (Opus) → target-specific evaluation spec YAML
+
+Phase 5: Parallel Implementation Dispatch (after all meta-judges complete)
+  [All 3 implementation agents launched simultaneously]
+
+  Target: src/api/users.ts
+    Implementation (Haiku)...
+      -> Added JSDoc to 5 public methods, updated module header
+    Judge Verification (Opus, with users.ts meta-judge spec)...
+      NOTE: No pre-existing changes — first run on clean codebase.
+      "Pre-existing Changes" section OMITTED from judge prompt.
+      -> VERDICT: PASS, SCORE: 4.1/5.0
+
+  Target: src/api/orders.ts
+    Implementation (Haiku)...
+      -> Added JSDoc to 4 public methods, added @example tags
+    Judge Verification (Opus, with orders.ts meta-judge spec)...
+      NOTE: No pre-existing changes — "Pre-existing Changes" section OMITTED.
+      -> VERDICT: PASS, SCORE: 4.0/5.0
+
+  Target: src/api/products.ts
+    Implementation (Haiku)...
+      -> Added JSDoc to 6 public methods, updated type annotations
+    Judge Verification (Opus, with products.ts meta-judge spec)...
+      NOTE: No pre-existing changes — "Pre-existing Changes" section OMITTED.
+      -> VERDICT: PASS, SCORE: 4.2/5.0
+
+Phase 6: Summary
+  ✅ 3/3 completed
+  Total Agents: 9 (3 meta-judges + 3 implementations + 3 judges)
+```
+
+**Input (second run, same session):**
+
+```
+/do-in-parallel "Add input validation to all API endpoints" \
+  --files "src/api/users.ts,src/api/orders.ts,src/api/products.ts"
+```
+
+**Execution (second run):**
+
+```
+Phase 1: Task Analysis
+  - Task type: Code transformation
+  - Per-target complexity: Medium (validation logic, error handling)
+  - Independence: Yes (separate files)
+  → Model: sonnet
+  - Pre-existing Changes: Documentation added to all 3 files in previous batch
+
+Phase 3.5: Dispatch Meta-Judges (3 in parallel, one per target)
+  [All 3 meta-judges launched simultaneously]
+  Meta-judge for users.ts (Opus) → target-specific evaluation spec YAML
+  Meta-judge for orders.ts (Opus) → target-specific evaluation spec YAML
+  Meta-judge for products.ts (Opus) → target-specific evaluation spec YAML
+
+Phase 5: Parallel Implementation Dispatch (after all meta-judges complete)
+  [All 3 implementation agents launched simultaneously]
+
+  Target: src/api/users.ts
+    Implementation (Sonnet)...
+      -> Added Zod schemas for user input validation
+      -> Added validation middleware to user routes
+    Judge Verification (Opus, with users.ts meta-judge spec)...
+      NOTE: Pre-existing changes detected from previous do-in-parallel run.
+      Include "Pre-existing Changes" section.
+
+      Judge prompt sent:
+      ┌─────────────────────────────────────────────────────────
+      │ You are evaluating an implementation artifact for
+      │ target src/api/users.ts against an evaluation
+      │ specification produced by the meta judge.
+      │
+      │ CLAUDE_PLUGIN_ROOT=...
+      │
+      │ ## User Prompt
+      │ Add input validation to all API endpoints
+      │
+      │ ## Target
+      │ src/api/users.ts
+      │
+      │ ## Pre-existing Changes (Context Only)
+      │
+      │ The following changes were made BEFORE the current
+      │ parallel dispatch started. They are NOT part of the
+      │ current implementation agent's output. Focus your
+      │ evaluation on the current agent's changes to its
+      │ specific target. Only verify pre-existing changed
+      │ files/logic if they directly relate to the current
+      │ target's task requirements.
+      │
+      │ ### Previous do-in-parallel: "Update API documentation for all endpoints"
+      │ The following files were modified as part of a
+      │ previous parallel batch:
+      │ - src/api/users.ts (modified) - Added JSDoc to public
+      │   methods, updated module header
+      │ - src/api/orders.ts (modified) - Added JSDoc to public
+      │   methods, added @example tags
+      │ - src/api/products.ts (modified) - Added JSDoc to
+      │   public methods, updated type annotations
+      │
+      │ These documentation changes exist in the codebase.
+      │ Evaluate only the input validation changes made by the
+      │ current implementation agent.
+      │
+      │ ## Evaluation Specification
+      │ ```yaml
+      │ {users.ts meta-judge's evaluation specification YAML}
+      │ ```
+      │
+      │ ## Implementation Output
+      │ Files: src/api/users.ts (modified)
+      │ Key changes: Added Zod schemas, validation middleware
+      │
+      │ ## Instructions
+      │ User prompt is provided as context...
+      │ Follow your full judge process...
+      └─────────────────────────────────────────────────────────
+      -> VERDICT: PASS, SCORE: 4.3/5.0
+
+  Target: src/api/orders.ts
+    Implementation (Sonnet)...
+      -> Added Zod schemas for order input validation
+    Judge Verification (Opus, with orders.ts meta-judge spec)...
+      NOTE: Same pre-existing changes section included.
+      -> VERDICT: PASS, SCORE: 4.0/5.0
+
+  Target: src/api/products.ts
+    Implementation (Sonnet)...
+      -> Added Zod schemas for product input validation
+    Judge Verification (Opus, with products.ts meta-judge spec)...
+      NOTE: Same pre-existing changes section included.
+      -> VERDICT: FAIL, SCORE: 3.1/5.0
+      -> ISSUES: Missing validation for nested product variants
+    Retry Implementation (Sonnet)...
+      -> Added nested variant validation schemas
+    Judge Verification (Opus, with same products.ts meta-judge spec)...
+      NOTE: Retry within SAME target — do NOT include the
+      implementation agent's previous attempt as "pre-existing changes".
+      Pre-existing Changes section still includes only the documentation batch.
+      -> VERDICT: PASS, SCORE: 4.2/5.0
+
+Phase 6: Summary
+  ✅ 3/3 completed, 1 retry
+  Total Agents: 11 (3 meta-judges + 3 implementations + 1 retry + 4 judges)
+```
+
+---
+
+### Example 7: User-Modified Codebase Before Parallel Dispatch (Pre-existing Changes from User)
+
+**Scenario:**
+
+A developer has been working on a Node.js backend during the conversation. They refactored the database connection layer and updated several service modules manually. They then invoke do-in-parallel to fix linting issues across all service modules. Each agent's judge needs to know about the user's prior modifications so it does not confuse them with the linting fixes.
+
+**Input:**
+
+```
+/do-in-parallel "Fix all ESLint errors and warnings" \
+  --files "src/services/auth.ts,src/services/billing.ts,src/services/notifications.ts"
+```
+
+**Execution:**
+
+```
+Phase 1: Task Analysis
+  - Task type: Code transformation (linting fixes)
+  - Per-target complexity: Low (mechanical, rule-based)
+  - Independence: Yes (separate service files)
+  → Model: haiku
+  - Pre-existing Changes: User modified database layer and service modules
+
+Phase 3.5: Dispatch Meta-Judges (3 in parallel, one per target)
+  [All 3 meta-judges launched simultaneously]
+  Meta-judge for auth.ts (Opus) → target-specific evaluation spec YAML
+  Meta-judge for billing.ts (Opus) → target-specific evaluation spec YAML
+  Meta-judge for notifications.ts (Opus) → target-specific evaluation spec YAML
+
+Phase 5: Parallel Implementation Dispatch (after all meta-judges complete)
+  [All 3 implementation agents launched simultaneously]
+
+  Target: src/services/auth.ts
+    Implementation (Haiku)...
+      -> Fixed 12 ESLint errors: unused imports, missing semicolons, any types
+    Judge Verification (Opus, with auth.ts meta-judge spec)...
+      NOTE: User modifications detected from conversation context.
+      Include "Pre-existing Changes" section.
+
+      Judge prompt sent:
+      ┌─────────────────────────────────────────────────────────
+      │ You are evaluating an implementation artifact for
+      │ target src/services/auth.ts against an evaluation
+      │ specification produced by the meta judge.
+      │
+      │ CLAUDE_PLUGIN_ROOT=...
+      │
+      │ ## User Prompt
+      │ Fix all ESLint errors and warnings
+      │
+      │ ## Target
+      │ src/services/auth.ts
+      │
+      │ ## Pre-existing Changes (Context Only)
+      │
+      │ The following changes were made BEFORE the current
+      │ parallel dispatch started. They are NOT part of the
+      │ current implementation agent's output. Focus your
+      │ evaluation on the current agent's changes to its
+      │ specific target. Only verify pre-existing changed
+      │ files/logic if they directly relate to the current
+      │ target's task requirements.
+      │
+      │ ### User modifications (before current task)
+      │ The user made changes to the following files/modules
+      │ before this task was started:
+      │ - src/db/connection.ts (modified) - Refactored database
+      │   connection pooling
+      │ - src/db/queries.ts (modified) - Updated query builder
+      │   patterns
+      │ - src/services/auth.ts (modified) - Updated auth service
+      │   to use new DB connection API
+      │ - src/services/billing.ts (modified) - Updated billing
+      │   queries for new query builder
+      │ - src/services/notifications.ts (modified) - Minor
+      │   refactoring of notification queries
+      │
+      │ The current task focuses specifically on fixing ESLint
+      │ errors. Some user modifications may have introduced new
+      │ linting issues — those are the current agent's
+      │ responsibility to fix. Pre-existing structural changes
+      │ to the code should not be evaluated as part of the
+      │ linting task.
+      │
+      │ ## Evaluation Specification
+      │ ```yaml
+      │ {auth.ts meta-judge's evaluation specification YAML}
+      │ ```
+      │
+      │ ## Implementation Output
+      │ Files: src/services/auth.ts (modified)
+      │ Key changes: Fixed 12 ESLint errors...
+      │
+      │ ## Instructions
+      │ User prompt is provided as context...
+      │ Follow your full judge process...
+      └─────────────────────────────────────────────────────────
+      -> VERDICT: PASS, SCORE: 4.0/5.0
+
+  Target: src/services/billing.ts
+    Implementation (Haiku)...
+      -> Fixed 8 ESLint errors: type assertions, unused variables
+    Judge Verification (Opus, with billing.ts meta-judge spec)...
+      NOTE: Same pre-existing changes section included.
+      -> VERDICT: PASS, SCORE: 4.1/5.0
+
+  Target: src/services/notifications.ts
+    Implementation (Haiku)...
+      -> Fixed 5 ESLint errors: consistent return types, import ordering
+    Judge Verification (Opus, with notifications.ts meta-judge spec)...
+      NOTE: Same pre-existing changes section included.
+      -> VERDICT: PASS, SCORE: 4.3/5.0
+
+Phase 6: Summary
+  ✅ 3/3 completed, 0 retries
+  Total Agents: 9 (3 meta-judges + 3 implementations + 3 judges)
+```
+
 ## Best Practices
 
 ### Target Selection
@@ -927,6 +1262,7 @@ Total Agents: 9 (3 meta-judges + 3 implementations + 3 judges)
 - **No cross-references:** Don't tell Agent A about Agent B's target
 - **Let them discover:** Sub-agents read files to understand patterns
 - **File system as truth:** Changes are coordinated through the filesystem
+- **Track pre-existing changes** - Pass context about prior modifications to each agent's judge to prevent attribution confusion between pre-existing and current changes
 
 ### Quality Assurance
 
