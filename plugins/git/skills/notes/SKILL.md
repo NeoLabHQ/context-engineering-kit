@@ -1,5 +1,5 @@
 ---
-name: notes
+name: git-notes
 description: Use when adding metadata to commits without changing history, tracking review status, test results, code quality annotations, or supplementing commit messages post-hoc - provides git notes commands and patterns for attaching non-invasive metadata to Git objects.
 ---
 
