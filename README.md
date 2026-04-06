@@ -34,7 +34,7 @@ The marketplace is based on prompts used daily by our company developers for a l
 Updates from key releases:
 
 - **v2.0.0:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) was rewritten from scratch. It is now able to produce working code in 99% of cases on real-life production projects!
-- **v2.1.0:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) agents include high level code quality guidelines from [DDD plugin](https://cek.neolab.finance/plugins/ddd).
+- **v2.1.0:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) agents include high-level code quality guidelines from [DDD plugin](https://cek.neolab.finance/plugins/ddd).
 - **v2.2.0:** [Subagent-Driven Development plugin](https://cek.neolab.finance/plugins/sadd) now works as a distilled version of [SDD plugin](https://cek.neolab.finance/plugins/sdd) using meta-judge and judge sub-agents for specification generation on the fly and in parallel to implementation. [DDD plugin](https://cek.neolab.finance/plugins/ddd) now includes Clean Architecture, DDD, SOLID, Functional Programming, and other pattern examples as rules that are automatically added to the context during code writing.
 
 ## Quick Start
@@ -115,7 +115,7 @@ However, the main plugins we recommend starting from are [Subagent-Driven Develo
 
 ### Agent Reliability Engineering
 
-The 3 plugins in this marketplace are designed to improve how accurately and consistently the agent follows provided instructions and reduce the number of hallucinations and bias toward incorrect solutions. They are not competitors but rather complementary to each other, because they allow you to balance reliability vs token cost. Here is a high-level comparison of different agent usage approaches vs probability to receive results that are fully accurate and include zero hallucinations based on task complexity:
+The three plugins in this marketplace are designed to improve how accurately and consistently the agent follows provided instructions and reduce the number of hallucinations and bias toward incorrect solutions. They are not competitors but rather complementary to each other, because they allow you to balance reliability vs token cost. Here is a high-level comparison of different agent usage approaches vs probability to receive results that are fully accurate and include zero hallucinations based on task complexity:
 
 <table>
 <thead>
@@ -221,7 +221,7 @@ To view all available plugins:
 - [Reflexion](https://cek.neolab.finance/plugins/reflexion) - Introduces feedback and refinement loops to improve output quality.
 - [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd) - Introduces commands for specification-driven development, based on Continuous Learning + LLM-as-Judge + Agent Swarm. Achieves **development as compilation** through reliable code generation.
 - [Code Review](https://cek.neolab.finance/plugins/code-review) - Introduces codebase and PR review commands and skills using multiple specialized agents.
-- [Git](https://cek.neolab.finance/plugins/git) - Introduces commands for commit and PRs creation.
+- [Git](https://cek.neolab.finance/plugins/git) - Introduces commands for commit and PR creation.
 - [Test-Driven Development](https://cek.neolab.finance/plugins/tdd) - Introduces commands for test-driven development, common anti-patterns and skills for testing using subagents.
 - [Subagent-Driven Development](https://cek.neolab.finance/plugins/sadd) - Introduces skills for subagent-driven development, which dispatches a fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
 - [Domain-Driven Development](https://cek.neolab.finance/plugins/ddd) - Introduces commands to update CLAUDE.md with best practices for domain-driven development, focused on code quality, and includes Clean Architecture, SOLID principles, and other design patterns.
@@ -254,7 +254,7 @@ Collection of commands that force the LLM to reflect on the previous response an
 
 **Theoretical Foundation**
 
-Plugin is based on papers like [Self-Refine](https://arxiv.org/abs/2303.17651) and [Reflexion](https://arxiv.org/abs/2303.11366). These techniques improve the output of large language models by introducing feedback and refinement loops.
+The plugin is based on papers like [Self-Refine](https://arxiv.org/abs/2303.17651) and [Reflexion](https://arxiv.org/abs/2303.11366). These techniques improve the output of large language models by introducing feedback and refinement loops.
 
 They are proven to **increase output quality by 8–21%** based on both automatic metrics and human preferences across seven diverse tasks, including dialogue generation, coding, and mathematical reasoning, when compared to standard one-step model outputs.
 
@@ -355,7 +355,7 @@ Execution framework for competitive generation, multi-agent evaluation, and suba
 
 **Skills**
 
-- [subagent-driven-development](https://cek.neolab.finance/plugins/sadd/subagent-driven-development) - Dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates
+- [subagent-driven-development](https://cek.neolab.finance/plugins/sadd/subagent-driven-development) - Dispatches a fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates
 - [multi-agent-patterns](https://cek.neolab.finance/plugins/sadd/multi-agent-patterns) - Design multi-agent architectures (supervisor, peer-to-peer, hierarchical) for complex tasks exceeding single-agent context limits
 
 ### [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd)
@@ -441,11 +441,11 @@ Key patterns implemented in this plugin:
 
 #### Vibe Coding vs. Specification-Driven Development
 
-This plugin is not a "vibe coding" solution, but out of the box it works like one. By default it is designed to work from a single prompt through to the end of the task, making reasonable assumptions and evidence-based decisions instead of constantly asking for clarification. This is because developer time is more valuable than model time, allowing the developer to decide how much time the task is worth. The plugin will always produce working results, but quality will be sub-optimal if no human feedback is provided.
+This plugin is not a "vibe coding" solution, but out of the box it works like one. By default it is designed to work from a single prompt through to the end of the task, making reasonable assumptions and evidence-based decisions instead of constantly asking for clarification. This is because developer time is more valuable than model time. As a result, the plugin is designed to allow the developer to decide how much time the task is worth. The plugin will always produce working results, but quality will be sub-optimal if no human feedback is provided.
 
 To improve quality, after generating a specification you can correct it or leave comments using `//`, then run the `/plan` command again with the `--refine` flag. You can also verify each planning and implementation phase by adding the `--human-in-the-loop` flag. According to most known research, human feedback is the most effective way to improve results.
 
-Our tests showed that even when the initially generated specification was incorrect due to lack of information or task complexity, the agent was still able to self-correct until it reached a working solution. However, it usually took much longer, spending time on wrong paths and stopping more frequently. To avoid this, we strongly advise decomposing tasks into smaller separate tasks with dependencies and reviewing the specification for each one. You can add dependencies between tasks as arguments to the `/add-task` command, and the model will link them together by adding a `depends_on` section to the task file frontmatter.
+Our tests showed that even when the initially generated specification was incorrect due to lack of information or task complexity, the agent was still able to self-correct until it reached a working solution. However, it usually takes much longer, and results in the agent spending time on wrong paths and stopping more frequently. To avoid this, we strongly advise decomposing tasks into smaller separate tasks with dependencies and reviewing the specification for each one independently. You can add dependencies between tasks as arguments to the `/add-task` command, and the agent will link them together by adding a `depends_on` section to the task file frontmatter.
 
 Even if you don't want to spend much time on this process, you can still use the plugin for complex tasks without decomposition or human verification — but you will likely need tools like ralph-loop to keep the agent running for longer.
 
@@ -572,7 +572,7 @@ Commands and skills for creating and refining Claude Code extensions.
 
 **Skills**
 
-- [prompt-engineering](https://cek.neolab.finance/plugins/customaize-agent/prompt-engineering) - Well known prompt engineering techniques and patterns, includes Anthropic Best Practices and Agent Persuasion Principles
+- [prompt-engineering](https://cek.neolab.finance/plugins/customaize-agent/prompt-engineering) - Well-known prompt engineering techniques and patterns, includes Anthropic Best Practices and Agent Persuasion Principles
 - [context-engineering](https://cek.neolab.finance/plugins/customaize-agent/context-engineering) - Deep understanding of context mechanics: attention budget, progressive disclosure, lost-in-middle effect, and practical optimization patterns
 - [agent-evaluation](https://cek.neolab.finance/plugins/customaize-agent/agent-evaluation) - Evaluation frameworks for agent systems: LLM-as-Judge, multi-dimensional rubrics, bias mitigation, and the 95% performance finding
 
