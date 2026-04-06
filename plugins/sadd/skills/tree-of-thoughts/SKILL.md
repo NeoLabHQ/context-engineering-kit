@@ -1,5 +1,5 @@
 ---
-name: sadd:tree-of-thoughts
+name: tree-of-thoughts
 description: Execute tasks through systematic exploration, pruning, and expansion using Tree of Thoughts methodology with meta-judge evaluation specifications and multi-agent evaluation
 argument-hint: Task description and optional output path/criteria
 ---

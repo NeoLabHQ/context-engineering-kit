@@ -1,5 +1,5 @@
 ---
-name: fpf:query
+name: query
 description: "Search the FPF knowledge base and display hypothesis details with assurance information"
 ---
 

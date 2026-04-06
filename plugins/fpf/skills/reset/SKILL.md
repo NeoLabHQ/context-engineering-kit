@@ -1,5 +1,5 @@
 ---
-name: fpf:reset
+name: reset
 description: "Reset the FPF reasoning cycle to start fresh"
 ---
 

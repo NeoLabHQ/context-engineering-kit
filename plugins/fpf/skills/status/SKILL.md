@@ -1,5 +1,5 @@
 ---
-name: fpf:status
+name: status
 description: "Display the current state of the FPF knowledge base"
 ---
 

@@ -1,5 +1,5 @@
 ---
-name: code-review:review-local-changes
+name: review-local-changes
 description: Comprehensive review of local uncommitted changes using specialized agents with code improvement suggestions
 argument-hint: "[review-aspects] [--min-impact critical|high|medium|medium-low|low] [--json]"
 ---
