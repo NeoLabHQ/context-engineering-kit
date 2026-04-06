@@ -1,7 +1,6 @@
 ---
 name: review-local-changes
 description: Comprehensive review of local uncommitted changes using specialized agents with code improvement suggestions
-allowed-tools: Bash, Glob, Grep, Read, Task
 disable-model-invocation: false
 argument-hint: "[review-aspects]"
 ---
