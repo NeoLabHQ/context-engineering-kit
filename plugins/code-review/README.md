@@ -28,6 +28,10 @@ The Code Review plugin implements a multi-agent code review system where special
 
 [Usage Examples](./usage-examples.md)
 
+## CI/CD Integration
+
+You can intergreate this plugin with your CI/CD pipeline by using Offical Anthropics Claude Code Action. See [CI/CD Integration](../../guides/ci-integration.md) for more details.
+
 ## Agent Architecture
 
 ```

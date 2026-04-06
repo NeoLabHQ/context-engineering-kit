@@ -1,6 +1,6 @@
 ---
 name: tree-of-thoughts
-description: Execute tasks through systematic exploration, pruning, and expansion using Tree of Thoughts methodology with multi-agent evaluation
+description: Execute tasks through systematic exploration, pruning, and expansion using Tree of Thoughts methodology with meta-judge evaluation specifications and multi-agent evaluation
 argument-hint: Task description and optional output path/criteria
 ---
 
@@ -11,18 +11,28 @@ Execute complex reasoning tasks through systematic exploration of solution space
 </task>
 
 <context>
-This command implements the Tree of Thoughts (ToT) pattern for tasks requiring exploration of multiple solution paths before committing to full implementation. It combines creative sampling, multi-perspective evaluation, adaptive strategy selection, and evidence-based synthesis to produce superior outcomes.
+This command implements the Tree of Thoughts (ToT) pattern for tasks requiring exploration of multiple solution paths before committing to full implementation. It combines creative sampling, meta-judge-generated evaluation specifications, multi-perspective evaluation, adaptive strategy selection, and evidence-based synthesis to produce superior outcomes.
+
+Key benefits:
+
+- **Systematic exploration** - Multiple agents explore different regions of the solution space
+- **Structured evaluation** - Meta-judges produce tailored rubrics and criteria before judging
+- **Independent verification** - Judges apply meta-judge specifications mechanically, reducing bias
+- **Adaptive strategy** - Clear winners get polished, split decisions get synthesized, failures get redesigned
 </context>
 
 ## Pattern: Tree of Thoughts (ToT)
 
-This command implements a six-phase systematic reasoning pattern with adaptive strategy selection:
+This command implements an eight-phase systematic reasoning pattern with meta-judge evaluation and adaptive strategy selection:
 
 ```
 Phase 1: Exploration (Propose Approaches)
          ┌─ Agent A → Proposals A1, A2 (with probabilities) ─┐
 Task ───┼─ Agent B → Proposals B1, B2 (with probabilities) ─┼─┐
          └─ Agent C → Proposals C1, C2 (with probabilities) ─┘ │
+                                                                │
+Phase 1.5: Pruning Meta-Judge (runs in parallel with Phase 1) │
+         Meta-Judge → Pruning Evaluation Specification YAML ───┤
                                                                 │
 Phase 2: Pruning (Vote for Best 3)                             │
          ┌─ Judge 1 → Votes + Rationale ─┐                     │
@@ -35,6 +45,9 @@ Phase 3: Expansion (Develop Full Solutions)                    │
          ┌─ Agent A → Solution A (from proposal X) ─┐          │
          ├─ Agent B → Solution B (from proposal Y) ─┼──────────┤
          └─ Agent C → Solution C (from proposal Z) ─┘          │
+                                                                │
+Phase 3.5: Evaluation Meta-Judge (runs in parallel w/ Phase 3)│
+         Meta-Judge → Evaluation Specification YAML ───────────┤
                                                                 │
 Phase 4: Evaluation (Judge Full Solutions)                     │
          ┌─ Judge 1 → Report 1 ─┐                              │
@@ -82,7 +95,7 @@ Launch **3 independent agents in parallel** (recommended: Sonnet for speed):
 3. For each approach, agent provides:
    - **Approach description** (2-3 paragraphs)
    - **Key design decisions** and trade-offs
-   - **Probability estimate** (0.0-1.0) 
+   - **Probability estimate** (0.0-1.0)
    - **Estimated complexity** (low/medium/high)
    - **Potential risks** and failure modes
 4. Proposals saved to `.specs/research/{solution-name}-{date}.proposals.[a|b|c].md`
@@ -153,74 +166,104 @@ CRITICAL:
 - Ensure approaches are genuinely different, not minor variations
 ```
 
+### Phase 1.5: Dispatch Pruning Meta-Judge
+
+**CRITICAL**: Launch the pruning meta-judge **in parallel with Phase 1 exploration agents**. The meta-judge does not need exploration output to generate pruning criteria — it only needs the original task description.
+
+The pruning meta-judge generates an evaluation specification (rubrics, checklist, scoring criteria) tailored to evaluating high-level proposals for pruning.
+
+**Prompt template for pruning meta-judge:**
+
+```markdown
+## Task
+
+Generate an evaluation specification yaml for pruning high-level solution proposals. You will produce rubrics, checklists, and scoring criteria that judge agents will use to select the top 3 proposals for full development.
+
+CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
+
+## User Prompt
+{Original task description from user}
+
+## Context
+{Any relevant codebase context, file paths, constraints}
+
+## Artifact Type
+proposals (high-level approaches with probability estimates, not full implementations)
+
+## Evaluation Focus
+Feasibility, alignment with requirements, potential for high-quality result, risk manageability
+
+## Instructions
+Return only the final evaluation specification YAML in your response.
+The specification should support comparative evaluation and ranking of proposals.
+```
+
+**Dispatch:**
+
+```
+Use Task tool:
+  - description: "Pruning Meta-judge: {brief task summary}"
+  - prompt: {pruning meta-judge prompt}
+  - model: opus
+  - subagent_type: "sadd:meta-judge"
+```
+
 ### Phase 2: Pruning (Vote for Top 3 Candidates)
 
-Launch **3 independent judges in parallel** (recommended: Sonnet for efficiency):
+**Wait for BOTH Phase 1 exploration agents AND Phase 1.5 pruning meta-judge to complete before proceeding.**
 
-1. Each judge receives **ALL proposal files** (from `.specs/research/`)
-2. Judges evaluate each proposal against **pruning criteria**:
-   - **Feasibility** (1-5): Can this be implemented with available resources?
-   - **Alignment** (1-5): How well does it address the task requirements?
-   - **Potential** (1-5): Likelihood of producing high-quality result?
-   - **Risk** (1-5, inverse): How manageable are the identified risks?
+Launch **3 independent judges in parallel** (recommended: Opus for rigor):
+
+1. Each judge receives **ALL proposal files** (from `.specs/research/`) and the **pruning meta-judge evaluation specification YAML**
+2. Judges evaluate each proposal against the **meta-judge-generated pruning criteria**
 3. Each judge produces:
    - **Scores for each proposal** (with evidence)
    - **Vote for top 3 proposals** to expand
    - **Rationale** for selections
 4. Votes saved to `.specs/research/{solution-name}-{date}.pruning.[1|2|3].md`
 
-**Key principle:** Independent evaluation with explicit criteria reduces groupthink and catches different strengths/weaknesses.
+**Key principle:** Independent evaluation with meta-judge-generated criteria ensures consistent, tailored assessment without hardcoded weights.
+
+CRITICAL: Provide to each judge the EXACT pruning meta-judge's evaluation specification YAML. Do not skip, add, modify, shorten, or summarize any text in it!
 
 **Prompt template for pruning judges:**
 
 ```markdown
-You are evaluating {N} proposed approaches to select the top 3 for full development.
+You are evaluating {N} proposed approaches against an evaluation specification produced by the meta judge, to select the top 3 for full development.
 
-<task>
+CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
+
+## Task
 {task_description}
-</task>
 
-<proposals>
+## Proposals
 {list of paths to all proposal files}
 Read all proposals carefully before evaluating.
-</proposals>
 
-<output>
-{.specs/research/{solution-name}-{date}.pruning.[1|2|3].md - each judge gets unique number identifier}
-</output>
+## Evaluation Specification
 
-Evaluation criteria (with weights):
-1. Feasibility (25%): Can this be implemented with available resources and constraints?
-2. Alignment (30%): How well does it address the task requirements and constraints?
-3. Potential (30%): Likelihood of producing a high-quality, robust solution?
-4. Risk (15%): How manageable are the identified risks and failure modes?
+```yaml
+{pruning meta-judge's evaluation specification YAML}
+```
 
-Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology and execute using following criteria.
+## Output
+{.specs/research/{solution-name}-{date}.pruning.[1|2|3].md}
 
-Instructions:
-1. For each proposal, score on each criterion (1-5)
-2. Provide specific evidence from the proposal for each score
-3. Calculate weighted total score for each proposal
-4. Vote for your top 3 proposals with clear justification
-5. Consider:
-   - Does the probability estimate seem realistic?
-   - Are the trade-offs clearly articulated?
-   - Are risks identified and addressable?
-6. Generate verification 4-6 questions about your evaluation.
-7. Answer verification questions:
-   - Re-examine solutions for each question
-   - Find counter-evidence if it exists
-   - Check for systematic bias (length, confidence, etc.)
-8. Revise your evaluation and update it accordingly.
+## Instructions
 
-Output format:
-- Evaluation table with scores for all proposals
-- Top 3 selections with rationale
-- Any concerns or questions about selected proposals
+Follow your full judge process as defined in your agent instructions!
 
-CRITICAL:
-- Base your evaluation on evidence from proposals, not assumptions
-- Your top 3 should be ranked: 1st choice, 2nd choice, 3rd choice
+CRITICAL: You must reply with this exact structured evaluation report format in YAML at the START of your response!
+```
+
+**Dispatch:**
+
+```
+Use Task tool:
+  - description: "Pruning Judge {1|2|3}: {brief task summary}"
+  - prompt: {pruning judge prompt with exact meta-judge specification YAML}
+  - model: opus
+  - subagent_type: "sadd:judge"
 ```
 
 ### Phase 2b: Select Top 3 Proposals
@@ -342,40 +385,90 @@ CRITICAL:
 - Produce a complete, implementable solution
 ```
 
+### Phase 3.5: Dispatch Evaluation Meta-Judge
+
+**CRITICAL**: Launch the evaluation meta-judge **in parallel with Phase 3 expansion agents**. The meta-judge does not need expansion output to generate evaluation criteria — it only needs the original task description.
+
+The evaluation meta-judge generates an evaluation specification (rubrics, checklist, scoring criteria) tailored to evaluating full solution implementations.
+
+**Prompt template for evaluation meta-judge:**
+
+```markdown
+## Task
+
+Generate an evaluation specification yaml for evaluating full solution implementations. You will produce rubrics, checklists, and scoring criteria that judge agents will use to evaluate and compare competitive implementations.
+
+CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
+
+## User Prompt
+{Original task description from user}
+
+## Context
+{Any relevant codebase context, file paths, constraints}
+
+## Artifact Type
+{code | documentation | configuration | etc.}
+
+## Number of Solutions
+3 (full implementations developed from selected proposals)
+
+## Instructions
+Return only the final evaluation specification YAML in your response.
+The specification should support comparative evaluation across multiple solutions.
+```
+
+**Dispatch:**
+
+```
+Use Task tool:
+  - description: "Evaluation Meta-judge: {brief task summary}"
+  - prompt: {evaluation meta-judge prompt}
+  - model: opus
+  - subagent_type: "sadd:meta-judge"
+```
+
 ### Phase 4: Evaluation (Judge Full Solutions)
+
+**Wait for BOTH Phase 3 expansion agents AND Phase 3.5 evaluation meta-judge to complete before proceeding.**
 
 Launch **3 independent judges in parallel** (recommended: Opus for rigor):
 
-1. Each judge receives **ALL solution files** (solution.a.md, solution.b.md, solution.c.md)
-2. Judges evaluate against **final criteria** (task-specific):
-   - **Correctness** (weight based on task)
-   - **Completeness** (weight based on task)
-   - **Quality** (design, maintainability, etc.)
-   - **Feasibility** (can this be implemented?)
+1. Each judge receives **ALL solution files** (solution.a.md, solution.b.md, solution.c.md) and the **evaluation meta-judge specification YAML**
+2. Judges evaluate against the **meta-judge-generated evaluation criteria**
 3. Each judge produces:
    - **Comparative analysis** (which solution excels where)
    - **Evidence-based ratings** (with specific quotes/examples)
    - **Final vote** (which solution they prefer and why)
 4. Reports saved to `.specs/reports/{solution-name}-{date}.[1|2|3].md`
 
-**Key principle:** Multiple independent evaluations with explicit evidence reduce bias and catch different quality aspects.
+**Key principle:** Multiple independent evaluations with meta-judge-generated specifications and explicit evidence reduce bias and catch different quality aspects.
+
+CRITICAL: Provide to each judge the EXACT evaluation meta-judge's evaluation specification YAML. Do not skip, add, modify, shorten, or summarize any text in it!
+
+CRITICAL: NEVER provide score threshold to judges. Judge MUST not know what threshold for score is, in order to not be biased!!!
 
 **Prompt template for evaluation judges:**
 
 ```markdown
-You are evaluating {number} full solutions to this task:
+You are evaluating {number} full solutions against an evaluation specification produced by the meta judge.
 
-<task>
+CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
+
+## Task
 {task_description}
-</task>
 
-<solutions>
+## Solutions
 {list of paths to all solution files}
 Read all solutions carefully before evaluating.
-</solutions>
 
-<output>
-Write full report to: .specs/reports/{solution-name}-{date}.[1|2|3].md - each judge gets unique number identifier
+## Evaluation Specification
+
+```yaml
+{evaluation meta-judge's evaluation specification YAML}
+```
+
+## Output
+Write full report to: .specs/reports/{solution-name}-{date}.[1|2|3].md
 
 CRITICAL: You must reply with this exact structured header format:
 
@@ -392,41 +485,22 @@ CRITERIA:
 ---
 
 [Summary of your evaluation]
-</output>
 
-Evaluation criteria (with weights):
-1. {criterion_1} ({weight_1}%)
-2. {criterion_2} ({weight_2}%)
-3. {criterion_3} ({weight_3}%)
-...
+## Instructions
 
-Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology and execute using following criteria.
+Follow your full judge process as defined in your agent instructions!
 
-Instructions:
-1. For each criterion, analyze ALL solutions
-2. Write a combined report:
-   - Provide specific evidence (quote exact text) for your assessments
-   - Compare strengths and weaknesses
-   - Score each solution on each criterion (1-5)
-   - Calculate weighted total scores
-3. Generate verification 4-6 questions about your evaluation.
-4. Answer verification questions:
-   - Re-examine solutions for each question
-   - Find counter-evidence if it exists
-   - Check for systematic bias (length, confidence, etc.)
-5. Revise your evaluation and update it accordingly.
-6. Reply structured output:
-   - VOTE: Which solution you recommend
-   - SCORES: Weighted total score for each solution (0.0-5.0)
+CRITICAL: You must reply with this exact structured evaluation report format in YAML at the START of your response!
+```
 
-CRITICAL: Base your evaluation on evidence, not impressions. Quote specific text.
+**Dispatch:**
 
-Final checklist:
-- [ ] Generated and answered all verification questions
-- [ ] Found and corrected all potential issues
-- [ ] Checked for known biases (length, verbosity, confidence)
-- [ ] Confident in revised evaluation
-- [ ] Structured header with VOTE and SCORES at top of report
+```
+Use Task tool:
+  - description: "Evaluation Judge {1|2|3}: {brief task summary}"
+  - prompt: {evaluation judge prompt with exact meta-judge specification YAML}
+  - model: opus
+  - subagent_type: "sadd:judge"
 ```
 
 ### Phase 4.5: Adaptive Strategy Selection (Early Return)
@@ -626,7 +700,7 @@ Let's break this down systematically to understand what went wrong and how to de
 
 #### Strategy 3: FULL_SYNTHESIS (Default)
 
-**When:** No clear winner AND solutions have merit (scores ≥3.0)
+**When:** No clear winner AND solutions have merit (scores >=3.0)
 
 **Process:** Proceed to Phase 5 (Evidence-Based Synthesis)
 
@@ -780,50 +854,29 @@ The command produces different outputs depending on the adaptive strategy select
 
 ## Best Practices
 
-### Evaluation Criteria by Task Type
+### Meta-Judge + Judge Verification
 
-**Code implementation tasks:**
-- Correctness (35%)
-- Design quality (25%)
-- Maintainability (20%)
-- Performance (10%)
-- Clarity (10%)
-
-**Architecture/design tasks:**
-- Completeness (30%)
-- Feasibility (25%)
-- Scalability (20%)
-- Simplicity (15%)
-- Clarity (10%)
-
-**Research/analysis tasks:**
-- Depth (35%)
-- Accuracy (30%)
-- Completeness (20%)
-- Actionability (15%)
-
-**Documentation tasks:**
-- Completeness (35%)
-- Accuracy (30%)
-- Clarity (20%)
-- Usability (15%)
+- **Two meta-judges** - Separate specs for pruning (proposals) and evaluation (full solutions)
+- **Meta-judges run in parallel with implementation** - Don't block the pipeline; pruning meta-judge runs with Phase 1, evaluation meta-judge runs with Phase 3
+- **Include CLAUDE_PLUGIN_ROOT** - Both meta-judges and judges need the resolved plugin root path
+- **Meta-judge YAML** - Pass only the YAML to judges, do not modify it
 
 ### Common Pitfalls
 
-❌ **Insufficient exploration** - Agents propose similar approaches
-❌ **Weak pruning criteria** - Judges can't differentiate quality
-❌ **Ignoring judge feedback** - Expansion ignores concerns from pruning
-❌ **Vague proposals** - Can't properly evaluate without implementation details
-❌ **Over-exploration** - Too many proposals, evaluation becomes expensive
-❌ **Forcing synthesis when clear winner exists** - Wastes cost and risks degrading quality
-❌ **Synthesizing fundamentally flawed solutions** - Better to redesign than polish garbage
+- **Insufficient exploration** - Agents propose similar approaches
+- **Ignoring judge feedback** - Expansion ignores concerns from pruning
+- **Vague proposals** - Can't properly evaluate without implementation details
+- **Over-exploration** - Too many proposals, evaluation becomes expensive
+- **Forcing synthesis when clear winner exists** - Wastes cost and risks degrading quality
+- **Synthesizing fundamentally flawed solutions** - Better to redesign than polish garbage
 
-✅ **Encourage diverse exploration** - Prompt for different regions of solution space
-✅ **Clear pruning criteria** - Specific, measurable evaluation dimensions
-✅ **Feed feedback forward** - Expansion agents address pruning concerns
-✅ **Right level of detail** - Proposals have enough detail to evaluate
-✅ **Prune aggressively** - Only expand most promising 3 approaches
-✅ **Trust adaptive strategy selection** - Polish clear winners, synthesize split decisions, redesign failures
+### Recommendations
+
+- **Encourage diverse exploration** - Prompt for different regions of solution space
+- **Feed feedback forward** - Expansion agents address pruning concerns
+- **Right level of detail** - Proposals have enough detail to evaluate
+- **Prune aggressively** - Only expand most promising 3 approaches
+- **Trust adaptive strategy selection** - Polish clear winners, synthesize split decisions, redesign failures
 
 ## Example: API Design
 
@@ -834,11 +887,14 @@ The command produces different outputs depending on the adaptive strategy select
 ```
 
 **Phase 1 outputs** (assuming date 2025-01-15):
-- `.specs/research/users-api-2025-01-15.proposals.a.md` - 3 approaches: Resource-based (0.35), Action-based (0.25), HATEOAS (0.15)
-- `.specs/research/users-api-2025-01-15.proposals.b.md` - 3 approaches: GraphQL-first (0.20), REST+GraphQL hybrid (0.30), Pure REST (0.40)
-- `.specs/research/users-api-2025-01-15.proposals.c.md` - 3 approaches: Microservices (0.25), Monolithic (0.45), Hybrid (0.20)
+- `.specs/research/users-api-2025-01-15.proposals.a.md` - 6 approaches from Agent A
+- `.specs/research/users-api-2025-01-15.proposals.b.md` - 6 approaches from Agent B
+- `.specs/research/users-api-2025-01-15.proposals.c.md` - 6 approaches from Agent C
 
-**Phase 2 outputs:**
+**Phase 1.5 output** (runs in parallel with Phase 1):
+- Pruning Meta-judge (Opus, `sadd:meta-judge`) generates pruning evaluation specification YAML
+
+**Phase 2 outputs** (3 judges with pruning meta-judge spec):
 - `.specs/research/users-api-2025-01-15.pruning.1.md` - Top 3: Resource-based REST, Pure REST, Monolithic
 - `.specs/research/users-api-2025-01-15.pruning.2.md` - Top 3: Pure REST, Hybrid (services), Resource-based REST
 - `.specs/research/users-api-2025-01-15.pruning.3.md` - Top 3: Resource-based REST, REST+GraphQL hybrid, Pure REST
@@ -849,7 +905,10 @@ The command produces different outputs depending on the adaptive strategy select
 - `specs/api/users.b.md` - Flat REST design with simple endpoints
 - `specs/api/users.c.md` - Monolithic API with service-oriented internals
 
-**Phase 4 outputs:**
+**Phase 3.5 output** (runs in parallel with Phase 3):
+- Evaluation Meta-judge (Opus, `sadd:meta-judge`) generates evaluation specification YAML
+
+**Phase 4 outputs** (3 judges with evaluation meta-judge spec):
 - `.specs/reports/users-api-2025-01-15.1.md`:
   ```
   VOTE: Solution A
@@ -873,10 +932,11 @@ The command produces different outputs depending on the adaptive strategy select
 
 **Phase 4.5 decision (orchestrator parses headers):**
 - Split votes: A, B, A (no unanimous winner)
-- Average scores: A=4.1, B=3.8, C=3.4 (all ≥3.0)
+- Average scores: A=4.1, B=3.8, C=3.4 (all >=3.0)
 - Strategy: FULL_SYNTHESIS
 - Reason: Split decision with merit, synthesis needed
 
 **Phase 5 output (synthesis):**
 - `specs/api/users.md` - Resource-based structure (from A), max 2-level nesting (from B), internal services (from C)
 
+</output>

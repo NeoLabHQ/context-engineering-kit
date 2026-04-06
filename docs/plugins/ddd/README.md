@@ -1,6 +1,6 @@
 # Domain-Driven Development Plugin
 
-Code quality framework that embeds Clean Architecture, SOLID principles, and Domain-Driven Design patterns into your development workflow through persistent memory updates and contextual skills.
+Code quality framework that embeds Clean Architecture, SOLID principles, and Domain-Driven Design patterns into your development workflow through persistent rules and contextual commands.
 
 Focused on:
 
@@ -11,7 +11,7 @@ Focused on:
 
 ## Overview
 
-The DDD plugin implements battle-tested software architecture principles that have proven essential for building maintainable, scalable systems. It provides commands to configure AI-assisted development with established best practices, and skills that guide code generation toward high-quality patterns.
+The DDD plugin implements battle-tested software architecture principles that have proven essential for building maintainable, scalable systems. All principles encoded as rules that include correct and incorrect code examples and added to agent context, during code writing. To add rules to your agent, simply enable plugin
 
 The plugin is based on foundational works including Eric Evans' "Domain-Driven Design" (2003), Robert C. Martin's "Clean Architecture" (2017), and the SOLID principles that have become industry standards for object-oriented design.
 
@@ -23,27 +23,40 @@ These principles address the core challenge of software development: **managing 
 # Install the plugin
 /plugin install ddd@NeoLabHQ/context-engineering-kit
 
-# Set up code formatting standards in CLAUDE.md
-/ddd:setup-code-formating
+# Rules activate automatically when writing or reviewing code
+# Alternatively, you can ask Claude to use DDD directly
+> claude "Use DDD rules to implement user authentication"
+```
 
-# The software-architecture skill activates automatically when writing code
-# alternatively, you can ask Claude to use DDD directly
-> claude "Use DDD skill to implement user authentication"
+## Code Formatting
+
+To enable code formatting rules, you can use the following command:
+
+```bash
+/ddd:setup-code-formating
 ```
 
 [Usage Examples](./usage-examples.md)
 
-## setup-code-formating command
+## Commands
+
+### setup-code-formating
 
 Establishes consistent code formatting rules and style guidelines by updating your project's CLAUDE.md file with enforced standards.
-
 See [setup-code-formating.md](./setup-code-formating.md) for detailed command documentation.
 
-## software-architecture skill
+## Rules
 
-The software-architecture skill provides comprehensive guidance for writing high-quality, maintainable code. It activates automatically when users engage in code writing, architecture design, or code analysis tasks.
+The DDD plugin includes 14 rules organized into four categories that activate automatically when writing or reviewing code. Each rule targets specific file patterns and has an assigned impact level.
 
-See [software-architecture.md](./software-architecture.md) for detailed skill documentation.
+| Category | Rules |
+|----------|-------|
+| **Architecture** | Clean Architecture & DDD, Separation of Concerns, Functional Core / Imperative Shell |
+| **Function Design** | Command-Query Separation, Principle of Least Astonishment, Call-Site Honesty |
+| **Explicitness** | Explicit Control Flow, Explicit Data Flow, Explicit Side Effects |
+| **Code Quality** | Error Handling, Domain-Specific Naming, Library-First Approach, Early Return Pattern, Function & File Size Limits |
+
+See [rules.md](./rules.md) for detailed documentation of all rules.
 
 ## Foundation
 
@@ -64,3 +77,6 @@ The DDD plugin is based on foundational software engineering literature that has
 | Dependency Inversion | Martin (SOLID) | Layer separation rules |
 | Single Responsibility | Martin (SOLID) | Function and file size limits |
 | Separation of Concerns | General | Business logic isolation |
+| Command-Query Separation | Meyer (OOSC) | Function design rules |
+| Functional Core, Imperative Shell | Bernhardt | Pure logic with side effects at edges |
+| Principle of Least Astonishment | General | Function behavior predictability |

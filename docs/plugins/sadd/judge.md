@@ -1,29 +1,44 @@
-# /judge - Single-Agent Work Evaluation
+# /judge - Meta-Judge + Single-Agent Work Evaluation
 
-Evaluate completed work using LLM-as-Judge with structured rubrics, context isolation, and evidence-based scoring.
+Evaluate completed work using a two-phase pipeline: meta-judge generates tailored evaluation criteria, then LLM-as-Judge applies them with context isolation and evidence-based scoring.
 
 - Purpose - Assess quality of work produced earlier in conversation with isolated context
-- Pattern - Context Extraction → Judge Sub-Agent → Validation → Report
+- Pattern - Context Extraction → Meta-Judge → Judge (with meta-judge spec) → Validation & Report
 - Output - Evaluation report with weighted scores, evidence citations, and actionable improvements
-- Quality - Enhanced with Chain-of-Thought scoring, self-verification, and bias mitigation
-- Efficiency - Single focused judge for fast evaluation without multi-agent overhead
+- Efficiency - Single focused judge for fast evaluation
 
-## Pattern: LLM-as-Judge with Context Isolation
+## Quality Assurance
 
-This command implements a three-phase evaluation pattern:
+Enhanced verification with meta-judge rubric generation, Chain-of-Thought scoring, self-verification, and bias mitigation
+
+## Pattern: Meta-Judge → LLM-as-Judge with Context Isolation
+
+This command implements a four-phase evaluation pipeline:
 
 ```
 Phase 1: Context Extraction
          Review conversation history
          Identify work to evaluate
-         Extract: Original task, output, files, constraints
+         Extract: Original task, output, files, constraints, artifact type
                      │
-Phase 2: Judge Sub-Agent (Fresh Context)
+Phase 2: Meta-Judge (sadd:meta-judge)
          ┌─────────────────────────────────────────┐
-         │ Judge receives ONLY extracted context   │
-         │ (prevents confirmation bias)            │
+         │ Receives extracted context + artifact    │
+         │ type + evaluation focus                  │
          │                                         │
-         │ For each criterion:                     │
+         │ Generates evaluation specification YAML: │
+         │   - Tailored rubrics per artifact type   │
+         │   - Checklists                           │
+         │   - Scoring criteria and weights         │
+         └─────────────────────────────────────────┘
+                     │
+Phase 3: Judge Sub-Agent (sadd:judge, Fresh Context)
+         ┌─────────────────────────────────────────┐
+         │ Receives ONLY extracted context          │
+         │ + exact meta-judge specification YAML    │
+         │ (prevents confirmation bias)             │
+         │                                         │
+         │ For each criterion from meta-judge spec: │
          │   1. Review evidence                    │
          │   2. Write justification                │
          │   3. Assign score (1-5)                 │
@@ -31,7 +46,7 @@ Phase 2: Judge Sub-Agent (Fresh Context)
          │   5. Adjust if needed                   │
          └─────────────────────────────────────────┘
                      │
-Phase 3: Validation & Report
+Phase 4: Validation & Report
          Verify scores in valid range (1-5)
          Check justification has evidence
          Confirm weighted total calculation
@@ -61,7 +76,7 @@ Phase 3: Validation & Report
 
 ## When to Use
 
-✅ **Use single judge when:**
+**Use single judge when:**
 
 - Quick quality check needed
 - Work is straightforward with clear criteria
@@ -69,22 +84,12 @@ Phase 3: Validation & Report
 - Evaluation is formative (guiding improvements), not summative
 - Low-to-medium stakes decisions
 
-❌ **Use judge-with-debate instead when:**
+**Use judge-with-debate instead when:**
 
 - High-stakes decisions requiring rigorous evaluation
 - Subjective criteria where perspectives differ legitimately
 - Complex solutions with many evaluation dimensions
 - You need defensible, consensus-based evaluation
-
-## Default Evaluation Criteria
-
-| Criterion             | Weight | What It Measures                                                  |
-| ----------------------- | -------- | ------------------------------------------------------------------- |
-| Instruction Following | 0.30   | Does output fulfill original request? All requirements addressed? |
-| Output Completeness   | 0.25   | All components covered? Appropriate depth? No gaps?               |
-| Solution Quality      | 0.25   | Sound approach? Best practices? No correctness issues?            |
-| Reasoning Quality     | 0.10   | Clear decision-making? Appropriate methods used?                  |
-| Response Coherence    | 0.10   | Well-structured? Easy to understand? Professional?                |
 
 ## Scoring Interpretation
 
@@ -100,6 +105,7 @@ Phase 3: Validation & Report
 
 | Technique                | Benefit                                                                                |
 | -------------------------- | ---------------------------------------------------------------------------------------- |
+| Meta-Judge Rubric Generation | Tailored evaluation criteria per artifact type, replacing hardcoded defaults           |
 | Context Isolation        | Judge receives only extracted context, preventing confirmation bias from session state |
 | Chain-of-Thought Scoring | Justification BEFORE score improves reliability by 15-25%                              |
 | Evidence Requirement     | Every score requires specific citations (file paths, line numbers, quotes)             |

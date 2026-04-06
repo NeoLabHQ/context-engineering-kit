@@ -1,0 +1,69 @@
+
+// For format details, see https://aka.ms/devcontainer.json. For config options, see the
+// README at: https://github.com/devcontainers/templates/tree/main/src/javascript-node
+{
+	"name": "Node 22 (bookworm) + Claude Code",
+	// Or use a Dockerfile or Docker Compose file. More info: https://containers.dev/guide/dockerfile
+    "build": {
+        "dockerfile": "Dockerfile"
+    },
+
+	// Features to add to the dev container. More info: https://containers.dev/features.
+	"features": {
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+		"ghcr.io/devcontainers-extra/features/bash-command:1": {
+			// Install docker mcp
+			"command": "git clone https://github.com/docker/mcp-gateway.git /tmp/mcp-gateway && cd /tmp/mcp-gateway && mkdir -p '/home/node/.docker/cli-plugins/' && DOCKER_MCP_CLI_PLUGIN_DST=/home/node/.docker/cli-plugins/docker-mcp && HOME=/home/node && make docker-mcp && chown -R node:node /home/node/"
+		}
+    },
+
+	// Configure tool-specific properties.
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+            "settings": {
+                "terminal.integrated.defaultProfile.linux": "zsh"
+            },
+			"extensions": [
+				"streetsidesoftware.code-spell-checker",
+                "anthropic.claude-code",
+                "dbaeumer.vscode-eslint",
+                "redhat.vscode-yaml",
+                "redhat.vscode-xml",
+                "redhat.vscode-json"
+			]
+		}
+	},
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	"forwardPorts": [3000, 8080],
+
+	// Use 'portsAttributes' to set default properties for specific forwarded ports. 
+	// More info: https://containers.dev/implementors/json_reference/#port-attributes
+	"portsAttributes": {
+		"3000": {
+			"label": "Dev Server",
+			"onAutoForward": "notify"
+		}
+	},
+
+    // -- Environment variables --
+    "containerEnv": {
+        "NODE_ENV": "development",
+		"COLORTERM": "truecolor"
+    },
+    "remoteEnv": {
+        // if anthropic api key is set, will skip login
+        "ANTHROPIC_API_KEY": "${localEnv:ANTHROPIC_API_KEY}",
+        "CONTEXT7_API_KEY": "${localEnv:CONTEXT7_API_KEY}"
+    },
+
+	// Install MCP servers and plugins after the container starts (needs runtime env vars)
+	"postCreateCommand": {
+        "install-mcps": "/opt/devcontainer/install-mcps.sh"
+    },
+
+    "remoteUser": "node"
+	// Uncomment to connect as root instead. More info: https://aka.ms/dev-containers-non-root.
+	// "remoteUser": "root"
+}

@@ -1,14 +1,17 @@
 # /do-in-steps
 
-Execute complex tasks through sequential sub-agent orchestration with intelligent model selection and LLM-as-a-judge verification.
+Execute complex tasks through sequential sub-agent orchestration with intelligent model selection, meta-judge → LLM-as-a-judge verification.
 
 - Purpose - Execute dependent tasks sequentially where each step builds on previous outputs
-- Pattern - Supervisor/Orchestrator with sequential dispatch, judge verification, and iteration loop
+- Pattern - Supervisor/Orchestrator with sequential dispatch, parallel meta-judge + implementation, judge verification, and iteration loop
 - Output - Comprehensive report with all step results, judge scores, and integration summary
-- Quality - Two-layer verification: self-critique (internal) + LLM-as-a-judge (external) with iteration until passing
-- Key Benefit - Prevents context pollution while ensuring quality through independent verification
+- Key Benefit - Prevents context pollution while ensuring quality through independent, specification-driven verification
 
-## Pattern: Sequential Orchestration with Judge Verification
+## Quality Assurance
+
+Three-layer verification: self-critique (internal) + meta-judge evaluation spec (per step) + LLM-as-a-judge (external) with iteration until passing
+
+## Pattern: Sequential Orchestration with Meta-Judge and Judge Verification
 
 ```
 Phase 1: Task Analysis and Decomposition
@@ -17,20 +20,39 @@ Phase 1: Task Analysis and Decomposition
 Phase 2: Model Selection
          For each step: Assess Complexity + Scope + Risk → Select Model
                      │
-Phase 3: Sequential Execution with Judge Verification
-         ┌─────────────────────────────────────────────────────────────┐
-         │ For each Step N:                                           │
-         │   Implementer → Self-Critique → Judge → Parse Verdict      │
-         │        ▲                                    │               │
-         │        │                                    ▼               │
-         │        │                         PASS (≥3.5)? → Next Step  │
-         │        │                         FAIL? → Retry (max 2)     │
-         │        └──────── feedback ───────┘         or Escalate     │
-         └─────────────────────────────────────────────────────────────┘
+Phase 3: Sequential Execution with Parallel Meta-Judge + Judge Verification
+         ┌──────────────────────────────────────────────────────────────────────┐
+         │ For each Step N:                                                     │
+         │                                                                      │
+         │   ┌─────────────┐                                                    │
+         │   │ Meta-Judge  │──┐ (parallel)                                      │
+         │   │ (sadd:meta- │  │                                                 │
+         │   │  judge)     │  │   ┌──────────┐     ┌──────────────────┐        │
+         │   └─────────────┘  ├──▶│  Judge   │────▶│ Parse Verdict    │        │
+         │   ┌─────────────┐  │   │ (sadd:   │     │ (Orchestrator)   │        │
+         │   │ Implementer │──┘   │  judge)  │     └──────────────────┘        │
+         │   │ (Sub-agent) │      └──────────┘              │                   │
+         │   └─────────────┘                                ▼                   │
+         │          ▲                          ┌───────────────────────┐        │
+         │          │                          │ PASS (≥4.0)?         │        │
+         │          │                          │ ├─ YES → Next Step   │        │
+         │          │                          │ ├─ ≥3.0 + low-pri   │        │
+         │          │                          │ │   issues → PASS    │        │
+         │          │                          │ └─ NO → Retry?       │        │
+         │          │                          │   ├─ <3 retries →    │        │
+         │          │                          │   │   Retry (reuse   │        │
+         │          │                          │   │   meta-judge     │        │
+         │          │                          │   │   spec)          │        │
+         │          │                          │   └─ ≥3 → Escalate  │        │
+         │          │                          └───────────────────────┘        │
+         │          │                                       │                   │
+         │          └──────────── feedback ─────────────────┘                   │
+         └──────────────────────────────────────────────────────────────────────┘
          Step 1 → Judge ✓ → Step 2 → Judge ✓ → Step 3 → Judge ✓ → ...
+                  (prev step summaries flow forward as context)
                      │
 Phase 4: Final Summary and Report
-         Aggregate results, judge scores, files modified, decisions made
+         Aggregate results, judge scores, meta-judge specs, files modified, decisions made
 ```
 
 ## Usage
@@ -68,9 +90,10 @@ Phase 4: Final Summary and Report
 | Phase | Technique | Benefit |
 |-------|-----------|---------|
 | **Phase 3** | Self-Critique | Implementation agents verify own work before submission, catching 40-60% of issues |
-| **Phase 3** | LLM-as-a-Judge | Independent judge verifies each step, catching blind spots self-critique misses |
-| **Phase 3** | Iteration Loop | Failed steps retry with judge feedback until passing (max 2 retries) or escalate |
-| **Phase 3** | Context Passing | Each step receives summary of previous outputs without full context pollution |
+| **Phase 3** | Meta-Judge (`sadd:meta-judge`) | Generates step-specific evaluation rubrics, checklists, and scoring criteria in parallel with implementation |
+| **Phase 3** | LLM-as-a-Judge (`sadd:judge`) | Independent judge evaluates each step against meta-judge specification; `CLAUDE_PLUGIN_ROOT` passed to both agents |
+| **Phase 3** | Iteration Loop | Failed steps retry with judge feedback until passing (max 3 retries) or escalate; retries reuse same meta-judge spec |
+| **Phase 3** | Context Passing | Previous step summaries (files modified, key changes, decisions) flow to next step's implementation agent; max ~200 words per step |
 
 ## Theoretical Foundation
 

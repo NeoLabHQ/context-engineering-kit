@@ -22,11 +22,26 @@ The Code Review plugin implements a multi-agent code review system where special
 # Review uncommitted local changes
 > /code-review:review-local-changes
 
+```
+
+## Advanced Usage
+
+```bash
+# Review with lower impact threshold
+> /code-review:review-local-changes --min-impact medium
+
 # Review a pull request
 > /code-review:review-pr #123
+
+# Review PR with only critical issues
+> /code-review:review-pr --min-impact critical
 ```
 
 [Usage Examples](./usage-examples.md)
+
+## CI/CD Integration
+
+You can integrate this plugin with your CI/CD pipeline by using Official Anthropics Claude Code Action. See [CI/CD Integration](../../guides/ci-integration.md) for more details.
 
 ## Agent Architecture
 
@@ -47,8 +62,8 @@ Code Review Command
 
 ## Commands
 
-- [/code-review:review-local-changes](./review-local-changes.md) - Local Changes Review
-- [/code-review:review-pr](./review-pr.md) - Pull Request Review
+- [/code-review:review-local-changes](./review-local-changes.md) - Local Changes Review with `--min-impact` filtering and `--json` output
+- [/code-review:review-pr](./review-pr.md) - Pull Request Review with `--min-impact` filtering for inline comments
 
 ## Review Agents
 

@@ -1,9 +1,9 @@
 {
-    "name": "ddd",
-    "version": "1.0.0",
-    "description": "Introduces command to update CLAUDE.md with best practices for domain-driven development, focused on quality of code, includes Clean Architecture, SOLID principles, and other design patterns.",
-    "author": {
-      "name": "Vlad Goncharov",
-      "email": "vlad.goncharov@neolab.finance"
-    }
+  "name": "ddd",
+  "version": "2.0.0",
+  "description": "Introduces command to update CLAUDE.md with best practices for domain-driven development, focused on quality of code, includes Clean Architecture, SOLID principles, and other design patterns.",
+  "author": {
+    "name": "Vlad Goncharov",
+    "email": "vlad.goncharov@neolab.finance"
+  }
 }

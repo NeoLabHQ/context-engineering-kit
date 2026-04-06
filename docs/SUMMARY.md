@@ -35,7 +35,7 @@
     * [Usage Examples](plugins/customaize-agent/usage-examples.md)
   * [Domain-Driven Development](plugins/ddd/README.md)
     * [setup-code-formating](plugins/ddd/setup-code-formating.md)
-    * [software-architecture](plugins/ddd/software-architecture.md)
+    * [Rules](plugins/ddd/rules.md)
     * [Usage Examples](plugins/ddd/usage-examples.md)
   * [Docs](plugins/docs/README.md)
     * [update-docs](plugins/docs/update-docs.md)

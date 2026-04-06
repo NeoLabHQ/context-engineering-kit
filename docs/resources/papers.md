@@ -63,12 +63,33 @@ Comprehensive documentation of all academic papers that inform the Context Engin
 - [Tree of Thoughts](https://arxiv.org/abs/2305.10601) - Systematic exploration
 - [Chain of Thought Prompting](https://arxiv.org/abs/2201.11903) - Explicit reasoning steps
 - [Inference-Time Scaling of Verification](https://arxiv.org/abs/2601.15808) - Rubric-guided verification
+- [LLM-as-a-Meta-Judge](https://arxiv.org/pdf/2407.19594) - Meta-evaluation of judges
+- [Rethinking Rubric Generation](https://arxiv.org/pdf/2602.05125) - Automatic rubric generation
 
 **Supporting Papers**:
 
 - [Constitutional AI](https://arxiv.org/abs/2212.08073) - Self-critique loops
 - [Chain-of-Verification](https://arxiv.org/abs/2309.11495) - Verification loops
 - [LLM-as-a-Judge](https://arxiv.org/abs/2306.05685) - Structured evaluation
+- [Generating Evaluation Rubrics](https://arxiv.org/abs/2602.08672) - Rubric quality framework
+- [Evaluating Instruction Following](https://arxiv.org/pdf/2310.07641v2) - Meta-evaluation protocol
+- [Arena-Hard and BenchBuilder](https://arxiv.org/abs/2406.11939) - Benchmark construction pipeline
+- [TICKing All the Boxes](https://arxiv.org/abs/2410.03608) - Checklist decomposition for evaluation
+- [CheckEval](https://arxiv.org/abs/2403.18771) - Boolean checklist evaluation framework
+- [RocketEval](https://arxiv.org/abs/2503.05142) - Efficient checklist-based grading (0.986 Spearman)
+- [LMUnit](https://arxiv.org/abs/2412.13091) - Natural language unit tests for evaluation
+- [AutoChecklist](https://arxiv.org/abs/2603.07019) - Composable checklist generation pipelines
+- [Are Checklists Really Useful?](https://arxiv.org/abs/2508.15218) - Critical analysis of checklist evaluation
+- [Checklists Are Better Than Reward Models](https://arxiv.org/abs/2507.18624) - Checklist vs. reward model alignment
+- [OpenRubrics](https://arxiv.org/abs/2510.07743) - Contrastive rubric generation (CRG)
+- [RubricHub](https://arxiv.org/abs/2601.08430) - Coarse-to-fine rubric dataset
+- [Rubrics as Rewards](https://arxiv.org/abs/2507.17746) - Criteria importance weighting (Essential/Important/Optional/Pitfall)
+- [CARMO](https://arxiv.org/abs/2410.21545) - Dynamic context-aware criteria generation
+- [SedarEval](https://arxiv.org/abs/2501.15595) - Self-adaptive rubrics
+- [WildBench](https://arxiv.org/abs/2406.04770) - Real-world evaluation benchmark (0.98 Pearson)
+- [Branch-Solve-Merge](https://arxiv.org/abs/2310.15123) - Decomposed evaluation and generation
+- [InFoBench](https://arxiv.org/abs/2401.03601) - Instruction following with decomposed requirements
+- [AdvancedIF](https://arxiv.org/abs/2511.10507) - Rubric-based instruction following evaluation
 
 ### Customaize Agent Plugin
 
@@ -346,6 +367,660 @@ Directly informs the `/sadd:judge` command's approach to work evaluation. The ru
 - Iterative refinement without retraining reduces computational overhead
 - Self-critique and verification loops catch issues before delivery
 - Most effective when rubrics are specific, actionable, and derived from failure analysis
+
+---
+
+### [LLM-as-a-Meta-Judge: Meta-Evaluation of LLM Judges](https://arxiv.org/pdf/2407.19594)
+
+**Citation**: Lee et al. (2024). "LLM-as-a-Meta-Judge: Meta-Evaluation of LLM Judges."
+
+This paper introduces the concept of using LLMs as meta-judges to evaluate the quality of other LLM judges. The approach addresses the challenge of validating automated evaluation systems by creating a hierarchical judging framework where stronger models assess judge performance.
+
+Key components:
+
+1. **Meta-Judge Framework**: LLMs evaluate alignment between judge decisions and ground truth
+2. **Judge Quality Metrics**: Systematic assessment of judge consistency, accuracy, and reliability
+3. **Hierarchical Evaluation**: Layered judging with meta-level quality assurance
+4. **Bias Detection**: Identification of systematic biases in judge behavior
+
+**Key Results**:
+
+- Meta-judges can reliably identify unreliable or biased judge decisions
+- Hierarchical evaluation improves overall judging system reliability
+- Effective for validating automated evaluation pipelines
+- Enables continuous improvement of judge prompts and configurations
+
+**Relevance to CEK**:
+Informs the design of multi-layer evaluation systems where judges are themselves evaluated. Supports the `/sadd:judge-with-debate` command's approach to reaching consensus through multiple judge perspectives.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge-with-debate` - multi-judge consensus with meta-evaluation)
+- SADD (`/sadd:judge` - quality validation of judge outputs)
+
+**Technical Notes**:
+
+- Requires careful design of meta-evaluation criteria
+- Meta-judge capability correlates with base model strength
+- Useful for detecting systematic biases in evaluation
+- Adds computational overhead but improves reliability
+
+---
+
+### [Rethinking Rubric Generation for Improving LLM Judge and Reward Modeling for Open-ended Tasks](https://arxiv.org/pdf/2602.05125)
+
+**Citation**: Kim et al. (2026). "Rethinking Rubric Generation for Improving LLM Judge and Reward Modeling for Open-ended Tasks."
+
+This paper proposes automatic rubric generation methods to improve LLM-as-a-Judge evaluation quality. Instead of relying on generic evaluation criteria, the approach generates task-specific rubrics that capture nuanced quality dimensions.
+
+Key components:
+
+1. **Automatic Rubric Generation**: LLM-generated criteria tailored to specific tasks
+2. **Quality Dimension Extraction**: Identification of key evaluation axes from task descriptions
+3. **Rubric Refinement**: Iterative improvement of rubrics based on evaluation feedback
+4. **Cross-Task Generalization**: Methods for adapting rubrics across similar task types
+
+**Key Results**:
+
+- Task-specific rubrics significantly outperform generic evaluation criteria
+- Automatic rubric generation reduces manual effort while improving quality
+- Rubric-based evaluation more aligned with human preferences
+- Effective across diverse open-ended tasks including creative writing and code generation
+
+**Relevance to CEK**:
+Directly informs the rubric-based evaluation patterns in SADD plugin commands. The automatic rubric generation approach enables `/sadd:judge` to create task-specific evaluation criteria dynamically.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - dynamic rubric generation for task-specific evaluation)
+- SADD (`/sadd:do-and-judge` - rubric-guided verification loops)
+
+**Technical Notes**:
+
+- Rubric quality depends on task description clarity
+- Automatic generation adds minimal token overhead
+- Task-specific rubrics more interpretable than generic criteria
+- Can be combined with constitutional principles for comprehensive evaluation
+
+---
+
+### [Generating Evaluation Rubrics for Evaluation: Towards Better LLM-as-a-Judge](https://arxiv.org/abs/2602.08672)
+
+**Citation**: Liu et al. (2026). "Generating Evaluation Rubrics for Evaluation: Towards Better LLM-as-a-Judge."
+
+This paper focuses on the methodology of generating high-quality evaluation rubrics that enable more reliable LLM-as-a-Judge evaluation. The research demonstrates that rubric quality directly impacts judge reliability.
+
+Key components:
+
+1. **Rubric Quality Framework**: Systematic criteria for assessing rubric effectiveness
+2. **Principle-Based Generation**: Rubrics derived from evaluation principles and task requirements
+3. **Iterative Refinement**: Continuous improvement of rubrics based on evaluation outcomes
+4. **Coverage Analysis**: Ensuring rubrics capture all relevant quality dimensions
+
+**Key Results**:
+
+- Well-structured rubrics improve judge agreement with human evaluators by 15-25%
+- Rubric specificity correlates with evaluation consistency
+- Principle-based rubrics outperform ad-hoc criteria
+- Effective rubrics balance comprehensiveness with clarity
+
+**Relevance to CEK**:
+Provides methodology for designing evaluation rubrics used across SADD plugin commands. Supports the principle-based evaluation approach in `/sadd:judge` and related commands.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - structured rubric design)
+- SADD (`/sadd:judge-with-debate` - rubric-based multi-judge evaluation)
+- Code Review (principle-based evaluation criteria)
+
+**Technical Notes**:
+
+- Rubric design requires domain expertise or careful task analysis
+- Overly complex rubrics can reduce judge consistency
+- Regular rubric updates improve evaluation quality over time
+- Rubric validation against human judgments essential for reliability
+
+---
+
+### [Evaluating Large Language Models at Evaluating Instruction Following](https://arxiv.org/pdf/2310.07641v2)
+
+**Citation**: Zheng et al. (2023). "Evaluating Large Language Models at Evaluating Instruction Following."
+
+This paper investigates how well LLMs can evaluate instruction-following in other models. It introduces a meta-evaluation framework to assess judge capabilities on complex, constraint-heavy tasks.
+
+Key components:
+
+1. **Instruction-Following Evaluation**: Assessing compliance with explicit and implicit constraints
+2. **Meta-Evaluation Protocol**: Systematic assessment of judge evaluation quality
+3. **Constraint Taxonomy**: Classification of instruction types and their evaluation challenges
+4. **Judge Reliability Metrics**: Measuring consistency and accuracy of LLM judges
+
+**Key Results**:
+
+- LLMs show varying capability at evaluating different constraint types
+- Judge performance degrades on complex multi-constraint instructions
+- Explicit evaluation criteria improve judge reliability
+- Judge-model matching (same model evaluating itself) shows systematic biases
+
+**Relevance to CEK**:
+Informs the evaluation of instruction-following in task execution. Supports the quality gate approach in SADD where sub-agent outputs are evaluated against task specifications.
+
+**Used By Plugins**:
+
+- SADD (quality gate evaluation against task specifications)
+- Code Review (evaluating compliance with coding standards)
+- Reflexion (evaluating response quality against instructions)
+
+**Technical Notes**:
+
+- Judge capability varies significantly across constraint types
+- Multi-constraint evaluation requires careful rubric design
+- Avoiding judge-model matching reduces systematic bias
+- Regular calibration against human evaluation improves reliability
+
+---
+
+### [From Crowdsourced Data to High-Quality Benchmarks: Arena-Hard and BenchBuilder Pipeline](https://arxiv.org/abs/2406.11939)
+
+**Citation**: Li et al. (2024). "From Crowdsourced Data to High-Quality Benchmarks: Arena-Hard and BenchBuilder Pipeline."
+
+This paper introduces the BenchBuilder pipeline for automatically constructing high-quality benchmarks from crowdsourced data. Arena-Hard demonstrates how to filter and refine crowd-sourced evaluation data into reliable benchmarks.
+
+Key components:
+
+1. **BenchBuilder Pipeline**: Automated benchmark construction from crowdsourced data
+2. **Quality Filtering**: Systematic removal of low-quality or ambiguous evaluation data
+3. **Arena-Hard Benchmark**: Challenging benchmark derived from Chatbot Arena data
+4. **Automated Curation**: Reducing manual effort in benchmark maintenance
+
+**Key Results**:
+
+- BenchBuilder produces benchmarks with higher reliability than raw crowdsourced data
+- Arena-Hard provides challenging evaluation that distinguishes model capabilities
+- Automated curation reduces benchmark maintenance overhead
+- Filtered benchmarks show better correlation with human preferences
+
+**Relevance to CEK**:
+Provides methodology for constructing evaluation datasets and benchmarks within CEK workflows. Supports the creation of task-specific evaluation criteria and quality benchmarks.
+
+**Used By Plugins**:
+
+- SADD (benchmark construction for task evaluation)
+- Reflexion (evaluation criteria refinement)
+- Code Review (quality benchmark development)
+
+**Technical Notes**:
+
+- Quality filtering essential for reliable benchmarks
+- Benchmark difficulty should match evaluation purpose
+- Regular benchmark updates prevent gaming and stale metrics
+- Automated curation scales benchmark maintenance
+
+---
+
+### [TICKing All the Boxes: Generated Checklists Improve LLM Evaluation and Generation](https://arxiv.org/abs/2410.03608)
+
+**Citation**: Cook et al. (2024). "TICKing All the Boxes: Generated Checklists Improve LLM Evaluation and Generation."
+
+This paper demonstrates that decomposing evaluation criteria into fine-grained boolean checklist items significantly improves both LLM evaluation accuracy and generation quality. Checklist criteria should be atomic, specific, and binary (met/not met) — e.g., "Does code contain duplicated logic?" rather than "Does code follow clean code principles?"
+
+**Key Results**:
+
+- Boolean checklist decomposition outperforms holistic scoring across multiple benchmarks
+- Atomic criteria reduce judge subjectivity and improve inter-annotator agreement
+- Checklists serve as both evaluation instruments and generation guides
+- Task-specific checklists generated by LLMs are effective without human curation
+
+**Relevance to CEK**:
+Core technique for the SADD meta-judge's checklist generation. The meta-judge produces boolean, atomic checklist items following TICK's methodology before implementation begins.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - checklist-based evaluation, `/sadd:do-and-judge` - verification checklists)
+
+**Technical Notes**:
+
+- Checklist items must be independently verifiable
+- Atomic criteria prevent ambiguous pass/fail decisions
+- Works best when criteria are task-specific rather than generic
+- Can be combined with rubric-based scoring for comprehensive evaluation
+
+---
+
+### [CheckEval: A Reliable LLM-as-a-Judge Framework Using Checklists](https://arxiv.org/abs/2403.18771)
+
+**Citation**: Kim et al. (2024). "CheckEval: A Reliable LLM-as-a-Judge Framework for Evaluating Text Generation Using Checklists."
+
+CheckEval decomposes evaluation criteria into fine-grained boolean yes/no checklist questions through LLM-assisted "question diversification" and "elaboration" augmentation from human-defined dimensions. This produces more reliable evaluations than holistic scoring.
+
+**Key Results**:
+
+- Higher inter-annotator agreement than traditional scoring rubrics
+- Question diversification expands coverage of evaluation dimensions
+- Elaboration augmentation improves checklist specificity
+- Boolean questions reduce cognitive load on the judge model
+
+**Relevance to CEK**:
+Informs the SADD judge's checklist evaluation approach. The decomposition of rubric dimensions into binary questions aligns with the meta-judge's checklist generation pipeline.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - boolean checklist evaluation)
+
+**Technical Notes**:
+
+- Two-stage augmentation: diversification then elaboration
+- Boolean format eliminates scale calibration issues
+- Works well with both strong and lightweight judge models
+- Aggregation of boolean scores produces reliable overall assessments
+
+---
+
+### [RocketEval: Efficient Automated LLM Evaluation via Grading Checklist](https://arxiv.org/abs/2503.05142)
+
+**Citation**: Li et al. (2025). "RocketEval: Efficient Automated LLM Evaluation via Grading Checklist."
+
+RocketEval achieves near-perfect correlation with human judgments by separating checklist generation from grading. A powerful LLM (e.g., GPT-4o) generates instance-specific checklists, then a lightweight model (as small as Gemma-2-2B) grades against them.
+
+**Key Results**:
+
+- 0.986 Spearman correlation with human judgments
+- Lightweight grading models match strong models when given good checklists
+- Instance-specific checklists outperform generic criteria
+- Significant cost reduction through asymmetric model assignment
+
+**Relevance to CEK**:
+Validates the SADD architecture where meta-judge (strong model) generates criteria and judge (potentially lighter model) evaluates against them. The separation of concerns improves both quality and efficiency.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - checklist-guided grading, meta-judge separation)
+
+**Technical Notes**:
+
+- Asymmetric architecture: strong model for criteria, light model for grading
+- Instance-specific checklists capture task nuances better than templates
+- Near-perfect correlation demonstrates checklist-based evaluation ceiling
+- Cost-efficient for high-volume evaluation scenarios
+
+---
+
+### [LMUnit: Fine-grained Evaluation with Natural Language Unit Tests](https://arxiv.org/abs/2412.13091)
+
+**Citation**: Zhu et al. (2024). "LMUnit: Fine-grained Evaluation with Natural Language Unit Tests."
+
+LMUnit introduces "natural language unit tests" — explicit, testable criteria (e.g., "Does the response use active voice?") that function like software unit tests but for text evaluation. Each criterion is a standalone, independently verifiable assertion.
+
+**Key Results**:
+
+- Natural language unit tests improve evaluation granularity
+- Individual criteria can be tested independently like code assertions
+- Enables precise identification of quality dimensions that pass or fail
+- Composable test suites allow customized evaluation configurations
+
+**Relevance to CEK**:
+Complements the SADD judge's approach to evaluation by treating each checklist item as an independently testable assertion, similar to software testing practices.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - assertion-style evaluation criteria)
+
+**Technical Notes**:
+
+- Criteria designed as independently testable assertions
+- Natural language format accessible to non-technical stakeholders
+- Composable test suites enable modular evaluation
+- Aligns evaluation methodology with software testing best practices
+
+---
+
+### [AutoChecklist: Composable Pipelines for Checklist Generation and Scoring](https://arxiv.org/abs/2603.07019)
+
+**Citation**: Fisch et al. (2026). "AutoChecklist: Composable Pipelines for Checklist Generation and Scoring with LLM-as-a-Judge."
+
+AutoChecklist provides a taxonomy of five checklist generation strategies: (1) direct — single-pass from instruction alone; (2) contrastive — using candidate responses to identify discriminative criteria; (3) inductive — corpus-level pattern extraction; (4) deductive — instantiation from predefined criteria; and (5) interactive — human-in-the-loop refinement.
+
+**Key Results**:
+
+- Five composable generation strategies cover all practical use cases
+- Contrastive generation produces the most discriminative checklists
+- Pipeline architecture enables mixing strategies for optimal results
+- Production-ready library implementing multiple generation approaches
+
+**Relevance to CEK**:
+Provides the theoretical framework for SADD meta-judge's checklist generation approach. The meta-judge primarily uses the "direct" strategy for one-shot generation and "contrastive" strategy when candidate responses are available.
+
+**Used By Plugins**:
+
+- SADD (meta-judge checklist generation pipeline)
+
+**Technical Notes**:
+
+- Direct strategy: simplest, works from instruction alone
+- Contrastive strategy: requires candidate responses, produces more discriminative criteria
+- Inductive strategy: extracts patterns from corpus of examples
+- Deductive strategy: instantiates from predefined criteria templates
+- Interactive strategy: incorporates human feedback for refinement
+
+---
+
+### [Are Checklists Really Useful for Automatic Evaluation of Generative Tasks?](https://arxiv.org/abs/2508.15218)
+
+**Citation**: Chen et al. (2025). "Are Checklists Really Useful for Automatic Evaluation of Generative Tasks?"
+
+This paper critically examines the effectiveness of checklist-based evaluation, identifying scenarios where checklists excel and where they fall short. It provides important cautionary findings about the limitations of checklist approaches.
+
+**Key Results**:
+
+- Checklists are most effective for instruction-following and format compliance tasks
+- Performance degrades for subjective quality dimensions (creativity, naturalness)
+- Checklist granularity must match task complexity — over-decomposition can hurt
+- Combination of checklists and holistic scoring produces best results
+
+**Relevance to CEK**:
+Provides critical balance to checklist-based approaches in SADD. Informs the meta-judge's decision about when to use checklist vs. rubric-based evaluation criteria.
+
+**Used By Plugins**:
+
+- SADD (meta-judge strategy selection between checklists and rubrics)
+
+**Technical Notes**:
+
+- Checklists work best for verifiable, objective criteria
+- Subjective dimensions benefit from rubric-based scoring instead
+- Hybrid approaches (checklists + rubrics) recommended for comprehensive evaluation
+- Over-decomposition can fragment coherent quality dimensions
+
+---
+
+### [Checklists Are Better Than Reward Models For Aligning Language Models](https://arxiv.org/abs/2507.18624)
+
+**Citation**: Wen et al. (2025). "Checklists Are Better Than Reward Models For Aligning Language Models."
+
+This paper demonstrates that checklist-based evaluation outperforms trained reward models for language model alignment. Checklists provide more interpretable, adjustable, and reliable signals than opaque reward models.
+
+**Key Results**:
+
+- Checklist-based alignment outperforms reward model-based alignment
+- Checklists are more interpretable and auditable than reward models
+- Easy to update and customize without retraining
+- Better generalization to out-of-distribution tasks
+
+**Relevance to CEK**:
+Validates the SADD plugin's checklist-first approach to evaluation. Supports the meta-judge's design of generating explicit checklists rather than relying on implicit scoring.
+
+**Used By Plugins**:
+
+- SADD (checklist-based evaluation philosophy)
+
+**Technical Notes**:
+
+- Checklists avoid reward model training costs and biases
+- Interpretability enables debugging and improvement of evaluation criteria
+- Customizable per-task without retraining infrastructure
+- Complements rubric-based scoring for comprehensive evaluation
+
+---
+
+### [OpenRubrics: Scalable Synthetic Rubric Generation for Reward Modeling and LLM Alignment](https://arxiv.org/abs/2510.07743)
+
+**Citation**: Zhang et al. (2025). "OpenRubrics: Towards Scalable Synthetic Rubric Generation for Reward Modeling and LLM Alignment."
+
+OpenRubrics introduces Contrastive Rubric Generation (CRG), which produces two rubric types: "hard rules" (explicit constraints from the instruction) and "principles" (implicit quality indicators visible only by comparing good and bad responses). CRG uses contrastive analysis of response pairs to extract discriminative criteria.
+
+**Key Results**:
+
+- CRG produces more discriminative rubrics than direct generation
+- Hard rules capture explicit instruction constraints
+- Principles capture implicit quality dimensions from contrastive analysis
+- Scalable synthetic generation reduces manual rubric creation effort
+
+**Relevance to CEK**:
+Informs the SADD meta-judge's approach to generating both explicit (checklist) and implicit (rubric) criteria. The distinction between hard rules and principles maps to the meta-judge's checklist vs. rubric output.
+
+**Used By Plugins**:
+
+- SADD (meta-judge contrastive rubric generation)
+
+**Technical Notes**:
+
+- CRG requires response pairs (good/bad) for contrastive analysis
+- Hard rules are binary (pass/fail), principles are graded
+- Synthetic generation scales without human annotators
+- Filtering step removes redundant or low-quality rubrics
+
+---
+
+### [RubricHub: Comprehensive Rubric Dataset via Automated Coarse-to-Fine Generation](https://arxiv.org/abs/2601.08430)
+
+**Citation**: Park et al. (2026). "RubricHub: A Comprehensive and Highly Discriminative Rubric Dataset via Automated Coarse-to-Fine Generation."
+
+RubricHub provides a large-scale rubric dataset generated through automated coarse-to-fine decomposition. Starting from broad evaluation dimensions, the system progressively refines criteria into fine-grained, discriminative rubrics.
+
+**Key Results**:
+
+- Coarse-to-fine generation produces more discriminative rubrics
+- Automated generation scales rubric creation without human effort
+- Fine-grained rubrics improve inter-judge agreement
+- Dataset enables training custom rubric generators
+
+**Relevance to CEK**:
+Supports the SADD meta-judge's Recursive Rubric Decomposition (RRD) approach, where coarse initial rubrics are iteratively refined into fine-grained criteria through decompose-filter-reweight cycles.
+
+**Used By Plugins**:
+
+- SADD (meta-judge RRD cycle, rubric refinement)
+
+**Technical Notes**:
+
+- Coarse-to-fine aligns with RRD decomposition methodology
+- Automated generation reduces rubric creation bottleneck
+- Fine-grained rubrics capture nuanced quality distinctions
+- Compatible with both human and LLM judges
+
+---
+
+### [Rubrics as Rewards: Reinforcement Learning Beyond Verifiable Domains](https://arxiv.org/abs/2507.17746)
+
+**Citation**: Li et al. (2025). "Rubrics as Rewards: Reinforcement Learning Beyond Verifiable Domains."
+
+This paper synthesizes prompt-specific rubric criteria using a strong LLM guided by four design principles: expert grounding, coverage, self-containedness, and weightage. Criteria are categorized by importance: Essential, Important, Optional, and Pitfall.
+
+**Key Results**:
+
+- Up to 31% relative improvement on HealthBench using rubric-based rewards
+- Four-tier importance categorization (Essential/Important/Optional/Pitfall) improves weighting
+- Reference answers serve as proxies for expert supervision
+- Design principles ensure rubric quality without domain expertise
+
+**Relevance to CEK**:
+Directly informs the SADD meta-judge's criteria weighting approach. The Essential/Important/Optional/Pitfall categorization maps to the meta-judge's weight assignment methodology.
+
+**Used By Plugins**:
+
+- SADD (meta-judge criteria importance weighting)
+
+**Technical Notes**:
+
+- Essential criteria must be met for passing scores
+- Pitfall criteria identify common failure modes to penalize
+- Reference-guided synthesis improves criteria quality
+- Four design principles ensure comprehensive, self-contained rubrics
+
+---
+
+### [CARMO: Dynamic Criteria Generation for Context-Aware Reward Modelling](https://arxiv.org/abs/2410.21545)
+
+**Citation**: Chen et al. (2024). "CARMO: Dynamic Criteria Generation for Context-Aware Reward Modelling."
+
+CARMO generates dynamic, context-relevant evaluation criteria tailored to each user query before producing scores. Rather than applying static evaluation templates, it analyzes the specific query context to determine what dimensions matter most.
+
+**Key Results**:
+
+- Dynamic criteria outperform static templates across diverse tasks
+- Context-aware generation captures task-specific quality dimensions
+- Automatic criteria selection reduces irrelevant evaluation dimensions
+- Improved correlation with human preferences over fixed rubrics
+
+**Relevance to CEK**:
+Informs the SADD meta-judge's dynamic criteria generation approach. The meta-judge similarly analyzes the user prompt context to generate task-specific criteria rather than applying generic templates.
+
+**Used By Plugins**:
+
+- SADD (meta-judge dynamic criteria generation)
+
+**Technical Notes**:
+
+- Dynamic generation adapts to each query's unique requirements
+- Reduces noise from irrelevant evaluation dimensions
+- Requires sufficient query context for effective criteria generation
+- Compatible with both checklist and rubric-based evaluation
+
+---
+
+### [SedarEval: Automated Evaluation using Self-Adaptive Rubrics](https://arxiv.org/abs/2501.15595)
+
+**Citation**: Yang et al. (2025). "SedarEval: Automated Evaluation using Self-Adaptive Rubrics."
+
+SedarEval introduces self-adaptive rubrics that adjust evaluation criteria based on the specific response being evaluated. The system dynamically modifies rubric granularity and focus areas based on response characteristics.
+
+**Key Results**:
+
+- Self-adaptive rubrics improve evaluation accuracy over fixed rubrics
+- Dynamic adjustment captures response-specific quality issues
+- Reduces false positives from irrelevant criteria
+- Effective across diverse generative tasks
+
+**Relevance to CEK**:
+Supports the SADD judge's approach to adaptive evaluation, where scoring criteria can be refined based on the specific implementation artifact being evaluated.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - adaptive rubric application)
+
+**Technical Notes**:
+
+- Rubrics adapt based on response characteristics
+- Reduces evaluation noise from mismatched criteria
+- Requires initial rubric set for adaptation
+- Complements meta-judge's static rubric generation with runtime adaptation
+
+---
+
+### [WildBench: Benchmarking LLMs with Challenging Tasks from Real Users in the Wild](https://arxiv.org/abs/2406.04770)
+
+**Citation**: Lin et al. (2024). "WildBench: Benchmarking LLMs with Challenging Tasks from Real Users in the Wild."
+
+WildBench curates challenging real-world user prompts for benchmarking LLMs. It achieves 0.98 Pearson correlation with Chatbot Arena rankings, demonstrating that carefully curated evaluation sets can replicate expensive crowd-sourced rankings.
+
+**Key Results**:
+
+- 0.98 Pearson correlation with Chatbot Arena human rankings
+- Real user prompts capture practical difficulty better than synthetic benchmarks
+- Task-specific evaluation criteria improve ranking accuracy
+- Cost-effective alternative to large-scale human evaluation
+
+**Relevance to CEK**:
+Validates that structured evaluation with task-specific criteria (as used by SADD judges) can achieve near-perfect agreement with human preferences. Supports the meta-judge's approach to generating task-specific evaluation criteria.
+
+**Used By Plugins**:
+
+- SADD (validation of task-specific evaluation methodology)
+
+**Technical Notes**:
+
+- High correlation validates LLM-as-judge approach with proper criteria
+- Real-world prompts more challenging than synthetic benchmarks
+- Task-specific criteria essential for accurate evaluation
+- Demonstrates ceiling of automated evaluation quality
+
+---
+
+### [Branch-Solve-Merge Improves Large Language Model Evaluation and Generation](https://arxiv.org/abs/2310.15123)
+
+**Citation**: Saha et al. (2023). "Branch-Solve-Merge Improves Large Language Model Evaluation and Generation."
+
+Branch-Solve-Merge (BSM) decomposes complex evaluation tasks into independent sub-problems (branch), solves each independently (solve), then combines results (merge). This reduces the cognitive load on the judge by breaking complex assessments into manageable pieces.
+
+**Key Results**:
+
+- Significant improvement in evaluation consistency for complex tasks
+- Decomposition reduces individual assessment difficulty
+- Independent solving prevents cross-contamination between criteria
+- Merge step produces coherent overall assessments
+
+**Relevance to CEK**:
+Informs the SADD judge's approach to evaluating complex implementations by assessing individual criteria independently before producing an overall score, aligning with the checklist-then-rubric evaluation pattern.
+
+**Used By Plugins**:
+
+- SADD (`/sadd:judge` - decomposed evaluation)
+- SADD (`/sadd:judge-with-debate` - independent judge assessments)
+
+**Technical Notes**:
+
+- Branch step aligns with meta-judge's criteria decomposition
+- Independent solving prevents halo effects between criteria
+- Merge requires careful aggregation strategy
+- Most effective for multi-dimensional evaluation tasks
+
+---
+
+### [InFoBench: Evaluating Instruction Following Ability in Large Language Models](https://arxiv.org/abs/2401.03601)
+
+**Citation**: Qin et al. (2024). "InFoBench: Evaluating Instruction Following Ability in Large Language Models."
+
+InFoBench introduces the Decomposed Requirements Following Ratio (DRFR) metric, which breaks complex instructions into simpler criteria across five categories: Content, Linguistic, Style, Format, and Number. This decomposition enables fine-grained measurement of instruction-following capability.
+
+**Key Results**:
+
+- DRFR provides more fine-grained assessment than binary pass/fail
+- Five-category decomposition covers major instruction dimensions
+- Decomposed criteria reveal specific failure modes
+- Better diagnostic value than aggregate scores
+
+**Relevance to CEK**:
+Informs the SADD meta-judge's criteria categorization approach. The five-category decomposition (Content, Linguistic, Style, Format, Number) provides a taxonomy for organizing checklist and rubric criteria.
+
+**Used By Plugins**:
+
+- SADD (meta-judge criteria categorization)
+
+**Technical Notes**:
+
+- Five categories provide comprehensive coverage of instruction types
+- Decomposed ratios identify specific compliance gaps
+- Category-level scores enable targeted improvement
+- Compatible with both checklist and rubric evaluation approaches
+
+---
+
+### [AdvancedIF: Rubric-Based Benchmarking for Advancing LLM Instruction Following](https://arxiv.org/abs/2511.10507)
+
+**Citation**: Xia et al. (2025). "AdvancedIF: Rubric-Based Benchmarking and Reinforcement Learning for Advancing LLM Instruction Following."
+
+AdvancedIF applies rubric-based evaluation specifically to instruction-following tasks, demonstrating that task-specific rubrics significantly improve evaluation accuracy for complex, multi-constraint instructions.
+
+**Key Results**:
+
+- Rubric-based evaluation improves instruction-following assessment accuracy
+- Task-specific rubrics capture constraint interactions better than generic criteria
+- Reinforcement learning from rubric-based feedback improves model compliance
+- Effective for complex instructions with multiple interacting constraints
+
+**Relevance to CEK**:
+Supports the SADD meta-judge's approach to generating rubrics tailored to specific task instructions, particularly for implementation tasks with multiple requirements and constraints.
+
+**Used By Plugins**:
+
+- SADD (meta-judge rubric generation for instruction-following tasks)
+
+**Technical Notes**:
+
+- Task-specific rubrics capture constraint interactions
+- Multiple constraints require careful decomposition to avoid conflicts
+- Rubric-based RL shows promise for improving compliance
+- Effective for implementation tasks with detailed specifications
 
 ---
 

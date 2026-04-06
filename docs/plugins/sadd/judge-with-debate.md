@@ -3,17 +3,25 @@
 Evaluate solutions through iterative multi-judge debate where independent judges analyze, challenge each other's assessments, and refine evaluations until reaching consensus or maximum rounds.
 
 - Purpose - Rigorous evaluation through adversarial critique and evidence-based argumentation
-- Pattern - Independent Analysis → Iterative Debate → Consensus or Disagreement Report
+- Pattern - Meta-Judge Specification → Independent Analysis → Iterative Debate → Consensus or Disagreement Report
 - Output - Consensus evaluation report with averaged scores and debate summary, or disagreement report flagging unresolved issues
-- Quality - Enhanced through multi-perspective analysis, evidence-based argumentation, and iterative refinement
 - Efficiency - Early termination when consensus reached or judges stop converging
+
+## Quality Assurance
+
+Enhanced verification with standardized evaluation criteria, multi-perspective analysis, evidence-based argumentation, and iterative refinement
 
 ## Pattern: Debate-Based Evaluation
 
 This command implements iterative multi-judge debate with filesystem-based communication:
 
 ```
-Phase 1: Independent Analysis
+Phase 0.5: Meta-Judge
+         Meta-Judge (Opus)
+              ↓
+         Evaluation Specification YAML
+              ↓
+Phase 1: Independent Analysis (3 judges in parallel)
          ┌─ Judge 1 → report.1.md ─┐
 Solution ┼─ Judge 2 → report.2.md ─┼─┐
          └─ Judge 3 → report.3.md ─┘ │
@@ -22,6 +30,7 @@ Phase 2: Debate Round (iterative)   │
     Each judge reads others' reports │
          ↓                           │
     Argue + Defend + Challenge       │
+    (grounded in eval specification) │
          ↓                           │
     Revise if convinced ─────────────┤
          ↓                           │
@@ -39,16 +48,14 @@ Phase 2: Debate Round (iterative)   │
 /judge-with-debate --solution "src/api/users.ts" --task "REST API implementation"
 
 # With specific criteria
-/judge-with-debate \
-  --solution "src/api/users.ts" \
-  --task "Implement REST API for user management" \
+/judge-with-debate Implement REST API for user management \
+  --solution "src/api/users.ts" \" \
   --criteria "correctness:30,design:25,security:20,performance:15,docs:10" \
   --output "evaluation/"
 
 # Evaluating design documents
-/judge-with-debate \
+/judge-with-debate System architecture design \
   --solution "specs/architecture.md" \
-  --task "System architecture design" \
   --criteria "completeness:30,feasibility:25,scalability:20,clarity:15,maintainability:10"
 ```
 
@@ -73,22 +80,30 @@ Phase 2: Debate Round (iterative)   │
 
 ## Quality Enhancement Techniques
 
-| Phase         | Technique                | Benefit                                                                                            |
-| --------------- | -------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Phase           | Technique                | Benefit                                                                                            |
+| --------------- | ------------------------ | -------------------------------------------------------------------------------------------------- |
+| **Phase 0.5** | Meta-Judge Specification | `sadd:meta-judge` generates tailored rubrics, checklists, and scoring criteria before judging begins |
+| **Phase 0.5** | Shared Specification     | Same evaluation YAML used by all judges across all rounds, ensuring consistent criteria            |
 | **Phase 1**   | Chain of Verification    | Judges generate verification questions and self-critique before submitting initial assessment      |
 | **Phase 1**   | Evidence Requirement     | All scores must be supported by specific quotes from solution                                      |
 | **Phase 2**   | Filesystem Communication | Judges read each other's reports directly, orchestrator never mediates (prevents context overflow) |
-| **Phase 2**   | Structured Argumentation | Judges must defend positions AND challenge others with counter-evidence                            |
+| **Phase 2**   | Structured Argumentation | Judges must defend positions AND challenge others with counter-evidence grounded in eval specification |
 | **Phase 2**   | Explicit Revision        | Judges must document what changed their mind or why they maintained their position                 |
 | **Consensus** | Adaptive Termination     | Stops early if consensus reached, max rounds hit, or judges stop converging                        |
 
 ## Process Flow
 
+**Step 0: Meta-Judge**
+
+- Dispatches `sadd:meta-judge` agent (Opus) with task description 
+- Meta-judge generates evaluation specification YAML (rubrics, checklists, scoring criteria)
+- Runs once; output is shared verbatim with all judges across all rounds
+
 **Step 1: Independent Analysis**
 
-- 3 judges analyze solution in parallel
+- 3 `sadd:judge` agents analyze solution in parallel, each receiving the meta-judge's evaluation specification YAML and `CLAUDE_PLUGIN_ROOT`
 - Each writes comprehensive report to `report.[1|2|3].md`
-- Includes per-criterion scores, evidence, overall assessment
+- Includes per-criterion scores with evidence grounded in the evaluation specification
 
 **Step 2: Check Consensus**
 
@@ -99,8 +114,9 @@ Phase 2: Debate Round (iterative)   │
 **Step 3: Debate Round** (if no consensus, max 3 rounds)
 
 - Each judge reads their own report + others' reports from filesystem
+- Receives the same evaluation specification YAML from the meta-judge
 - Identifies disagreements (>1 point gap on any criterion)
-- Defends their ratings with evidence
+- Defends their ratings with evidence from the solution and evaluation specification
 - Challenges others' ratings with counter-evidence
 - Revises scores if convinced by others' arguments
 - Appends "Debate Round N" section to their own report

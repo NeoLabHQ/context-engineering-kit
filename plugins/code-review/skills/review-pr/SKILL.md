@@ -1,17 +1,65 @@
 ---
 name: review-pr
 description: Comprehensive pull request review using specialized agents
-argument-hint: "[review-aspects]"
+argument-hint: "[review-aspects] [--min-impact critical|high|medium|medium-low|low]"
 ---
 
 # Pull Request Review Instructions
 
 You are an expert code reviewer conducting a thorough evaluation of this pull request. Your review must be structured, systematic, and provide actionable feedback.
 
-**Review Aspects (optional):** "$ARGUMENTS"
+**User Input:**
+
+```text
+$ARGUMENTS
+```
+
 **IMPORTANT**: Skip reviewing changes in `spec/` and `reports/` folders unless specifically asked.
 
 **CRITICAL**: You must post inline comments only! Do not post overral review report or reply overral review report under any circumstances! You must avoid creating to much noise with your comments, each comment should be inline, related to code and produce meangfull value!
+
+---
+
+## Command Arguments
+
+Parse the following arguments from `$ARGUMENTS`:
+
+### Argument Definitions
+
+| Argument | Format | Default | Description |
+|----------|--------|---------|-------------|
+| `review-aspects` | Free text | None | Optional review aspects or focus areas for the review (e.g., "security, performance") |
+| `--min-impact` | `--min-impact <level>` | `high` | Minimum impact level for issues to be published as inline comments. Values: `critical`, `high`, `medium`, `medium-low`, `low` |
+
+### Impact Level Mapping
+
+| Level | Impact Score Range |
+|-------|-------------------|
+| `critical` | 81-100 |
+| `high` | 61-80 |
+| `medium` | 41-60 |
+| `medium-low` | 21-40 |
+| `low` | 0-20 |
+
+### Configuration Resolution
+
+Parse `$ARGUMENTS` and resolve configuration as follows:
+
+```
+# Extract review aspects (free text, everything that is not a flag)
+REVIEW_ASPECTS = all non-flag text from $ARGUMENTS
+
+# Parse flags
+MIN_IMPACT = --min-impact || "high"
+
+# Resolve minimum impact score from level name
+MIN_IMPACT_SCORE = lookup MIN_IMPACT in Impact Level Mapping:
+  "critical"   -> 81
+  "high"       -> 61
+  "medium"     -> 41
+  "medium-low" -> 21
+  "low"        -> 0
+```
 
 ## Review Workflow
 
@@ -27,7 +75,7 @@ Run following commands in order:
      - git diff --stat
      - git diff origin/master --stat or git diff origin/master...HEAD --stat for PR diffs
        - change to origin/main if main is used as default branch
-   - Parse arguments to see if user requested specific review aspects
+   - Parse `$ARGUMENTS` per the Command Arguments section above to resolve `REVIEW_ASPECTS`, `MIN_IMPACT`, and `MIN_IMPACT_SCORE`
 2. Launch up to 6 parallel Haiku agents to perform following tasks:
    - One agent to check if the pull request (a) is closed, (b) is a draft. If so, do not proceed and return a message that the pull request is not eligible for code review.
    - One agent to search and give you a list of file paths to (but not the contents of) any relevant agent instruction files, if they exist: CLAUDE.md, AGENTS.md, **/consitution.md, the root README.md file, as well as any README.md files in the directories whose files the pull request modified
@@ -66,7 +114,7 @@ Based on changes summary from phase 1 and their complexity, determine which revi
 
 - **If code or configuration changes, except purely cosmetic changes**: bug-hunter, security-auditor
 - **if code changes, including business or infrastructure logic, formating, etc.**: code-quality-reviewer (general quality)
-- **If test files changed**: test-coverage-reviewer
+- **If code or test files changed**: test-coverage-reviewer
 - **If types, API, data modeling changed**: contracts-reviewer
 - **If complexity of changes is high or historical context is needed**: historical-context-reviewer
 
@@ -113,10 +161,10 @@ Based on changes summary from phase 1 and their complexity, determine which revi
    **Filter out any issues that don't meet the minimum confidence threshold for their impact level.** If there are no issues that meet this criteria, do not proceed.
 
    **IMPORTANT: Do NOT post inline comments for:**
-   - **Low impact issues (0-20)** - These are minor code smells or style inconsistencies. Even with high confidence, they add noise without meaningful value.
+   - **Issues below the configured `MIN_IMPACT` level** - Any issue with an impact score below `MIN_IMPACT_SCORE` (resolved from `--min-impact` argument, default: `high` / 61) must be excluded. 
    - **Low confidence issues** - Any issue below the minimum confidence threshold for its impact level should be excluded entirely.
 
-   Focus inline comments on Medium impact (41+) and higher issues that meet confidence thresholds.
+   Focus inline comments on issues at or above the `MIN_IMPACT` level that meet confidence thresholds.
 
 3. Use a Haiku agent to repeat the eligibility check from Phase 1, to make sure that the pull request is still eligible for code review. (In case if there was updates since review started)
 4. **Post Inline Comments Only** (skip if no issues found):

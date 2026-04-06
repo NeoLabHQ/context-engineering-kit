@@ -85,7 +85,7 @@ Verdict: Request changes for security and race condition
 > claude "implement OAuth2 authentication with Google provider"
 
 # Security-focused review
-> /code-review:review-local-changes --focus=security
+> /code-review:review-local-changes security
 ```
 
 **Security Findings**:
@@ -115,7 +115,7 @@ High Risk:
 > claude "implement all critical and high security fixes"
 
 # Verify security
-> /code-review:review-local-changes --focus=security
+> /code-review:review-local-changes security
 
 # Clean security audit
 > /git:commit "Add OAuth2 with security best practices"
@@ -132,7 +132,7 @@ High Risk:
 > claude "add shopping cart functionality"
 
 # Test coverage review
-> /code-review:review-local-changes --focus=testing
+> /code-review:review-local-changes tests
 ```
 
 **Coverage Analysis**:
@@ -166,7 +166,7 @@ Test Quality Issues:
 > claude "add all missing test cases identified by code review"
 
 # Verify coverage
-> /code-review:review-local-changes --focus=testing
+> /code-review:review-local-changes tests
 
 # Coverage now: 82% ✓
 > /git:commit "Add shopping cart with comprehensive tests"
@@ -262,7 +262,7 @@ High Priority:
 > claude "add POST /api/v2/orders endpoint"
 
 # Contract review
-> /code-review:review-local-changes --focus=contracts
+> /code-review:review-local-changes contracts
 ```
 
 **Contract Findings**:
@@ -300,7 +300,7 @@ Documentation:
 > claude "fix all contract issues and update OpenAPI spec"
 
 # Verify contracts
-> /code-review:review-local-changes --focus=contracts
+> /code-review:review-local-changes contracts
 
 > /git:commit "Add POST /api/v2/orders with consistent contracts"
 ```
@@ -587,7 +587,7 @@ Suggested Optimizations:
 1. **Review Small Changes Frequently**: Easier to address issues
 2. **Focus on Critical/High First**: Don't get overwhelmed
 3. **Re-review After Fixes**: Verify fixes don't introduce new issues
-4. **Use Focused Reviews**: `--focus` for specific concerns
+4. **Use Focused Reviews**: Pass review aspects (e.g., `security`) and `--min-impact` for specific concerns
 
 ### During PR Process
 1. **Review Before Creating PR**: Catch issues privately

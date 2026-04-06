@@ -6,12 +6,29 @@ Comprehensive pull request review using all specialized agents. Posts only high-
 - Output - Inline comments on specific lines (only issues that pass confidence/impact thresholds)
 
 ```bash
-/code-review:review-pr ["PR number or review-aspects"]
+/code-review:review-pr [review-aspects] [--min-impact critical|high|medium|medium-low|low]
 ```
+
+## CI/CD Integration
+
+You can integrate this plugin with your CI/CD pipeline by using Offical Anthropics Claude Code Action. See [CI/CD Integration](../../guides/ci-integration.md) for more details.
 
 ## Arguments
 
-PR number (e.g., #123, 123) and/or review aspects to focus on
+| Argument | Format | Default | Description |
+|----------|--------|---------|-------------|
+| `review-aspects` | Free text | None | Optional review aspects or focus areas (e.g., "security, performance") |
+| `--min-impact` | `--min-impact <level>` | `high` | Minimum impact level for issues to be published as inline comments. Values: `critical`, `high`, `medium`, `medium-low`, `low` |
+
+### Impact Level Mapping
+
+| Level | Impact Score Range |
+|-------|-------------------|
+| `critical` | 81-100 |
+| `high` | 61-80 |
+| `medium` | 41-60 |
+| `medium-low` | 21-40 |
+| `low` | 0-20 |
 
 ## How It Works
 
@@ -30,9 +47,10 @@ PR number (e.g., #123, 123) and/or review aspects to focus on
    - **Impact (0-100)**: How severe is the consequence if left unfixed?
    - Progressive threshold: Critical issues (81-100 impact) need 50% confidence, Low issues (0-20 impact) need 95% confidence
 
-4. **Inline Comment Posting**: Only issues passing thresholds get posted
+4. **Inline Comment Posting**: Only issues passing both filters get posted
+   - Issues below the `--min-impact` level (default: `high` / score 61+) are excluded
+   - Issues below the progressive confidence threshold for their impact level are excluded
    - Uses GitHub inline comments on specific PR lines
-   - Low impact issues (0-20) are never posted, even with high confidence
 
 
 ## Usage Examples
@@ -42,9 +60,15 @@ PR number (e.g., #123, 123) and/or review aspects to focus on
 > /code-review:review-pr #123
 
 # Review PR with focus on security
-> /code-review:review-pr #123 security
+> /code-review:review-pr security
 
-# Review current branch's PR
+# Include medium-impact issues and above
+> /code-review:review-pr --min-impact medium
+
+# Combine focus areas with a lower impact threshold
+> /code-review:review-pr security, performance --min-impact medium-low
+
+# Review current branch's PR (defaults to --min-impact high)
 > /code-review:review-pr
 ```
 

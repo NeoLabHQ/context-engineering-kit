@@ -21,7 +21,7 @@ Multi-agent task orchestration with quality gates between tasks. [More info](../
 
 Architecture and design principles for maintainable software. [More info](../plugins/ddd/README.md).
 
-- `software-architecture` - Includes Clean Architecture, SOLID principles, and other design patterns.
+- `rules` - 15 composable rules covering Clean Architecture, SOLID principles, Command-Query Separation, Functional Core/Imperative Shell, and other design patterns. See [rules reference](../plugins/ddd/rules.md).
 
 ### Kaizen
 

@@ -1,21 +1,22 @@
 ---
 name: do-competitively
-description: Execute tasks through competitive multi-agent generation, multi-judge evaluation, and evidence-based synthesis
+description: Execute tasks through competitive multi-agent generation, meta-judge evaluation specification, multi-judge evaluation, and evidence-based synthesis
 argument-hint: Task description and optional output path/criteria
 ---
 
 # do-competitively
 
 <task>
-Execute tasks through competitive multi-agent generation, multi-judge evaluation, and evidence-based synthesis to produce superior results by combining the best elements from parallel implementations.
+Execute tasks through competitive multi-agent generation, meta-judge evaluation specification, multi-judge evaluation, and evidence-based synthesis to produce superior results by combining the best elements from parallel implementations.
 </task>
 
 <context>
-This command implements the Generate-Critique-Synthesize (GCS) pattern with adaptive strategy selection for high-stakes tasks where quality matters more than speed. It combines competitive generation with multi-perspective evaluation and intelligently selects the optimal synthesis strategy based on results.
+This command implements the Generate-Critique-Synthesize (GCS) pattern with adaptive strategy selection for high-stakes tasks where quality matters more than speed. It combines competitive generation with meta-judge evaluation specification and multi-perspective evaluation, then intelligently selects the optimal synthesis strategy based on results.
 
 **Key features:**
 
 - Self-critique loops in generation (Constitutional AI)
+- Structured evaluation - Meta-judge produces tailored rubrics before judging
 - Verification loops in evaluation (Chain-of-Verification)
 - Adaptive strategy: polish clear winners, synthesize split decisions, redesign failures
 - Average 15-20% cost savings through intelligent strategy selection
@@ -25,26 +26,27 @@ CRITICAL: You are not implementation agent or judge, you shoudn't read files tha
 
 ## Pattern: Generate-Critique-Synthesize (GCS)
 
-This command implements a four-phase adaptive competitive orchestration pattern:
+This command implements a multi-phase adaptive competitive orchestration pattern:
 
 ```
-Phase 1: Competitive Generation with Self-Critique
-         ┌─ Agent 1 → Draft → Critique → Revise → Solution A ─┐
-Task ───┼─ Agent 2 → Draft → Critique → Revise → Solution B ─┼─┐
-         └─ Agent 3 → Draft → Critique → Revise → Solution C ─┘ │
+Phase 1: Competitive Generation with Self-Critique + Meta-Judge (IN PARALLEL)
+         ┌─ Meta-Judge → Evaluation Specification YAML ───────────┐
+Task ────┼─ Agent 2 → Draft → Critique → Revise → Solution B ───┐ │ 
+         ├─ Agent 3 → Draft → Critique → Revise → Solution C ───┼─┤ 
+         └─ Agent 1 → Draft → Critique → Revise → Solution A ───┘ │
                                                                   │
-Phase 2: Multi-Judge Evaluation with Verification                │
-         ┌─ Judge 1 → Evaluate → Verify → Revise → Report A ─┐  │
-         ├─ Judge 2 → Evaluate → Verify → Revise → Report B ─┼──┤
-         └─ Judge 3 → Evaluate → Verify → Revise → Report C ─┘  │
+Phase 2: Multi-Judge Evaluation with Verification                 │
+         ┌─ Judge 1 → Evaluate → Verify → Revise → Report A ─┐    │
+         ├─ Judge 2 → Evaluate → Verify → Revise → Report B ─┼────┤
+         └─ Judge 3 → Evaluate → Verify → Revise → Report C ─┘    │
                                                                   │
-Phase 2.5: Adaptive Strategy Selection                           │
-         Analyze Consensus ──────────────────────────────────────┤
-                ├─ Clear Winner? → SELECT_AND_POLISH             │
-                ├─ All Flawed (<3.0)? → REDESIGN (return Phase 1)│
-                └─ Split Decision? → FULL_SYNTHESIS              │
+Phase 2.5: Adaptive Strategy Selection                            │
+         Analyze Consensus ───────────────────────────────────────┤
+                ├─ Clear Winner? → SELECT_AND_POLISH              │
+                ├─ All Flawed (<3.0)? → REDESIGN (return Phase 1) │
+                └─ Split Decision? → FULL_SYNTHESIS               │
                                           │                       │
-Phase 3: Evidence-Based Synthesis        │                       │
+Phase 3: Evidence-Based Synthesis         │                       │
          (Only if FULL_SYNTHESIS)         │                       │
          Synthesizer ─────────────────────┴───────────────────────┴─→ Final Solution
 ```
@@ -69,9 +71,55 @@ Where:
 
 **Note:** Solutions remain in their specified output locations; only evaluation reports go to `.specs/reports/`
 
-### Phase 1: Competitive Generation
+### Phase 1: Competitive Generation + Meta-Judge (IN PARALLEL)
 
-Launch **3 independent agents in parallel** (recommended: Opus for quality):
+Launch **3 independent generator agents AND 1 meta-judge agent in parallel** (4 agents total, all recommended: Opus for quality):
+
+The meta-judge runs in parallel with the 3 generators because it does not need their output — it only needs the task description to generate evaluation criteria.
+
+**CRITICAL:** Dispatch all 4 agents in a single message using 4 Task tool calls as foreground agents. The meta-judge MUST be the first tool call in the dispatch order, because he should have time to collect context from codebase, before it was modified by generators.
+
+#### Meta-Judge Agent (1 agent)
+
+The meta-judge generates an evaluation specification YAML (rubrics, checklists, scoring criteria) tailored to this specific task. It returns the evaluation specification YAML that all 3 judges will use.
+
+**Prompt template for meta-judge:**
+
+```markdown
+## Task
+
+Generate an evaluation specification yaml for the following task. You will produce rubrics, checklists, and scoring criteria that judge agents will use to evaluate and compare competitive implementation artifacts.
+
+CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
+
+## User Prompt
+{Original task description from user}
+
+## Context
+{Any relevant codebase context, file paths, constraints}
+
+## Artifact Type
+{code | documentation | configuration | etc.}
+
+## Number of Solutions
+3 (competitive implementations to be compared)
+
+## Instructions
+Return only the final evaluation specification YAML in your response.
+The specification should support comparative evaluation across multiple solutions.
+```
+
+**Dispatch:**
+
+```
+Use Task tool:
+  - description: "Meta-judge: {brief task summary}"
+  - prompt: {meta-judge prompt}
+  - model: opus
+  - subagent_type: "sadd:meta-judge"
+```
+
+#### Generator Agents (3 agents)
 
 1. Each agent receives **identical task description and context**
 2. Agents work **independently without seeing each other's work**
@@ -124,12 +172,42 @@ Let's approach this systematically to produce the best possible solution.
 8. Explain what was changed and why
 ```
 
+#### Parallel Dispatch Example
+
+Send ALL 4 Task tool calls in a single message. Meta-judge first, then generators:
+
+```
+Message with 4 tool calls:
+  Tool call 1 (meta-judge):
+    - description: "Meta-judge: {brief task summary}"
+    - model: opus
+    - subagent_type: "sadd:meta-judge"
+
+  Tool call 2 (generator A):
+    - description: "Generate solution A: {brief task summary}"
+    - model: opus
+
+  Tool call 3 (generator B):
+    - description: "Generate solution B: {brief task summary}"
+    - model: opus
+
+  Tool call 4 (generator C):
+    - description: "Generate solution C: {brief task summary}"
+    - model: opus
+```
+
+Wait for ALL 4 to return before proceeding to Phase 2.
+
 ### Phase 2: Multi-Judge Evaluation
 
 Launch **3 independent judges in parallel** (recommended: Opus for rigor):
 
-1. Each judge receives path to **ALL candidate solutions** (A, B, C)
-2. Judges evaluate against **clear criteria** (correctness, design quality, maintainability, etc.)
+**CRITICAL:** Wait for ALL Phase 1 agents (meta-judge + 3 generators) to complete before dispatching judges.
+
+**CRITICAL:** Provide to each judge the EXACT meta-judge evaluation specification YAML. Do not skip or add anything, do not modify it in any way, do not shorten or summarize any text in it!
+
+1. Each judge receives the **meta-judge evaluation specification YAML** and paths to **ALL candidate solutions** (A, B, C)
+2. Judges evaluate against the **meta-judge's criteria** (not hardcoded criteria)
 3. Each judge produces:
    - **Comparative analysis** (which solution excels where)
    - **Evidence-based ratings** (with specific quotes/examples)
@@ -141,17 +219,23 @@ Launch **3 independent judges in parallel** (recommended: Opus for rigor):
 **Prompt template for judges:**
 
 ```markdown
-You are evaluating {number} solutions to this task:
+You are evaluating {number} competitive solutions against an evaluation specification produced by the meta judge.
 
-<task>
+CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
+
+## Task
 {task_description}
-</task>
 
-<solutions>
+## Solutions
 {list of paths to all candidate solutions}
-</solutions>
 
-<output>
+## Evaluation Specification
+
+```yaml
+{meta-judge's evaluation specification YAML}
+```
+
+## Output
 Write full report to: {.specs/reports/{solution-name}-{date}.[1|2|3].md - each judge gets unique number identifier}
 
 CRITICAL: You must reply with this exact structured header format:
@@ -169,40 +253,28 @@ CRITERIA:
 ---
 
 [Summary of your evaluation]
-</output>
 
-Evaluation criteria (with weights):
-1. {criterion_1} ({weight_1}%)
-2. {criterion_2} ({weight_2}%)
-...
+## Instructions
 
-Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology and execute using following criteria.
-
-Instructions:
-1. For each criterion, analyze ALL solutions
-2. Write a combined report:
-   1. Provide specific evidence (quote exact text) for your assessments
-   2. Compare strengths and weaknesses
-   3. Score each solution on each criterion
-   4. Calculate weighted total scores
-3. Generate verification 5 questions about your evaluation.
-4. Answer verification questions:
-   - Re-examine solutions for each question
-   - Find counter-evidence if it exists
-   - Check for systematic bias (length, confidence, etc.)
-5. Revise your evaluation and update it accordingly.
-6. Reply structured output:
-   - VOTE: Which solution you recommend
-   - SCORES: Weighted total score for each solution (0.0-5.0)
+Follow your full judge process as defined in your agent instructions!
 
 CRITICAL: Base your evaluation on evidence, not impressions. Quote specific text.
 
-Final checklist:
-- [ ] Generated and answered all verification questions
-- [ ] Found and corrected all potential issues
-- [ ] Checked for known biases (length, verbosity, confidence)
-- [ ] Confident in revised evaluation
-- [ ] Structured header with VOTE and SCORES at top of report
+## Output
+
+CRITICAL: You must reply with this exact structured evaluation report format in YAML at the START of your response!
+```
+
+CRITICAL: NEVER provide score threshold to judges. Judge MUST not know what threshold for score is, in order to not be biased!!!
+
+**Dispatch:**
+
+```
+Use Task tool (3 calls in single message):
+  - description: "Judge [1|2|3]: {brief task summary}"
+  - prompt: {judge prompt with exact meta-judge specification YAML}
+  - model: opus
+  - subagent_type: "sadd:judge"
 ```
 
 ### Phase 2.5: Adaptive Strategy Selection (Early Return)
@@ -378,7 +450,7 @@ Let's break this down systematically to understand what went wrong and how to de
 
 #### Strategy 3: FULL_SYNTHESIS (Default)
 
-**When:** No clear winner AND solutions have merit (scores ≥3.0)
+**When:** No clear winner AND solutions have merit (scores >=3.0)
 
 **Process:** Proceed to Phase 3 (Evidence-Based Synthesis)
 
@@ -477,7 +549,10 @@ Strategy Used: {strategy} ({reason})
 
 | Phase                   | Agents | Models   | Status      |
 |-------------------------|--------|----------|-------------|
-| Phase [N]: [phase name] | [N]    | [model] × 3 | [✅ Complete / ❌ Failed] |
+| Phase 1: Competitive Generation + Meta-Judge | 4 (3 generators + 1 meta-judge) | opus x 4 | [Complete / Failed] |
+| Phase 2: Multi-Judge Evaluation | 3 | opus x 3 | [Complete / Failed] |
+| Phase 2.5: Adaptive Strategy Selection | orchestrator | - | {strategy} |
+| Phase 3: [Synthesis/Polish/Redesign] | [N] | [model] | [Complete / Failed] |
 
 Files Created
 
@@ -502,47 +577,30 @@ Synthesis Decisions
 
 ## Best Practices
 
-### Evaluation Criteria
+### Meta-Judge + Judge Verification
 
-Choose 3-5 weighted criteria relevant to the task:
-
-**Code tasks:**
-
-- Correctness (30%)
-- Design quality (25%)
-- Maintainability (20%)
-- Performance (15%)
-- Clarity (10%)
-
-**Design tasks:**
-
-- Completeness (30%)
-- Feasibility (25%)
-- Scalability (20%)
-- Simplicity (15%)
-- Clarity (10%)
-
-**Documentation tasks:**
-
-- Completeness (35%)
-- Accuracy (30%)
-- Clarity (20%)
-- Usability (15%)
+- **Never skip meta-judge** - Tailored evaluation criteria produce better judgments than generic ones
+- **Meta-judge runs once** - Same specification for all 3 judges
+- **Include CLAUDE_PLUGIN_ROOT** - Both meta-judge and judges need the resolved plugin root path
+- **Meta-judge YAML** - Pass only the meta-judge YAML to judges, do not add any additional text or comments to it!
 
 ### Common Pitfalls
 
-❌ **Using for trivial tasks** - Overhead not justified
-❌ **Vague task descriptions** - Leads to incomparable solutions
-❌ **Insufficient context** - Agents can't produce quality work
-❌ **Weak evaluation criteria** - Judges can't differentiate quality
-❌ **Forcing synthesis when clear winner exists** - Wastes cost and risks degrading quality
-❌ **Synthesizing fundamentally flawed solutions** - Better to redesign than polish garbage
+- **Using for trivial tasks** - Overhead not justified
+- **Vague task descriptions** - Leads to incomparable solutions
+- **Insufficient context** - Agents can't produce quality work
+- **Forcing synthesis when clear winner exists** - Wastes cost and risks degrading quality
+- **Synthesizing fundamentally flawed solutions** - Better to redesign than polish garbage
+- **Skipping meta-judge** - Hardcoded criteria are less effective than tailored ones
+- **Modifying meta-judge YAML before passing to judges** - Judges must receive exact specification
 
-✅ **Well-defined task with clear constraints**
-✅ **Rich context for informed decisions**
-✅ **Specific, measurable evaluation criteria**
-✅ **Trust adaptive strategy selection**
-✅ **Polish clear winners, synthesize split decisions, redesign failures**
+**Do:**
+
+- Well-defined task with clear constraints
+- Rich context for informed decisions
+- Trust adaptive strategy selection
+- Polish clear winners, synthesize split decisions, redesign failures
+- Dispatch meta-judge in parallel with generators for speed
 
 ## Examples
 
@@ -554,13 +612,14 @@ Choose 3-5 weighted criteria relevant to the task:
   --criteria "RESTfulness,security,scalability,developer-experience"
 ```
 
-**Phase 1 outputs:**
+**Phase 1 outputs (4 parallel agents):**
 
+- Meta-judge: evaluation specification YAML with 5 criteria dimensions, comparative rubrics
 - `specs/api/users.a.md` - Resource-based design with nested routes
 - `specs/api/users.b.md` - Action-based design with RPC-style endpoints
 - `specs/api/users.c.md` - Minimal design, missing auth consideration
 
-**Phase 2 outputs** (assuming date 2025-01-15):
+**Phase 2 outputs** (assuming date 2025-01-15, 3 judges using meta-judge specification):
 
 - `.specs/reports/users-api-2025-01-15.1.md`:
 
@@ -601,7 +660,7 @@ Choose 3-5 weighted criteria relevant to the task:
 - `specs/api/users.md` - Solution A polished with:
   - Added rate limiting documentation (from B)
   - Simplified nested routes (judge feedback)
-  - Total cost: 6 agents (saved 1 from full synthesis)
+  - Total cost: 8 agents (4 Phase 1 + 3 judges + 1 polish)
 
 ### Example 2: Algorithm Selection (Split Decision - FULL_SYNTHESIS)
 
@@ -611,13 +670,14 @@ Choose 3-5 weighted criteria relevant to the task:
   --criteria "performance,memory-efficiency,simplicity,reliability"
 ```
 
-**Phase 1 outputs:**
+**Phase 1 outputs (4 parallel agents):**
 
+- Meta-judge: evaluation specification YAML with 4 criteria dimensions, comparative rubrics
 - `specs/caching.a.md` - Redis with LRU eviction
 - `specs/caching.b.md` - Multi-tier cache (memory + Redis)
 - `specs/caching.c.md` - CDN + application cache
 
-**Phase 2 outputs** (assuming date 2025-01-15):
+**Phase 2 outputs** (assuming date 2025-01-15, 3 judges using meta-judge specification):
 
 - `.specs/reports/caching-2025-01-15.1.md`:
 
@@ -652,7 +712,7 @@ Choose 3-5 weighted criteria relevant to the task:
 - Average scores: A=3.8, B=4.0, C=3.9
 - Score gap: 4.0 - 3.9 = 0.1 (<1.0 threshold)
 - Strategy: FULL_SYNTHESIS
-- Reason: Split decision, all solutions ≥3.0, no clear winner
+- Reason: Split decision, all solutions >=3.0, no clear winner
 
 **Phase 3 output:**
 
@@ -660,7 +720,7 @@ Choose 3-5 weighted criteria relevant to the task:
   - Multi-tier architecture (from B)
   - Simple LRU policy (from A)
   - CDN for static content (from C)
-  - Total cost: 7 agents (full synthesis needed)
+  - Total cost: 8 agents (4 Phase 1 + 3 judges + 1 synthesis)
 
 ### Example 3: Authentication Design (All Flawed - REDESIGN)
 
@@ -670,13 +730,14 @@ Choose 3-5 weighted criteria relevant to the task:
   --criteria "security,user-experience,maintainability"
 ```
 
-**Phase 1 outputs:**
+**Phase 1 outputs (4 parallel agents):**
 
+- Meta-judge: evaluation specification YAML with 3 criteria dimensions, comparative rubrics
 - `specs/auth.a.md` - Custom OAuth2 implementation
 - `specs/auth.b.md` - Session-based with social providers
 - `specs/auth.c.md` - JWT with password-only auth
 
-**Phase 2 outputs** (assuming date 2025-01-15):
+**Phase 2 outputs** (assuming date 2025-01-15, 3 judges using meta-judge specification):
 
 - `.specs/reports/auth-2025-01-15.1.md`:
 
@@ -713,3 +774,4 @@ Choose 3-5 weighted criteria relevant to the task:
 - Reason: All solutions below 3.0 threshold, fundamental issues
 
 - Do not stop, return to phase 1 and eventiualy should result in finish at SELECT_AND_POLISH or FULL_SYNTHESIS strategies
+</output>

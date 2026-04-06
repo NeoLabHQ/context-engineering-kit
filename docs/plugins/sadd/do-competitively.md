@@ -1,35 +1,39 @@
 # /do-competitively - Competitive Multi-Agent Synthesis
 
-Execute tasks through competitive generation, multi-judge evaluation, and evidence-based synthesis to produce superior results.
+Execute tasks through competitive multi-agent generation, meta-judge evaluation specification, multi-judge evaluation, and evidence-based synthesis to produce superior results.
 
-- Purpose - Generate multiple solutions competitively, evaluate with independent judges, synthesize best elements
-- Pattern - Generate-Critique-Synthesize (GCS) with self-critique, verification loops, and adaptive strategy selection
+- Purpose - Generates multiple solutions competitively, evaluates with independent judges using meta-judge criteria, synthesizes best elements
+- Pattern - Generate-Critique-Synthesize (GCS) with meta-judge evaluation specification, self-critique, verification loops, and adaptive strategy selection
 - Output - Superior solution combining best elements from all candidates
-- Quality - Enhanced with Constitutional AI self-critique, Chain of Verification, and intelligent strategy selection
 - Efficiency - 15-20% average cost savings through adaptive strategy (polish clear winners, redesign failures)
+
+## Quality Assurance
+
+Enhanced verification with meta-judge tailored rubrics, Constitutional AI self-critique, Chain of Verification, and intelligent strategy selection
 
 ## Pattern: Generate-Critique-Synthesize (GCS)
 
-This command implements a four-phase adaptive competitive orchestration pattern with quality enhancement loops:
+This command implements a four-phase adaptive competitive orchestration pattern with meta-judge evaluation specification and quality enhancement loops:
 
 ```
-Phase 1: Competitive Generation with Self-Critique
-         ┌─ Agent 1 → Draft → Self-Critique → Revise → Solution A ─┐
-Task ───┼─ Agent 2 → Draft → Self-Critique → Revise → Solution B ─┼─┐
-         └─ Agent 3 → Draft → Self-Critique → Revise → Solution C ─┘ │
+Phase 1: Competitive Generation with Self-Critique + Meta-Judge (IN PARALLEL)
+         ┌─ Meta-Judge → Evaluation Specification YAML ───────────┐
+Task ────┼─ Agent 2 → Draft → Critique → Revise → Solution B ───┐ │
+         ├─ Agent 3 → Draft → Critique → Revise → Solution C ───┼─┤
+         └─ Agent 1 → Draft → Critique → Revise → Solution A ───┘ │
                                                                   │
-Phase 2: Multi-Judge Evaluation with Verification                │
-         ┌─ Judge 1 → Evaluate → Verify → Revise → Report A ─┐  │
-         ├─ Judge 2 → Evaluate → Verify → Revise → Report B ─┼──┤
-         └─ Judge 3 → Evaluate → Verify → Revise → Report C ─┘  │
+Phase 2: Multi-Judge Evaluation with Verification                 │
+         ┌─ Judge 1 → Evaluate → Verify → Revise → Report A ─┐    │
+         ├─ Judge 2 → Evaluate → Verify → Revise → Report B ─┼────┤
+         └─ Judge 3 → Evaluate → Verify → Revise → Report C ─┘    │
                                                                   │
-Phase 2.5: Adaptive Strategy Selection                           │
-         Analyze Consensus ──────────────────────────────────────┤
-                ├─ Clear Winner? → SELECT_AND_POLISH             │
-                ├─ All Flawed (<3.0)? → REDESIGN (return Phase 1)│
-                └─ Split Decision? → FULL_SYNTHESIS              │
+Phase 2.5: Adaptive Strategy Selection                            │
+         Analyze Consensus ───────────────────────────────────────┤
+                ├─ Clear Winner? → SELECT_AND_POLISH              │
+                ├─ All Flawed (<3.0)? → REDESIGN (return Phase 1) │
+                └─ Split Decision? → FULL_SYNTHESIS               │
                                           │                       │
-Phase 3: Evidence-Based Synthesis        │                       │
+Phase 3: Evidence-Based Synthesis         │                       │
          (Only if FULL_SYNTHESIS)         │                       │
          Synthesizer ─────────────────────┴───────────────────────┴─→ Final Solution
 ```
@@ -46,6 +50,15 @@ Phase 3: Evidence-Based Synthesis        │                       │
 # With specific evaluation criteria
 /do-competitively "Design user schema" --criteria "scalability,security,developer-experience"
 ```
+
+## Agent Types
+
+| Agent | Type | Phase | Role |
+|-------|------|-------|------|
+| Meta-Judge | `sadd:meta-judge` | Phase 1 (parallel) | Generates evaluation specification YAML (rubrics, checklists, scoring criteria) tailored to the task |
+| Generator (x3) | default | Phase 1 (parallel) | Produces independent competitive solutions with self-critique |
+| Judge (x3) | `sadd:judge` | Phase 2 | Evaluates all solutions against meta-judge criteria |
+| Synthesizer/Polisher (x1) | default | Phase 3 | Combines or polishes based on adaptive strategy |
 
 ## When to Use
 
@@ -71,6 +84,7 @@ Techniques that were used to enhance the quality of the competitive execution pa
 | Phase         | Technique                       | Benefit                                                                                                              |
 | --------------- | --------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
 | **Phase 1**   | Constitutional AI Self-Critique | Generators review and fix their own solutions before submission, catching 40-60% of issues                           |
+| **Phase 1/2** | Meta-Judge Evaluation Specification | Meta-judge generates tailored rubrics, checklists, and scoring criteria in parallel with generators; judges use these instead of hardcoded criteria |
 | **Phase 2**   | Chain of Verification           | Judges verify their evaluations with structured questions, improving calibration and reducing bias                   |
 | **Phase 2.5** | Adaptive Strategy Selection     | Orchestrator parses structured judge outputs (VOTE+SCORES) to select optimal strategy, saving 15-20% cost on average |
 | **Phase 3**   | Evidence-Based Synthesis        | Combines proven best elements rather than creating new solutions (only when needed)                                  |

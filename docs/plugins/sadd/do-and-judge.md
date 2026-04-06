@@ -1,29 +1,44 @@
 # /do-and-judge
 
-Execute a single task with implementation sub-agent, independent judge verification, and automatic retry loop until passing or max retries exceeded.
+Execute a single task with implementation sub-agent, meta-judge evaluation criteria, independent judge verification, and automatic retry loop until passing or max retries exceeded.
 
-- Purpose - Execute a single task with quality verification and feedback-driven iteration
-- Pattern - Implement → Judge → Iterate (if needed) → Report
+- Purpose - Executes a single task with quality verification and feedback-driven iteration
+- Pattern - Meta-Judge + Implement (parallel) → Judge (with meta-judge spec) → Iterate (if needed) → Report
 - Output - Verified implementation with judge scores and improvement suggestions
-- Quality - Two-layer verification: self-critique (internal) + LLM-as-a-judge (external)
-- Iteration - Retry with judge feedback until passing (≥4/5.0) or max retries (2)
 
-## Pattern: Single-Task Execution with Judge Verification
+## Quality Assurance
+
+Three-layer verification: 
+- self-critique (internal) 
+- meta-judge criteria (structured) 
+- LLM-as-a-judge (external)
+
+Iteration - Retry with judge feedback until passing (score >=4, or >=3.0 with all low-priority issues) or max retries (3)
+
+## Pattern: Single-Task Execution with Meta-Judge and Judge Verification
 
 ```
 Phase 1: Task Analysis and Model Selection
          Complexity + Risk + Scope → Model Selection
                      │
-Phase 2: Dispatch Implementation Agent
-         [CoT Prefix] + [Task Body] + [Self-Critique Suffix]
-                     │
-Phase 3: Dispatch Judge Agent
-         Independent verification with structured criteria
+Phase 2: Parallel Dispatch (single message, 2 tool calls)
+         ┌──────────────────────┬──────────────────────────────┐
+         │ Meta-Judge (opus)    │ Implementation Agent         │
+         │ sadd:meta-judge      │ [CoT + Task + Self-Critique] │
+         │ → Evaluation spec    │ → Implementation artifact    │
+         │   (YAML rubrics,     │                              │
+         │    checklists,       │                              │
+         │    scoring criteria) │                              │
+         └──────────┬───────────┴────────────────────┬─────────┘
+                    │  Waiting for both to complete  │
+                    ▼                                ▼
+Phase 3: Dispatch Judge Agent (sadd:judge)
+         Judge applies meta-judge spec mechanically
                      │
 Phase 4: Parse Verdict and Iterate
-         ├─ PASS (≥4) → Report Success
-         └─ FAIL (<4) → Retry with Feedback (max 2)
-                            └─ Return to Phase 3
+         ├─ PASS (>=4, or >=3.0 all low-priority) → Report Success
+         └─ FAIL → Retry with Feedback (max 3)
+                     └─ Return to Phase 3 (same meta-judge spec)
                      │
 Phase 5: Final Report or Escalation
          Success summary OR escalate to user after max retries
@@ -58,14 +73,23 @@ Phase 5: Final Report or Escalation
 - High-stakes tasks needing multiple approaches → use `/do-competitively` instead
 - Simple tasks where verification overhead isn't justified → use `/launch-sub-agent` instead
 
+## Key Architecture Details
+
+- **Specialized agents**: Uses `sadd:meta-judge` and `sadd:judge` agent types for evaluation phases
+- **CLAUDE_PLUGIN_ROOT**: Must be included in prompts to both meta-judge and judge agents
+- **Evaluation specification**: Meta-judge produces a YAML spec (rubrics, checklists, scoring criteria) that the judge applies mechanically
+- **Reuse on retries**: The same meta-judge evaluation spec is reused across all retry attempts; only the implementation changes
+- **Pass threshold**: Score >=4/5.0, OR >=3.0 with all low-priority issues
+
 ## Quality Enhancement Techniques
 
 | Phase | Technique | Benefit |
 |-------|-----------|---------|
+| **Phase 2** | Meta-Judge | Generates task-specific evaluation criteria (YAML rubrics, checklists, scoring) before judging |
 | **Phase 2** | Zero-shot CoT | Systematic reasoning improves quality by 20-60% |
 | **Phase 2** | Self-Critique | Implementation agents verify own work before submission |
-| **Phase 3** | LLM-as-a-Judge | Independent judge catches blind spots self-critique misses |
-| **Phase 4** | Feedback Loop | Retry with specific issues until passing or max retries |
+| **Phase 3** | LLM-as-a-Judge | Judge applies meta-judge specification mechanically, catching blind spots self-critique misses |
+| **Phase 4** | Feedback Loop | Retry with specific issues until passing or max retries (3) |
 
 ## Theoretical Foundation
 

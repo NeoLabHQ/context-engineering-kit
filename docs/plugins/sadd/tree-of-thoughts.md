@@ -5,18 +5,24 @@ Execute complex reasoning tasks through systematic exploration of solution space
 - Purpose - Explore multiple solution paths before committing to full implementation
 - Pattern - Tree of Thoughts (ToT) with adaptive strategy selection
 - Output - Superior solution combining systematic exploration with evidence-based synthesis
-- Quality - Enhanced with probability estimates, multi-stage evaluation, and adaptive strategy
 - Efficiency - 15-20% average cost savings through adaptive strategy (polish clear winners, redesign failures)
+
+## Quality Assurance
+
+Enhanced verification with probability estimates, meta-judge evaluation specifications, multi-stage evaluation, and adaptive strategy
 
 ## Pattern: Tree of Thoughts (ToT)
 
-This command implements a six-phase systematic reasoning pattern with adaptive strategy selection:
+This command implements an eight-phase systematic reasoning pattern with meta-judge evaluation and adaptive strategy selection:
 
 ```
 Phase 1: Exploration (Propose Approaches)
          ┌─ Agent A → Proposals with probabilities ─┐
 Task ───┼─ Agent B → Proposals with probabilities ─┼─┐
          └─ Agent C → Proposals with probabilities ─┘ │
+                                                       │
+Phase 1.5: Pruning Meta-Judge (parallel with Phase 1) │
+         Meta-Judge → Pruning Evaluation Spec YAML ───┤
                                                        │
 Phase 2: Pruning (Vote for Best 3)                    │
          ┌─ Judge 1 → Votes + Rationale ─┐            │
@@ -29,6 +35,9 @@ Phase 3: Expansion (Develop Full Solutions)           │
          ┌─ Agent A → Solution A ─┐                   │
          ├─ Agent B → Solution B ─┼───────────────────┤
          └─ Agent C → Solution C ─┘                   │
+                                                       │
+Phase 3.5: Evaluation Meta-Judge (parallel w/ Phase 3)│
+         Meta-Judge → Evaluation Spec YAML ───────────┤
                                                        │
 Phase 4: Evaluation (Judge Full Solutions)            │
          ┌─ Judge 1 → Report 1 ─┐                     │
@@ -77,14 +86,16 @@ Phase 5: Synthesis (Only if FULL_SYNTHESIS)           │
 
 ## Quality Enhancement Techniques
 
-| Phase         | Technique                   | Benefit                                                                         |
-| --------------- | ----------------------------- | --------------------------------------------------------------------------------- |
-| **Phase 1**   | Probabilistic Sampling      | Explorers generate approaches with probability estimates, encouraging diversity |
-| **Phase 2**   | Multi-Judge Pruning         | Independent judges vote on top 3 proposals, reducing groupthink                 |
-| **Phase 3**   | Feedback-Aware Expansion    | Expanders address concerns raised during pruning                                |
-| **Phase 4**   | Chain of Verification       | Judges verify evaluations with structured questions, reducing bias              |
-| **Phase 4.5** | Adaptive Strategy Selection | Orchestrator parses structured outputs to select optimal strategy               |
-| **Phase 5**   | Evidence-Based Synthesis    | Combines proven best elements rather than creating new solutions                |
+| Phase           | Technique                              | Benefit                                                                         |
+| --------------- | -------------------------------------- | ------------------------------------------------------------------------------- |
+| **Phase 1**     | Probabilistic Sampling                 | Explorers generate approaches with probability estimates, encouraging diversity |
+| **Phase 1.5**   | Pruning Meta-Judge (`sadd:meta-judge`) | Generates tailored rubrics and scoring criteria before pruning judges evaluate  |
+| **Phase 2**     | Multi-Judge Pruning                    | Independent judges apply meta-judge specs to vote on top 3, reducing groupthink |
+| **Phase 3**     | Feedback-Aware Expansion               | Expanders address concerns raised during pruning                                |
+| **Phase 3.5**   | Evaluation Meta-Judge (`sadd:meta-judge`) | Generates evaluation specification before full-solution judges evaluate      |
+| **Phase 4**     | Structured Evaluation                  | Judges apply meta-judge-generated criteria with explicit evidence, reducing bias |
+| **Phase 4.5**   | Adaptive Strategy Selection            | Orchestrator parses structured outputs to select optimal strategy               |
+| **Phase 5**     | Evidence-Based Synthesis               | Combines proven best elements rather than creating new solutions                |
 
 ## Theoretical Foundation
 

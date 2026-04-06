@@ -145,3 +145,7 @@ vite.config.ts.timestamp-*
 .specs/scratchpads/
 .specs/reports/
 .specs/scratchpad/
+
+
+#Ignore cursor AI rules
+.cursor/rules/codacy.mdc

@@ -12,6 +12,14 @@ Evaluate solutions through multi-agent debate where independent judges analyze, 
 
 <context>
 This command implements the Multi-Agent Debate pattern for high-quality evaluation where multiple perspectives and rigorous argumentation improve assessment accuracy. Unlike single-pass evaluation, debate forces judges to defend their positions with evidence and consider counter-arguments.
+
+Key benefits:
+
+- **Structured evaluation** - Meta-judge produces tailored rubrics and criteria before judging begins
+- **Multiple perspectives** - Three independent judges reduce individual bias
+- **Evidence-based debate** - Judges defend positions with specific evidence from the solution and evaluation specification
+- **Iterative refinement** - Up to 3 debate rounds drive convergence on accurate scores
+- **Shared specification** - Meta-judge runs once; all judges across all rounds share the same evaluation specification
 </context>
 
 ## Pattern: Debate-Based Evaluation
@@ -21,22 +29,28 @@ This command implements iterative multi-judge debate:
 ```
 Phase 0: Setup
          mkdir -p .specs/reports
-                  │
-Phase 1: Independent Analysis
-         ┌─ Judge 1 → {name}.1.md ─┐
-Solution ┼─ Judge 2 → {name}.2.md ─┼─┐
-         └─ Judge 3 → {name}.3.md ─┘ │
-                                     │
-Phase 2: Debate Round (iterative)   │
-    Each judge reads others' reports │
-         ↓                           │
-    Argue + Defend + Challenge       │
-         ↓                           │
-    Revise if convinced ─────────────┤
-         ↓                           │
-    Check consensus                  │
-         ├─ Yes → Final Report       │
-         └─ No → Next Round ─────────┘
+                  |
+Phase 0.5: Dispatch Meta-Judge
+         Meta-Judge (Opus)
+              |
+         Evaluation Specification YAML
+              |
+Phase 1: Independent Analysis (3 judges in parallel)
+         +- Judge 1 -> {name}.1.md -+
+Solution +- Judge 2 -> {name}.2.md -+-+
+         +- Judge 3 -> {name}.3.md -+ |
+                                      |
+Phase 2: Debate Round (iterative)     |
+    Each judge reads others' reports  |
+         |                            |
+    Argue + Defend + Challenge        |
+    (grounded in eval specification)  |
+         |                            |
+    Revise if convinced --------------+
+         |                            |
+    Check consensus                   |
+         +- Yes -> Final Report       |
+         +- No -> Next Round ---------+
 ```
 
 ## Process
@@ -56,14 +70,56 @@ Where:
 - `{YYYY-MM-DD}` - Current date
 - `[1|2|3]` - Judge number
 
+### Phase 0.5: Dispatch Meta-Judge
+
+Before independent analysis, dispatch a meta-judge agent to generate a tailored evaluation specification. The meta-judge runs ONCE and produces rubrics, checklists, and scoring criteria that ALL judges will use across ALL rounds.
+
+**Meta-judge prompt template:**
+
+```markdown
+## Task
+
+Generate an evaluation specification yaml for the following evaluation task. You will produce rubrics, checklists, and scoring criteria that multiple judge agents will use to evaluate the solution through independent analysis and multi-round debate.
+
+CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
+
+## User Prompt
+{task description - what the solution was supposed to accomplish}
+
+## Context
+{Any relevant context about the solution being evaluated}
+
+## Artifact Type
+{code | documentation | configuration | etc.}
+
+## Evaluation Mode
+Multi-judge debate with consensus-seeking across rounds
+
+## Instructions
+Return only the final evaluation specification YAML in your response.
+The specification should support both independent analysis and debate-based refinement.
+```
+
+**Dispatch:**
+
+```
+Use Task tool:
+  - description: "Meta-judge: generate evaluation specification for {solution-name}"
+  - prompt: {meta-judge prompt}
+  - model: opus
+  - subagent_type: "sadd:meta-judge"
+```
+
+Wait for the meta-judge to complete and extract the evaluation specification YAML from its output before proceeding to Phase 1.
+
 ### Phase 1: Independent Analysis
 
-Launch **3 independent judge agents in parallel** (recommended: Opus for rigor):
+Launch **3 independent judge agents in parallel** (Opus for rigor):
 
 1. Each judge receives:
    - Path to solution(s) being evaluated
-   - Evaluation criteria with weights
-   - Clear rubric for scoring
+   - The meta-judge's evaluation specification YAML
+   - Task description
 2. Each produces **independent assessment** saved to `.specs/reports/{solution-name}-{date}.[1|2|3].md`
 3. Reports must include:
    - Per-criterion scores with evidence
@@ -76,42 +132,49 @@ Launch **3 independent judge agents in parallel** (recommended: Opus for rigor):
 **Prompt template for initial judges:**
 
 ```markdown
-You are Judge {N} evaluating a solution independently.
+You are Judge {N} evaluating a solution independently against an evaluation specification produced by the meta judge.
 
-<solution_path>
+CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
+
+## Solution
 {path to solution file(s)}
-</solution_path>
 
-<task_description>
+## Task Description
 {what the solution was supposed to accomplish}
-</task_description>
 
-<evaluation_criteria>
-{criteria with descriptions and weights}
-</evaluation_criteria>
+## Evaluation Specification
 
-<output_file>
+```yaml
+{meta-judge's evaluation specification YAML}
+```
+
+## Output File
 .specs/reports/{solution-name}-{date}.{N}.md
-</output_file>
 
-Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology and execute using following criteria.
+## Instructions
 
-Instructions:
+Follow your full judge process as defined in your agent instructions!
+
+Additional instructions:
 1. Read the solution thoroughly
-2. For each criterion:
+2. For each criterion from the evaluation specification:
    - Find specific evidence (quote exact text)
    - Score on the defined scale
    - Justify with concrete examples
 3. Calculate weighted overall score
 4. Write comprehensive report to {output_file}
-5. Generate verification 5 questions about your evaluation.
-6. Answer verification questions:
-   - Re-examine solutions for each question
-   - Find counter-evidence if it exists
-   - Check for systematic bias (length, confidence, etc.)
-7. Revise your report file and update it accordingly.
 
-Add to report begining `Done by Judge {N}`
+Add to report beginning `Done by Judge {N}`
+```
+
+**Dispatch each judge:**
+
+```
+Use Task tool:
+  - description: "Judge {N}: independent analysis of {solution-name}"
+  - prompt: {judge prompt with evaluation specification YAML}
+  - model: opus
+  - subagent_type: "sadd:judge"
 ```
 
 ### Phase 2: Debate Rounds (Iterative)
@@ -124,9 +187,10 @@ Launch **3 debate agents in parallel**:
    - Path to their own previous report (`.specs/reports/{solution-name}-{date}.[1|2|3].md`)
    - Paths to other judges' reports (`.specs/reports/{solution-name}-{date}.[1|2|3].md`)
    - The original solution
+   - The meta-judge's evaluation specification YAML
 2. Each judge:
    - Identifies disagreements with other judges (>1 point score gap on any criterion)
-   - Defends their own ratings with evidence
+   - Defends their own ratings with evidence from the solution and evaluation specification
    - Challenges other judges' ratings they disagree with
    - Considers counter-arguments
    - Revises their assessment if convinced
@@ -140,75 +204,61 @@ Launch **3 debate agents in parallel**:
 ```markdown
 You are Judge {N} in debate round {R}.
 
-<your_previous_report>
-{path to .specs/reports/{solution-name}-{date}.{N}.md}
-</your_previous_report>
+CLAUDE_PLUGIN_ROOT=`${CLAUDE_PLUGIN_ROOT}`
 
-<other_judges_reports>
+## Your Previous Report
+{path to .specs/reports/{solution-name}-{date}.{N}.md}
+
+## Other Judges' Reports
 Judge 1: .specs/reports/{solution-name}-{date}.1.md
 ...
-</other_judges_reports>
 
-<task_description>
+## Task Description
 {what the solution was supposed to accomplish}
-</task_description>
 
-<solution_path>
+## Solution
 {path to solution}
-</solution_path>
 
-<output_file>
+## Evaluation Specification
+
+```yaml
+{meta-judge's evaluation specification YAML}
+```
+
+## Output File
 .specs/reports/{solution-name}-{date}.{N}.md (append to existing file)
-</output_file>
 
-Read ${CLAUDE_PLUGIN_ROOT}/tasks/judge.md for evaluation methodology principles.
+## Instructions
 
-Instructions:
+Follow your full judge process as defined in your agent instructions!
+
+Additional debate instructions:
 1. Read your previous assessment from {your_previous_report}
 2. Read all other judges' reports
 3. Identify disagreements (where your scores differ by >1 point)
 4. For each major disagreement:
    - State the disagreement clearly
-   - Defend your position with evidence
+   - Defend your position with evidence from the solution and evaluation specification
    - Challenge the other judge's position with counter-evidence
    - Consider whether their evidence changes your view
-5. Update your report file by APPENDING:
-6. Reply whether you are reached agreement, and with which judge. Include revisited scores and criteria scores.
-
----
-
-## Debate Round {R}
-
-### Disagreements Identified
-
-**Disagreement with Judge {X} on Criterion "{Name}"**
-- My score: {my_score}/5
-- Their score: {their_score}/5
-- My defense: [quote evidence supporting my score]
-- My challenge: [what did they miss or misinterpret?]
-
-[Repeat for each disagreement]
-
-### Revised Assessment
-
-After considering other judges' arguments:
-- **Criterion "{Name}"**: [Maintained {X}/5 | Revised from {X} to {Y}/5]
-  - Reason for change: [what convinced me] OR
-  - Reason maintained: [why I stand by original score]
-
-[Repeat for changed/maintained scores]
-
-**New Weighted Score**: {updated_total}/5.0
-
-## Evidences
-[specific quotes]
-
---- 
+5. Update your report file by APPENDING debate round section
+6. Reply whether you reached agreement, and with which judge. Include revisited scores and criteria scores.
 
 CRITICAL:
+- Ground your arguments in the evaluation specification criteria
 - Only revise if you find their evidence compelling
 - Defend your original scores if you still believe them
 - Quote specific evidence from the solution
+```
+
+**Dispatch each debate judge:**
+
+```
+Use Task tool:
+  - description: "Judge {N}: debate round {R} for {solution-name}"
+  - prompt: {debate judge prompt with evaluation specification YAML}
+  - model: opus
+  - subagent_type: "sadd:judge"
 ```
 
 ### Consensus Check
@@ -227,13 +277,19 @@ After each debate round, check for consensus:
 
 **Orchestration Instructions:**
 
-**Step 1: Run Independent Analysis (Round 1)**
+**Step 1: Dispatch Meta-Judge (Phase 0.5)**
 
-1. Launch 3 judge agents in parallel (Judge 1, 2, 3)
+1. Launch meta-judge agent
+2. Wait for meta-judge to complete
+3. Extract the evaluation specification YAML from meta-judge output
+
+**Step 2: Run Independent Analysis (Phase 1)**
+
+1. Launch 3 judge agents in parallel (Judge 1, 2, 3) with the evaluation specification YAML
 2. Each writes their independent assessment to `.specs/reports/{solution-name}-{date}.[1|2|3].md`
 3. Wait for all 3 agents to complete
 
-**Step 2: Check for Consensus**
+**Step 3: Check for Consensus**
 
 Let's work through this systematically to ensure accurate consensus detection.
 
@@ -244,34 +300,34 @@ Read all three reports and extract:
 Check consensus step by step:
 1. First, extract all overall scores from each report and list them explicitly
 2. Calculate the difference between the highest and lowest overall scores
-   - If difference ≤ 0.5 points → overall consensus achieved
-   - If difference > 0.5 points → no consensus yet
+   - If difference <= 0.5 points -> overall consensus achieved
+   - If difference > 0.5 points -> no consensus yet
 3. Next, for each criterion, list all three judges' scores side by side
 4. For each criterion, calculate the difference between highest and lowest scores
-   - If any criterion has difference > 1.0 point → no consensus on that criterion
+   - If any criterion has difference > 1.0 point -> no consensus on that criterion
 5. Finally, verify consensus is achieved only if BOTH conditions are met:
    - Overall scores within 0.5 points
    - All criterion scores within 1.0 point
 
-**Step 3: Decision Point**
+**Step 4: Decision Point**
 
-- **If consensus achieved**: Go to Step 5 (Generate Consensus Report)
-- **If no consensus AND round < 3**: Go to Step 4 (Run Debate Round)
-- **If no consensus AND round = 3**: Go to Step 6 (Report No Consensus)
+- **If consensus achieved**: Go to Step 6 (Generate Consensus Report)
+- **If no consensus AND round < 3**: Go to Step 5 (Run Debate Round)
+- **If no consensus AND round = 3**: Go to Step 7 (Report No Consensus)
 
-**Step 4: Run Debate Round**
+**Step 5: Run Debate Round**
 
 1. Increment round counter (round = round + 1)
-2. Launch 3 judge agents in parallel
+2. Launch 3 judge agents in parallel with the same evaluation specification YAML
 3. Each agent reads:
    - Their own previous report from filesystem
    - Other judges' reports from filesystem
    - Original solution
 4. Each agent appends "Debate Round {R}" section to their own report file
 5. Wait for all 3 agents to complete
-6. Go back to Step 2 (Check for Consensus)
+6. Go back to Step 3 (Check for Consensus)
 
-**Step 5: Reply with Report**
+**Step 6: Reply with Report**
 
 Let's synthesize the evaluation results step by step.
 
@@ -293,6 +349,12 @@ Let's synthesize the evaluation results step by step.
        - Analysis of why consensus couldn't be reached
        - Flag for human review
 4. Command complete
+
+**Step 7: Report No Consensus**
+
+- Report persistent disagreements
+- Provide all judge reports for human review
+- Flag that automated evaluation couldn't reach consensus
 
 ### Phase 3: Consensus Report
 
@@ -342,85 +404,78 @@ The command produces:
 
 ## Best Practices
 
-### Evaluation Criteria
+### Meta-Judge + Judge Verification
 
-Choose 3-5 weighted criteria relevant to the solution type:
-
-**Code evaluation:**
-- Correctness (30%) - Does it work? Handles edge cases?
-- Design Quality (25%) - Clean architecture? Maintainable?
-- Efficiency (20%) - Performance considerations?
-- Code Quality (15%) - Readable? Well-documented?
-- Testing (10%) - Test coverage? Test quality?
-
-**Design/Architecture evaluation:**
-- Completeness (30%) - All requirements addressed?
-- Feasibility (25%) - Can it actually be built?
-- Scalability (20%) - Handles growth?
-- Simplicity (15%) - Appropriately simple?
-- Documentation (10%) - Clear and comprehensive?
-
-**Documentation evaluation:**
-- Accuracy (35%) - Technically correct?
-- Completeness (30%) - Covers all necessary topics?
-- Clarity (20%) - Easy to understand?
-- Usability (15%) - Helpful examples? Good structure?
+- **Never skip meta-judge** - Tailored evaluation criteria produce better judgments and more grounded debates
+- **Meta-judge runs once** - Same specification for all 3 judges across all debate rounds
+- **Include CLAUDE_PLUGIN_ROOT** - Both meta-judge and judges need the resolved plugin root path
+- **Meta-judge YAML** - Pass only the YAML to judges, do not modify it
+- **Debate grounding** - Judges should reference evaluation specification criteria when defending positions
 
 ### Common Pitfalls
 
-❌ **Judges create new reports instead of appending** - Loses debate history
-❌ **Orchestrator passes reports between judges** - Violates filesystem communication principle
-❌ **Weak initial assessments** - Garbage in, garbage out
-❌ **Too many debate rounds** - Diminishing returns after 3 rounds
-❌ **Sycophancy in debate** - Judges agree too easily without real evidence
+- **Judges create new reports instead of appending** - Loses debate history
+- **Orchestrator passes reports between judges** - Violates filesystem communication principle
+- **Weak initial assessments** - Garbage in, garbage out
+- **Too many debate rounds** - Diminishing returns after 3 rounds
+- **Sycophancy in debate** - Judges agree too easily without real evidence
+- **Modifying meta-judge YAML** - Specification must be passed verbatim to all judges
+- **Re-running meta-judge between rounds** - Specification is generated once and shared
 
-✅ **Judges append to their own report file**
-✅ **Judges read other reports from filesystem directly**
-✅ **Strong evidence-based initial assessments**
-✅ **Maximum 3 debate rounds**
-✅ **Require evidence for changing positions**
+### Do This
+
+- **Judges append to their own report file**
+- **Judges read other reports from filesystem directly**
+- **Strong evidence-based initial assessments**
+- **Maximum 3 debate rounds**
+- **Require evidence for changing positions**
+- **Ground debate arguments in the evaluation specification criteria**
+- **Use same evaluation specification across all rounds**
 
 ## Example Usage
 
 ### Evaluating an API Implementation
 
 ```bash
-/judge-with-debate \
-  --solution "src/api/users.ts" \
-  --task "Implement REST API for user management" \
-  --criteria "correctness:30,design:25,security:20,performance:15,docs:10"
+/judge-with-debate Implement REST API for user management --solution "src/api/users.ts" 
 ```
 
-**Round 1 outputs** (assuming date 2025-01-15):
+**Phase 0.5 - Meta-Judge** (assuming date 2025-01-15):
+- Meta-judge generates evaluation specification YAML with criteria:
+  - Correctness (30%), Design (25%), Security (20%), Performance (15%), Documentation (10%)
+  - Rubrics, checklists, and scoring definitions for each criterion
+
+**Phase 1 - Independent Analysis** (3 judges receive specification):
 - `.specs/reports/users-api-2025-01-15.1.md` - Judge 1 scores correctness 4/5, security 3/5
 - `.specs/reports/users-api-2025-01-15.2.md` - Judge 2 scores correctness 4/5, security 5/5
 - `.specs/reports/users-api-2025-01-15.3.md` - Judge 3 scores correctness 5/5, security 4/5
 
 **Disagreement detected:** Security scores range from 3-5
 
-**Round 2 debate:**
-- Judge 1 defends 3/5: "Missing rate limiting, input validation incomplete"
-- Judge 2 challenges: "Rate limiting exists in middleware (line 45)"
-- Judge 1 revises to 4/5: "Missed middleware, but input validation still weak"
-- Judge 3 defends 4/5: "Input validation adequate for requirements"
+**Phase 2 - Debate Round 1** (judges reference evaluation specification):
+- Judge 1 defends 3/5: "Missing rate limiting, input validation incomplete per specification checklist item 4"
+- Judge 2 challenges: "Rate limiting exists in middleware (line 45), satisfies specification rubric"
+- Judge 1 revises to 4/5: "Missed middleware, but input validation still weak per specification"
+- Judge 3 defends 4/5: "Input validation adequate for requirements as defined in specification"
 
-**Round 2 outputs:**
+**Debate Round 1 outputs:**
 - All judges now 4-5/5 on security (within 1 point)
 - Disagreement on input validation remains
 
-**Round 3 debate:**
-- Judges examine specific validation code
-- Judge 2 revises to 4/5: "Upon re-examination, email validation regex is weak"
+**Debate Round 2** (same evaluation specification):
+- Judges examine specific validation code against specification criteria
+- Judge 2 revises to 4/5: "Upon re-examination, email validation regex is weak per specification checklist"
 - Consensus: Security = 4/5
 
 **Final consensus:**
 ```
 Correctness: 4.3/5
 Design: 4.5/5
-Security: 4.0/5 (3 rounds to consensus)
+Security: 4.0/5 (2 debate rounds to consensus)
 Performance: 4.7/5
 Documentation: 4.0/5
 
 Overall: 4.3/5 - PASS
 ```
 
+</output>

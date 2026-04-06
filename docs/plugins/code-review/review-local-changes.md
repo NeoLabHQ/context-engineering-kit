@@ -6,12 +6,26 @@ Review uncommitted local changes using all specialized agents with code improvem
 - Output - Structured report with findings by severity
 
 ```bash
-/code-review:review-local-changes ["review-aspects"]
+/code-review:review-local-changes [review-aspects] [--min-impact critical|high|medium|medium-low|low] [--json]
 ```
 
 ## Arguments
 
-Optional review aspects to focus on (e.g., "security", "bugs", "tests")
+| Argument | Format | Default | Description |
+|----------|--------|---------|-------------|
+| `review-aspects` | Free text | None | Optional review aspects or focus areas (e.g., "security, performance") |
+| `--min-impact` | `--min-impact <level>` | `high` | Minimum impact level for reported issues. Values: `critical`, `high`, `medium`, `medium-low`, `low` |
+| `--json` | Flag | `false` | Output results in JSON format instead of markdown |
+
+### Impact Level Mapping
+
+| Level | Impact Score Range |
+|-------|-------------------|
+| `critical` | 81-100 |
+| `high` | 61-80 |
+| `medium` | 41-60 |
+| `medium-low` | 21-40 |
+| `low` | 0-20 |
 
 ## How It Works
 
@@ -29,25 +43,48 @@ Optional review aspects to focus on (e.g., "security", "bugs", "tests")
    - Historical Context Reviewer - Analyzes codebase patterns
 
 3. **Finding Aggregation**: Combines all agent reports
-   - Categorizes by severity (Critical, High, Medium, Low)
+   - Categorizes by severity (Critical, High, Medium, Medium-Low, Low)
+   - Scores each issue for confidence (is it real?) and impact (how severe?)
    - Removes duplicates
    - Adds file and line references
 
-4. **Report Generation**: Produces actionable report with prioritized findings
+4. **Filtering**: Applies two sequential filters to reduce noise
+   - **Min-impact cutoff** - Excludes issues below the `--min-impact` threshold (default: `high`, score 61+)
+   - **Progressive confidence threshold** - Higher-impact issues require less confidence to pass (Critical: 50%, High: 65%, Medium: 75%, Medium-Low: 85%, Low: 95%)
+
+5. **Report Generation**: Produces actionable report in markdown (default) or JSON (`--json`) format with prioritized findings
 
 ## Usage Examples
 
 ```bash
-# Review all local changes
+# Review all local changes (default: --min-impact high, markdown output)
 > /code-review:review-local-changes
 
 # Focus on security aspects
 > /code-review:review-local-changes security
 
+# Lower the threshold to catch medium-impact issues
+> /code-review:review-local-changes --min-impact medium
+
+# Focus on security and performance, medium threshold
+> /code-review:review-local-changes security, performance --min-impact medium
+
+# Critical-only issues in JSON for programmatic consumption
+> /code-review:review-local-changes --min-impact critical --json
+
 # After implementing a feature
 > claude "implement user authentication"
 > /code-review:review-local-changes
 ```
+
+### JSON Output
+
+When using `--json`, the output is a structured object with these top-level fields:
+
+- `quality_gate` - `"PASS"` or `"FAIL"` (fails when any critical or high issue exists)
+- `summary` - Issue counts by severity
+- `issues` - Array of issues with `severity`, `file`, `lines`, `description`, `evidence`, `impact_score`, `confidence_score`, and optional `suggestion`
+- `improvements` - Array of code improvement suggestions from the code-quality-reviewer agent
 
 ## Best Practices
 
