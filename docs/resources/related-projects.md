@@ -36,8 +36,8 @@ CEK's FPF plugin implements structured reasoning methodology from:
 
 The FPF plugin adapts the quint-code approach into a workflow-based architecture:
 
-- **Workflow command** (`/fpf:propose-hypotheses`) - Orchestrates the complete ADI cycle using sub-agents
-- **Utility commands** (`/fpf:status`, `/fpf:query`, `/fpf:decay`, `/fpf:actualize`, `/fpf:reset`) - Manage knowledge base state and maintenance
+- **Workflow command** (`/propose-hypotheses`) - Orchestrates the complete ADI cycle using sub-agents
+- **Utility commands** (`/status`, `/query`, `/decay`, `/actualize`, `/reset`) - Manage knowledge base state and maintenance
 
 ---
 

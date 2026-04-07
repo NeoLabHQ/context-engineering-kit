@@ -20,7 +20,7 @@ You write test cases (pressure scenarios with subagents), watch them fail (basel
 
 **REQUIRED BACKGROUND:** You MUST understand Test-Driven Development before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill adapts TDD to documentation.
 
-**Official guidance:** The Anthropic's official skill authoring best practices provided at the `/customaize-agent:apply-anthropic-skill-best-practices` command, they enhance  `customize-agent:prompt-engineering` skill. Use skill and the document, as they not copy but add to each other. These document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
+**Official guidance:** The Anthropic's official skill authoring best practices provided at the `/apply-anthropic-skill-best-practices` command, they enhance  `prompt-engineering` skill. Use skill and the document, as they not copy but add to each other. These document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
 
 ## About Skills
 

@@ -13,7 +13,7 @@ Real-world scenarios demonstrating effective use of the TDD plugin for test-firs
 > claude "create a function to validate email addresses with proper regex"
 
 # Add test coverage
-> /tdd:write-tests
+> /write-tests
 ```
 
 **Expected Flow**:
@@ -59,7 +59,7 @@ describe('validateEmail', () => {
 > claude "implement Stripe payment processing with subscription support, webhooks, and retry logic"
 
 # Generate comprehensive tests using agents
-> /tdd:write-tests Focus on payment flows and error handling
+> /write-tests Focus on payment flows and error handling
 ```
 
 **Expected Flow**:
@@ -98,7 +98,7 @@ Webhook Handler (webhook-handler.ts):
 > claude "refactor user authentication from sessions to JWT tokens"
 
 # Fix all failing tests
-> /tdd:fix-tests
+> /fix-tests
 ```
 
 **Expected Flow**:
@@ -162,7 +162,7 @@ All 5 tests in auth.test.ts now passing ✅
 > claude "fix the validation to reject empty usernames"
 
 # Verify and add edge case tests
-> /tdd:write-tests Focus on username validation edge cases
+> /write-tests Focus on username validation edge cases
 ```
 
 **Expected Flow**:
@@ -180,7 +180,7 @@ test('rejects empty username during registration', () => {
 2. Test fails (RED phase confirmed)
 3. Fix implemented
 4. Test passes (GREEN)
-5. `/tdd:write-tests` adds comprehensive edge cases:
+5. `/write-tests` adds comprehensive edge cases:
 
 ```typescript
 describe('username validation', () => {
@@ -199,13 +199,13 @@ describe('username validation', () => {
 
 ```bash
 # Review existing coverage
-> /tdd:write-tests Focus on financial calculations - ensure all edge cases covered
+> /write-tests Focus on financial calculations - ensure all edge cases covered
 
 # Run coverage report
 > npm run test:coverage
 
 # Address any gaps identified
-> /tdd:write-tests Cover the remaining uncovered branches
+> /write-tests Cover the remaining uncovered branches
 ```
 
 **Expected Coverage Review Output**:
@@ -252,7 +252,7 @@ Tests Added:
 > npm test
 
 # Fix tests for new API
-> /tdd:fix-tests React 18 API changes - focus on rendering and act() warnings
+> /fix-tests React 18 API changes - focus on rendering and act() warnings
 ```
 
 **Expected Agent Analysis**:
@@ -285,7 +285,7 @@ All 9 previously failing tests now pass ✅
 > claude "implement user service with CRUD operations, authentication, and notifications"
 
 # Generate tests for entire service
-> /tdd:write-tests Cover all critical business logic across the service
+> /write-tests Cover all critical business logic across the service
 ```
 
 **Expected Multi-Agent Orchestration**:
@@ -329,7 +329,7 @@ Final Results:
 > /reflexion:reflect
 
 # Ensure test coverage
-> /tdd:write-tests
+> /write-tests
 
 # Save testing insights
 > /reflexion:memorize "Rate limiting test patterns"
@@ -352,13 +352,13 @@ Final Results:
 
 ```bash
 # Write tests for changes
-> /tdd:write-tests
+> /write-tests
 
 # Get multi-agent code review
-> /code-review:review-local-changes
+> /review-local-changes
 
 # Fix any test issues identified
-> /tdd:fix-tests address code review findings
+> /fix-tests address code review findings
 ```
 
 **Code Review Output**:
@@ -387,8 +387,8 @@ Recommendations:
 > /sdd:04-implement  # Implementation phase
 
 # TDD for implementation
-> /tdd:write-tests  # Cover all implemented logic
-> /tdd:fix-tests    # Fix any issues
+> /write-tests  # Cover all implemented logic
+> /fix-tests    # Fix any issues
 
 # Continue SDD workflow
 > /sdd:05-document
@@ -401,13 +401,13 @@ Recommendations:
 > claude "add password strength validation"
 
 # Ensure test coverage
-> /tdd:write-tests
+> /write-tests
 
 # Fix any failing tests
-> /tdd:fix-tests
+> /fix-tests
 
 # Review all changes
-> /code-review:review-local-changes
+> /review-local-changes
 
 # Commit with confidence
 > /git:commit
@@ -420,7 +420,7 @@ Recommendations:
 **Scenario**: Test is asserting on mock existence rather than behavior.
 
 ```bash
-> /tdd:write-tests
+> /write-tests
 ```
 
 **Plugin Detection**:
@@ -444,7 +444,7 @@ Fix Applied:
 **Scenario**: Production class contains methods only used in tests.
 
 ```bash
-> /tdd:fix-tests
+> /fix-tests
 ```
 
 **Plugin Detection**:
@@ -468,7 +468,7 @@ Recommendation:
 **Scenario**: Mock is missing fields that downstream code depends on.
 
 ```bash
-> /tdd:write-tests
+> /write-tests
 ```
 
 **Plugin Warning**:
@@ -492,10 +492,10 @@ Fix Applied:
 
 | Scenario | Command |
 |----------|---------|
-| Cover all local changes | `/tdd:write-tests` |
-| Cover specific module | `/tdd:write-tests authentication module` |
-| Focus on edge cases | `/tdd:write-tests Focus on edge cases and error handling` |
-| Fix all failing tests | `/tdd:fix-tests` |
-| Fix specific test files | `/tdd:fix-tests payment tests` |
-| Fix after refactoring | `/tdd:fix-tests after API refactoring` |
-| Fix after dependency update | `/tdd:fix-tests React 18 migration` |
+| Cover all local changes | `/write-tests` |
+| Cover specific module | `/write-tests authentication module` |
+| Focus on edge cases | `/write-tests Focus on edge cases and error handling` |
+| Fix all failing tests | `/fix-tests` |
+| Fix specific test files | `/fix-tests payment tests` |
+| Fix after refactoring | `/fix-tests after API refactoring` |
+| Fix after dependency update | `/fix-tests React 18 migration` |

@@ -1,4 +1,4 @@
-# /kaizen:cause-and-effect - Fishbone Analysis
+# /cause-and-effect - Fishbone Analysis
 
 Systematic exploration of problem causes across six categories using the Ishikawa (Fishbone) diagram approach.
 
@@ -6,7 +6,7 @@ Systematic exploration of problem causes across six categories using the Ishikaw
 - Output - Structured analysis across People, Process, Technology, Environment, Methods, and Materials
 
 ```bash
-/kaizen:cause-and-effect ["problem description"]
+/cause-and-effect ["problem description"]
 ```
 
 ## Arguments
@@ -32,13 +32,13 @@ Optional problem description to analyze. If not provided, you will be prompted f
 
 ```bash
 # Analyze performance issues
-> /kaizen:cause-and-effect "API responses take 3+ seconds"
+> /cause-and-effect "API responses take 3+ seconds"
 
 # Investigate test reliability
-> /kaizen:cause-and-effect "15% of test runs fail, passing on retry"
+> /cause-and-effect "15% of test runs fail, passing on retry"
 
 # Understand delivery delays
-> /kaizen:cause-and-effect "Feature took 12 weeks instead of 3"
+> /cause-and-effect "Feature took 12 weeks instead of 3"
 ```
 
 ### Example Output
@@ -79,5 +79,5 @@ SOLUTIONS (Priority Order):
 - Do not stop at first cause - Explore deeply within each category
 - Look for cross-category connections - Some causes span multiple domains
 - Root causes usually involve process or methods - Not just technology
-- Combine with /kaizen:why - Use Five Whys to dig deeper on specific causes
+- Combine with /why - Use Five Whys to dig deeper on specific causes
 - Prioritize by impact x feasibility / effort - Focus on highest-value fixes

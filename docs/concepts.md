@@ -48,7 +48,7 @@ Commands are namespaced by plugin, making their origin clear:
 
 # With argument
 /sdd:01-specify Add user authentication with OAuth
-/kaizen:analyse Target the checkout flow for optimization
+/analyse Target the checkout flow for optimization
 ```
 
 ---
@@ -119,7 +119,7 @@ Main Claude Session (You)
 
 ```bash
 # Launches multiple code review agents
-/code-review:review-local-changes
+/review-local-changes
 
 # Launches business-analyst agent
 /sdd:01-specify Add user authentication
@@ -153,10 +153,10 @@ Workflow commands combine multiple sub-tasks into a single invocation:
 
 ### Example: FPF Propose-Hypotheses Workflow
 
-The FPF plugin's `/fpf:propose-hypotheses` command demonstrates this pattern:
+The FPF plugin's `/propose-hypotheses` command demonstrates this pattern:
 
 ```
-/fpf:propose-hypotheses How should we implement caching?
+/propose-hypotheses How should we implement caching?
        │
        ├── Step 1: Initialize Context (FPF Agent)
        │   └── Creates .fpf/context.md
@@ -195,8 +195,8 @@ The FPF plugin's `/fpf:propose-hypotheses` command demonstrates this pattern:
 | Use Case | Approach |
 |----------|----------|
 | Complete end-to-end process | Workflow command |
-| Check current state | Utility command (`/fpf:status`) |
-| Manage specific aspect | Utility command (`/fpf:decay`) |
+| Check current state | Utility command (`/status`) |
+| Manage specific aspect | Utility command (`/decay`) |
 | Iterate on single phase | Individual task prompts |
 
 ---
@@ -307,7 +307,7 @@ Several plugins read from and write to `CLAUDE.md`:
 **Tech Stack plugin** - Adds language/framework practices:
 
 ```bash
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 ```
 
 **What it adds:**
@@ -320,7 +320,7 @@ Several plugins read from and write to `CLAUDE.md`:
 **DDD plugin** - Sets up code quality standards:
 
 ```bash
-/ddd:setup-code-formating
+/setup-code-formating
 ```
 
 **What it adds:**

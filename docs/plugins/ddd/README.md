@@ -33,7 +33,7 @@ These principles address the core challenge of software development: **managing 
 To enable code formatting rules, you can use the following command:
 
 ```bash
-/ddd:setup-code-formating
+/setup-code-formating
 ```
 
 [Usage Examples](./usage-examples.md)
@@ -43,6 +43,7 @@ To enable code formatting rules, you can use the following command:
 ### setup-code-formating
 
 Establishes consistent code formatting rules and style guidelines by updating your project's CLAUDE.md file with enforced standards.
+
 See [setup-code-formating.md](./setup-code-formating.md) for detailed command documentation.
 
 ## Rules

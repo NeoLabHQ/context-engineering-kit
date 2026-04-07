@@ -41,7 +41,7 @@ Implementation based on [quint-code](https://github.com/m0n0x41d/quint-code) by 
 /plugin install fpf@NeoLabHQ/context-engineering-kit
 
 # Start a decision process
-/fpf:propose-hypotheses What caching strategy should we use?
+/propose-hypotheses What caching strategy should we use?
 
 # Commad will perform majority of orcestration and launch subagents to perform the work.
 # Additionaly you will be asked to add your own hypotheses and review the results.
@@ -52,7 +52,7 @@ Implementation based on [quint-code](https://github.com/m0n0x41d/quint-code) by 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │ 1. Initialize Context                                           │
-│    /fpf:propose-hypotheses <problem>                            │
+│    /propose-hypotheses <problem>                            │
 │    (create .fpf/ directory structure)                           │
 └────────────────────────┬────────────────────────────────────────┘
                          │
@@ -108,7 +108,7 @@ Implementation based on [quint-code](https://github.com/m0n0x41d/quint-code) by 
 
 ## Commands Overview
 
-### /fpf:propose-hypotheses - Decision Cycle
+### /propose-hypotheses - Decision Cycle
 
 Execute the complete FPF cycle from hypothesis generation through evidence validation to decision.
 
@@ -116,7 +116,7 @@ Execute the complete FPF cycle from hypothesis generation through evidence valid
 - Output - `.fpf/decisions/DRR-<date>-<topic>.md` with winner and rationale
 
 ```bash
-/fpf:propose-hypotheses [problem or decision to make]
+/propose-hypotheses [problem or decision to make]
 ```
 
 #### Arguments
@@ -182,16 +182,16 @@ The workflow follows three inference modes:
 
 ```bash
 # Caching strategy decision
-/fpf:propose-hypotheses What caching strategy should we use?
+/propose-hypotheses What caching strategy should we use?
 
 # Deployment approach
-/fpf:propose-hypotheses How should we deploy our application?
+/propose-hypotheses How should we deploy our application?
 
 # Architecture decision
-/fpf:propose-hypotheses Should we use microservices or monolith?
+/propose-hypotheses Should we use microservices or monolith?
 
 # Technology selection
-/fpf:propose-hypotheses Which database should we use for high-write workloads?
+/propose-hypotheses Which database should we use for high-write workloads?
 ```
 
 #### When to Use
@@ -218,7 +218,7 @@ Time-critical situations where the overhead isn't justified
 
 ---
 
-### /fpf:status - Check Progress
+### /status - Check Progress
 
 Show current FPF phase, hypothesis counts, and any warnings about stale evidence.
 
@@ -226,7 +226,7 @@ Show current FPF phase, hypothesis counts, and any warnings about stale evidence
 - Output - Status table with phase, counts, and warnings
 
 ```bash
-/fpf:status
+/status
 ```
 
 #### Arguments
@@ -247,7 +247,7 @@ None required.
 
 ```bash
 # Check current status
-/fpf:status
+/status
 ```
 
 **Example Output:**
@@ -286,7 +286,7 @@ All systems nominal.
 
 ---
 
-### /fpf:query - Search Knowledge Base
+### /query - Search Knowledge Base
 
 Search the FPF knowledge base for hypotheses, evidence, or decisions with assurance information.
 
@@ -294,7 +294,7 @@ Search the FPF knowledge base for hypotheses, evidence, or decisions with assura
 - Output - Search results with layer, R_eff, and evidence counts
 
 ```bash
-/fpf:query [keyword or hypothesis name]
+/query [keyword or hypothesis name]
 ```
 
 #### Arguments
@@ -313,13 +313,13 @@ Keyword to search for, specific hypothesis name, or "DRR" to list decisions.
 
 ```bash
 # Search by keyword
-/fpf:query caching
+/query caching
 
 # Query specific hypothesis
-/fpf:query redis-caching
+/query redis-caching
 
 # List all decisions
-/fpf:query DRR
+/query DRR
 ```
 
 **Example Output (keyword search):**
@@ -363,21 +363,21 @@ Evidence: 2 files
 
 ---
 
-### /fpf:decay - Manage Evidence Freshness
+### /decay - Manage Evidence Freshness
 
 Check for stale evidence and choose how to handle it: refresh, deprecate, or waive.
 
 - Purpose - Maintain evidence validity over time
 - Output - Updated evidence status and trust scores
 
-Evidence expires. A benchmark from six months ago might not reflect current performance. `/fpf:decay` shows you what's stale and gives you three options:
+Evidence expires. A benchmark from six months ago might not reflect current performance. `/decay` shows you what's stale and gives you three options:
 
 - Refresh — Re-run tests to get fresh evidence
 - Deprecate — Downgrade the hypothesis if the decision needs rethinking
 - Waive — Accept the risk temporarily with documented rationale
 
 ```bash
-/fpf:decay waive the benchmark until February, we'll re-test after launch
+/decay waive the benchmark until February, we'll re-test after launch
 ```
 
 #### Arguments
@@ -399,7 +399,7 @@ None required. Command is interactive.
 
 ```bash
 # Check for stale evidence
-/fpf:decay
+/decay
 
 # Natural language waiver
 # User: Waive the benchmark until February, we'll re-run after migration.
@@ -419,7 +419,7 @@ None required. Command is interactive.
 
 ---
 
-### /fpf:actualize - Reconcile with Codebase
+### /actualize - Reconcile with Codebase
 
 Update the knowledge base to reflect codebase changes that may affect existing hypotheses.
 
@@ -433,7 +433,7 @@ This command serves as the Observe phase of the FPF's Canonical Evolution Loop (
 - Flagging Outdated Decisions: Identifies decisions whose underlying evidence chain has been impacted by recent code changes.
 
 ```bash
-/fpf:actualize
+/actualize
 ```
 
 #### How It Works
@@ -447,10 +447,10 @@ This command serves as the Observe phase of the FPF's Canonical Evolution Loop (
 
 ```bash
 # After major refactoring
-/fpf:actualize
+/actualize
 
 # After dependency updates
-/fpf:actualize
+/actualize
 ```
 
 #### Best practices
@@ -461,7 +461,7 @@ This command serves as the Observe phase of the FPF's Canonical Evolution Loop (
 
 ---
 
-### /fpf:reset - Start Fresh
+### /reset - Start Fresh
 
 Archive the current session and return to IDLE state for a new reasoning cycle.
 
@@ -469,7 +469,7 @@ Archive the current session and return to IDLE state for a new reasoning cycle.
 - Output - Archived session in `.fpf/sessions/`
 
 ```bash
-/fpf:reset
+/reset
 ```
 
 #### Arguments
@@ -490,7 +490,7 @@ None required. Command is interactive.
 #### Usage Examples
 
 ```bash
-/fpf:reset
+/reset
 
 # Agent: What type of reset would you like?
 # 1. Soft Reset - Archive current session, start fresh

@@ -622,7 +622,7 @@ Try:
 ```bash
 # Semantic analysis helps find test targets
 > /mcp:setup-serena-mcp
-> /tdd:write-tests
+> /write-tests
 ```
 
 ### With Kaizen
@@ -630,11 +630,11 @@ Try:
 ```bash
 # Semantic analysis aids root cause investigation
 > /mcp:setup-serena-mcp
-> /kaizen:why "Why is the authentication failing?"
+> /why "Why is the authentication failing?"
 
 # Codemap visualizes codebase for root cause tracing
 > /mcp:setup-codemap-cli
-> /kaizen:root-cause-tracing
+> /root-cause-tracing
 ```
 
 ### With Feature Development Workflow

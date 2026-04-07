@@ -1,4 +1,4 @@
-# /kaizen:why - Five Whys Root Cause Analysis
+# /why - Five Whys Root Cause Analysis
 
 Iterative questioning technique that drills from surface symptoms to fundamental root causes by repeatedly asking "why."
 
@@ -6,7 +6,7 @@ Iterative questioning technique that drills from surface symptoms to fundamental
 - Output - Chain of causation leading to actionable root cause
 
 ```bash
-/kaizen:why ["issue or symptom description"]
+/why ["issue or symptom description"]
 ```
 
 ## Arguments
@@ -34,13 +34,13 @@ Optional description of the issue or symptom to analyze. If not provided, you wi
 
 ```bash
 # Investigate a production bug
-> /kaizen:why "Users see 500 error on checkout"
+> /why "Users see 500 error on checkout"
 
 # Analyze a recurring issue
-> /kaizen:why "E2E tests fail intermittently"
+> /why "E2E tests fail intermittently"
 
 # Understand a performance problem
-> /kaizen:why "Feature deployment takes 2 hours"
+> /why "Feature deployment takes 2 hours"
 ```
 
 ### Example Output

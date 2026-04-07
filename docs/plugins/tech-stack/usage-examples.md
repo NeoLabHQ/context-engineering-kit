@@ -16,7 +16,7 @@ claude /init
 /sdd:00-setup TypeScript REST API with Express and PostgreSQL
 
 # Add TypeScript best practices
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Verify the configuration
 cat CLAUDE.md
@@ -51,7 +51,7 @@ cat CLAUDE.md
 
 ```bash
 # Add TypeScript best practices to existing project
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Review what was added
 cat CLAUDE.md
@@ -80,7 +80,7 @@ Your team may have different preferences. After running the command, consider:
 
 ```bash
 # Lead developer sets up standards
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Commit CLAUDE.md to version control
 git add CLAUDE.md
@@ -103,10 +103,10 @@ git pull
 
 ```bash
 # Add TypeScript best practices
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Add code formatting and architecture rules
-/ddd:setup-code-formating
+/setup-code-formating
 
 # Your CLAUDE.md now has comprehensive standards
 cat CLAUDE.md
@@ -132,7 +132,7 @@ Your CLAUDE.md will contain:
 
 ```bash
 # Ensure standards are in place
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Implement a feature
 > claude "create a user authentication service with JWT tokens"
@@ -187,13 +187,13 @@ async function authenticateUser(credentials: Credentials): Promise<AuthResult> {
 
 ```bash
 # Setup standards first
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Implement feature
 > claude "create a payment processing module"
 
 # Reflect on the implementation
-/reflexion:reflect "verify TypeScript best practices are followed"
+/reflect "verify TypeScript best practices are followed"
 ```
 
 **Reflection Output Example**:
@@ -214,7 +214,7 @@ Improvements Suggested:
 > claude "apply the suggested improvements from reflection"
 
 # Save insights for future reference
-/reflexion:memorize
+/memorize
 ```
 
 ### Gradual Standards Adoption
@@ -223,16 +223,16 @@ Improvements Suggested:
 
 ```bash
 # Start with basic standards
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Review a specific module against new standards
-/reflexion:critique src/users/*.ts
+/critique src/users/*.ts
 
 # Address findings in that module
 > claude "refactor the users module to follow TypeScript best practices"
 
 # Move to next module
-/reflexion:critique src/payments/*.ts
+/critique src/payments/*.ts
 ```
 
 **Benefits of Gradual Adoption**:
@@ -251,10 +251,10 @@ Improvements Suggested:
 /sdd:00-setup TypeScript microservice with NestJS
 
 # Add language standards
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Add formatting standards
-/ddd:setup-code-formating
+/setup-code-formating
 
 # Start feature development
 /sdd:01-research "user authentication feature"
@@ -264,29 +264,29 @@ Improvements Suggested:
 
 ```bash
 # Establish standards
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Implement feature
 > claude "create REST API for product catalog"
 
 # Review against standards
-/reflexion:critique
+/critique
 
 # Memorize project-specific patterns
-/reflexion:memorize --section="TypeScript Patterns"
+/memorize --section="TypeScript Patterns"
 ```
 
 ### With Code Review
 
 ```bash
 # Standards in place
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Make changes
 > claude "add pagination to product listing endpoint"
 
 # Review against CLAUDE.md standards
-/code-review:review-local-changes
+/review-local-changes
 
 # Standards violations will be flagged in review
 ```
@@ -295,7 +295,7 @@ Improvements Suggested:
 
 ```bash
 # Setup TypeScript standards
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Add documentation retrieval
 /mcp:setup-context7-mcp
@@ -313,8 +313,8 @@ Improvements Suggested:
 ```bash
 claude /init
 /sdd:00-setup [your tech stack description]
-/tech-stack:add-typescript-best-practices
-/ddd:setup-code-formating
+/add-typescript-best-practices
+/setup-code-formating
 ```
 
 ### Before Major Feature Implementation
@@ -324,14 +324,14 @@ claude /init
 cat CLAUDE.md | grep "Code Style"
 
 # If missing, add them
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 ```
 
 ### During Code Review Preparation
 
 ```bash
 # Self-review against standards
-/reflexion:reflect "check TypeScript best practices compliance"
+/reflect "check TypeScript best practices compliance"
 
 # Fix any issues before submitting PR
 > claude "address the TypeScript issues identified"
@@ -353,7 +353,7 @@ If Claude isn't following the established standards:
 
 1. Verify CLAUDE.md exists and contains the standards
 2. Check if CLAUDE.md is in the project root
-3. Re-run `/tech-stack:add-typescript-best-practices` if needed
+3. Re-run `/add-typescript-best-practices` if needed
 4. Explicitly reference standards: "follow the TypeScript guidelines in CLAUDE.md"
 
 ### Conflicting Guidelines

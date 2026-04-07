@@ -1,4 +1,4 @@
-# /tdd:write-tests - Cover Local Changes with Tests
+# /write-tests - Cover Local Changes with Tests
 
 Systematically add test coverage for all local code changes using specialized review and development agents.
 
@@ -6,7 +6,7 @@ Systematically add test coverage for all local code changes using specialized re
 - Output - New test files covering all critical business logic
 
 ```bash
-/tdd:write-tests ["focus area or modules"]
+/write-tests ["focus area or modules"]
 ```
 
 ## Arguments
@@ -46,16 +46,16 @@ Optional focus area specification. Defaults to all uncommitted changes. If every
 
 ```bash
 # Cover all uncommitted changes
-> /tdd:write-tests
+> /write-tests
 
 # Focus on specific module
-> /tdd:write-tests Focus on payment processing edge cases
+> /write-tests Focus on payment processing edge cases
 
 # Cover authentication changes
-> /tdd:write-tests authentication module
+> /write-tests authentication module
 
 # Focus on error handling
-> /tdd:write-tests Focus on error paths and validations
+> /write-tests Focus on error paths and validations
 ```
 
 ## Best practices

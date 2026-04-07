@@ -1,4 +1,4 @@
-# /code-review:review-pr - Pull Request Review
+# /review-pr - Pull Request Review
 
 Comprehensive pull request review using all specialized agents. Posts only high-confidence, high-value inline comments directly on PR lines - no overall review report.
 
@@ -6,7 +6,7 @@ Comprehensive pull request review using all specialized agents. Posts only high-
 - Output - Inline comments on specific lines (only issues that pass confidence/impact thresholds)
 
 ```bash
-/code-review:review-pr [review-aspects] [--min-impact critical|high|medium|medium-low|low]
+/review-pr [review-aspects] [--min-impact critical|high|medium|medium-low|low]
 ```
 
 ## CI/CD Integration
@@ -57,19 +57,19 @@ You can integrate this plugin with your CI/CD pipeline by using Offical Anthropi
 
 ```bash
 # Review PR by number
-> /code-review:review-pr #123
+> /review-pr #123
 
 # Review PR with focus on security
-> /code-review:review-pr security
+> /review-pr security
 
 # Include medium-impact issues and above
-> /code-review:review-pr --min-impact medium
+> /review-pr --min-impact medium
 
 # Combine focus areas with a lower impact threshold
-> /code-review:review-pr security, performance --min-impact medium-low
+> /review-pr security, performance --min-impact medium-low
 
 # Review current branch's PR (defaults to --min-impact high)
-> /code-review:review-pr
+> /review-pr
 ```
 
 

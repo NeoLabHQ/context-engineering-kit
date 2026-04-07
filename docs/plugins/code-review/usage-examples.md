@@ -13,7 +13,7 @@ Real-world scenarios demonstrating effective use of the Code Review plugin.
 > claude "add user registration endpoint"
 
 # Review before commit
-> /code-review:review-local-changes
+> /review-local-changes
 ```
 
 **Review Output**:
@@ -34,7 +34,7 @@ Action Required: Fix critical issues before committing
 > claude "hash passwords with bcrypt and add email validation"
 
 # Re-review
-> /code-review:review-local-changes
+> /review-local-changes
 
 # Clean review - commit
 > /git:commit "Add user registration with validation and security"
@@ -49,7 +49,7 @@ Action Required: Fix critical issues before committing
 > /git:create-pr "Add payment processing"
 
 # Review PR #456
-> /code-review:review-pr 456
+> /review-pr 456
 ```
 
 **Review Findings**:
@@ -85,7 +85,7 @@ Verdict: Request changes for security and race condition
 > claude "implement OAuth2 authentication with Google provider"
 
 # Security-focused review
-> /code-review:review-local-changes security
+> /review-local-changes security
 ```
 
 **Security Findings**:
@@ -115,7 +115,7 @@ High Risk:
 > claude "implement all critical and high security fixes"
 
 # Verify security
-> /code-review:review-local-changes security
+> /review-local-changes security
 
 # Clean security audit
 > /git:commit "Add OAuth2 with security best practices"
@@ -132,7 +132,7 @@ High Risk:
 > claude "add shopping cart functionality"
 
 # Test coverage review
-> /code-review:review-local-changes tests
+> /review-local-changes tests
 ```
 
 **Coverage Analysis**:
@@ -166,7 +166,7 @@ Test Quality Issues:
 > claude "add all missing test cases identified by code review"
 
 # Verify coverage
-> /code-review:review-local-changes tests
+> /review-local-changes tests
 
 # Coverage now: 82% ✓
 > /git:commit "Add shopping cart with comprehensive tests"
@@ -182,7 +182,7 @@ Test Quality Issues:
 # Review existing code
 > claude "review src/legacy/order-processor.js for refactoring opportunities"
 
-> /code-review:review-local-changes
+> /review-local-changes
 ```
 
 **Quality Assessment**:
@@ -236,16 +236,16 @@ High Priority:
 ```bash
 # Apply refactorings incrementally
 > claude "extract methods from OrderProcessor"
-> /code-review:review-local-changes
+> /review-local-changes
 
 > claude "add error handling and logging"
-> /code-review:review-local-changes
+> /review-local-changes
 
 > claude "apply SOLID principles"
-> /code-review:review-local-changes
+> /review-local-changes
 
 # Final quality check
-> /code-review:review-local-changes
+> /review-local-changes
 # Code Quality Score: 8/10 ✓
 
 > /git:commit "Refactor OrderProcessor - improved quality from 3/10 to 8/10"
@@ -262,7 +262,7 @@ High Priority:
 > claude "add POST /api/v2/orders endpoint"
 
 # Contract review
-> /code-review:review-local-changes contracts
+> /review-local-changes contracts
 ```
 
 **Contract Findings**:
@@ -300,7 +300,7 @@ Documentation:
 > claude "fix all contract issues and update OpenAPI spec"
 
 # Verify contracts
-> /code-review:review-local-changes contracts
+> /review-local-changes contracts
 
 > /git:commit "Add POST /api/v2/orders with consistent contracts"
 ```
@@ -316,7 +316,7 @@ Documentation:
 > claude "add real-time notifications"
 
 # Multi-layered review
-> /code-review:review-local-changes
+> /review-local-changes
 # Fix high/critical issues
 > claude "address all critical and high priority findings"
 
@@ -328,7 +328,7 @@ Documentation:
 > claude "address reflexion critique findings"
 
 # Final verification
-> /code-review:review-local-changes
+> /review-local-changes
 # Clean ✓
 
 # Save learnings
@@ -351,7 +351,7 @@ Documentation:
 > /sdd:04-implement
 
 # Code review after implementation
-> /code-review:review-local-changes
+> /review-local-changes
 ```
 
 **Review finds issues**:
@@ -370,7 +370,7 @@ High:
 > claude "fix critical and high priority code review findings"
 
 # Verify fixes
-> /code-review:review-local-changes
+> /review-local-changes
 # Clean ✓
 
 # Document
@@ -389,7 +389,7 @@ High:
 # Add new authentication method
 > claude "add API key authentication to existing auth system"
 
-> /code-review:review-local-changes
+> /review-local-changes
 ```
 
 **Historical Context Findings**:
@@ -424,7 +424,7 @@ Similar Past Issues:
 # Align with existing patterns
 > claude "refactor to match existing authentication patterns and use factory pattern"
 
-> /code-review:review-local-changes
+> /review-local-changes
 # Historical context issues resolved ✓
 
 > /git:commit "Add API key authentication following existing patterns"
@@ -440,7 +440,7 @@ Similar Past Issues:
 # Implement recommendation algorithm
 > claude "implement product recommendation algorithm based on user behavior"
 
-> /code-review:review-local-changes
+> /review-local-changes
 ```
 
 **Bug Hunter Findings**:
@@ -485,7 +485,7 @@ Edge Cases Not Handled:
 > claude "fix all bug hunter findings"
 
 # Verify fixes
-> /code-review:review-local-changes
+> /review-local-changes
 # No critical bugs ✓
 
 > /git:commit "Add recommendation engine with bug fixes"
@@ -501,7 +501,7 @@ Edge Cases Not Handled:
 # Optimize search endpoint
 > claude "optimize product search to handle 1000 req/sec"
 
-> /code-review:review-local-changes
+> /review-local-changes
 ```
 
 **Code Quality Reviewer Notes**:
@@ -541,7 +541,7 @@ Suggested Optimizations:
 > claude "implement all performance optimizations"
 
 # Verify improvements
-> /code-review:review-local-changes
+> /review-local-changes
 # No performance concerns ✓
 
 # Benchmark
@@ -556,25 +556,25 @@ Suggested Optimizations:
 
 **Week 1**: First PR
 ```bash
-> /code-review:review-pr 100
+> /review-pr 100
 # Result: 15 issues found (3 critical, 5 high, 7 medium)
 ```
 
 **Week 2**: After learning from review
 ```bash
-> /code-review:review-pr 110
+> /review-pr 110
 # Result: 8 issues found (1 critical, 2 high, 5 medium)
 ```
 
 **Week 3**: Habits forming
 ```bash
-> /code-review:review-pr 120
+> /review-pr 120
 # Result: 3 issues found (0 critical, 1 high, 2 medium)
 ```
 
 **Week 4**: Consistent quality
 ```bash
-> /code-review:review-pr 130
+> /review-pr 130
 # Result: 1 issue found (0 critical, 0 high, 1 medium)
 # Verdict: ✅ Ready to ship
 ```

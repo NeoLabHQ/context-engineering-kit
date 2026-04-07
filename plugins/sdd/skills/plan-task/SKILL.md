@@ -500,7 +500,7 @@ Launch agent:
   ```
   CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Read ${CLAUDE_PLUGIN_ROOT}/skills/plan/analyse-business-requirements.md and execute it exactly as is!
+  Read ${CLAUDE_PLUGIN_ROOT}/skills/plan-task/analyse-business-requirements.md and execute it exactly as is!
 
   Task File: <TASK_FILE>
   Task Title: <title from task file>

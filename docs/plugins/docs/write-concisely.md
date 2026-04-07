@@ -1,4 +1,4 @@
-# /docs:write-concisely - Clear and Concise Writing
+# /write-concisely - Clear and Concise Writing
 
 Apply William Strunk Jr.'s *The Elements of Style* principles to documentation. Makes writing clearer, stronger, and more professional.
 
@@ -6,7 +6,7 @@ Apply William Strunk Jr.'s *The Elements of Style* principles to documentation. 
 - Output - Documentation with improved clarity and reduced word count
 
 ```bash
-/docs:write-concisely ["text or file to improve"]
+/write-concisely ["text or file to improve"]
 ```
 
 ## Arguments
@@ -62,14 +62,14 @@ The skill enforces six essential writing rules:
 
 ```bash
 # Improve a specific document
-> /docs:write-concisely docs/getting-started.md
+> /write-concisely docs/getting-started.md
 
 # Apply to inline text
-> /docs:write-concisely "There is no doubt but that the system is working"
+> /write-concisely "There is no doubt but that the system is working"
 # Result: "The system works"
 
 # Review recent documentation changes
-> /docs:write-concisely
+> /write-concisely
 ```
 
 ## Quality Metrics

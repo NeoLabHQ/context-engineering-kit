@@ -1,4 +1,4 @@
-# /sdd:implement - Task Implementation with Verification
+# /implement-task - Task Implementation with Verification
 
 Execute task implementation steps using automated LLM-as-Judge quality verification, sequential and parallel execution, and Definition of Done (DoD) validation.
 
@@ -6,7 +6,7 @@ Execute task implementation steps using automated LLM-as-Judge quality verificat
 - **Output**: Working code with passing tests; task moved to `.specs/tasks/done/`.
 
 ```bash
-/sdd:implement [task-file] [options]
+/implement-task [task-file] [options]
 ```
 
 ## Arguments
@@ -197,37 +197,37 @@ After each specified step passes:
 
 ```bash
 # Implement a specific task
-/sdd:implement add-validation.feature.md
+/implement-task add-validation.feature.md
 
 # Auto-select task from todo/ or in-progress/ (if only 1 task)
-/sdd:implement
+/implement-task
 
 # Continue from last completed step
-/sdd:implement add-validation.feature.md --continue
+/implement-task add-validation.feature.md --continue
 
 # Refine after manually fixing project files
-/sdd:implement add-validation.feature.md --refine
+/implement-task add-validation.feature.md --refine
 
 # Human review after every step
-/sdd:implement add-validation.feature.md --human-in-the-loop
+/implement-task add-validation.feature.md --human-in-the-loop
 
 # Human review after specific steps only
-/sdd:implement add-validation.feature.md --human-in-the-loop 2,4,6
+/implement-task add-validation.feature.md --human-in-the-loop 2,4,6
 
 # Stricter quality threshold (both standard and critical set to 4.5)
-/sdd:implement critical-api.feature.md --target-quality 4.5
+/implement-task critical-api.feature.md --target-quality 4.5
 
 # Different thresholds for standard (3.5) and critical (4.5)
-/sdd:implement add-validation.feature.md --target-quality 3.5,4.5
+/implement-task add-validation.feature.md --target-quality 3.5,4.5
 
 # Unlimited iterations until quality threshold met
-/sdd:implement add-validation.feature.md --max-iterations unlimited
+/implement-task add-validation.feature.md --max-iterations unlimited
 
 # Skip judges for fast execution (no quality gates)
-/sdd:implement add-validation.feature.md --skip-judges
+/implement-task add-validation.feature.md --skip-judges
 
 # Combined: continue with human review
-/sdd:implement add-validation.feature.md --continue --human-in-the-loop
+/implement-task add-validation.feature.md --continue --human-in-the-loop
 ```
 
 ## Task Lifecycle

@@ -6,7 +6,7 @@ FPF plugin strictly separates the **User Experience** from the **Assurance Layer
 
 ### Surface (What You See)
 
-Clean, concise summaries in the chat. When you run a command like `/fpf:propose-hypotheses`, you get a readable output that shows:
+Clean, concise summaries in the chat. When you run a command like `/propose-hypotheses`, you get a readable output that shows:
 
 - Generated hypotheses with brief descriptions
 - Current assurance levels
@@ -54,8 +54,8 @@ The AI can recommend, but architectural decisions flow through human judgment. T
 
 | Level | Name | Meaning | Promotion Path |
 |-------|------|---------|----------------|
-| L0 | Observation | Unverified hypothesis or note | → `/fpf:propose-hypotheses verify step` |
-| L1 | Substantiated | Passed logical consistency check | → `/fpf:propose-hypotheses validate step` |
+| L0 | Observation | Unverified hypothesis or note | → `/propose-hypotheses verify step` |
+| L1 | Substantiated | Passed logical consistency check | → `/propose-hypotheses validate step` |
 | L2 | Verified | Empirically tested and confirmed | Terminal |
 | Invalid | Disproved | Failed verification (kept for learning) | Terminal |
 
@@ -79,7 +79,7 @@ FPF plugin's assurance calculator applies a **Congruence Penalty** based on the 
 
 Evidence expires. That benchmark you ran six months ago? The library has been updated twice since then. Your numbers might not be accurate anymore.
 
-Every piece of evidence has a `valid_until` date. When evidence expires, the decision it supports becomes **questionable** — not necessarily wrong, just unverified. The `/fpf:decay` command shows you what's stale and lets you:
+Every piece of evidence has a `valid_until` date. When evidence expires, the decision it supports becomes **questionable** — not necessarily wrong, just unverified. The `/decay` command shows you what's stale and lets you:
 
 - **Refresh** — Re-run tests to get fresh proof
 - **Deprecate** — Downgrade the hypothesis if the decision needs rethinking

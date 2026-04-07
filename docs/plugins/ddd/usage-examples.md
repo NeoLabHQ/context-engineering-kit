@@ -16,10 +16,10 @@ Real-world scenarios demonstrating effective use of the Domain-Driven Developmen
 /sdd:00-setup Use TypeScript, PostgreSQL, Clean Architecture, domain-driven design
 
 # Add TypeScript-specific best practices
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Add code formatting standards
-/ddd:setup-code-formating
+/setup-code-formating
 ```
 
 **Expected Flow**:
@@ -280,7 +280,7 @@ export class PhoneNumber {
 /sdd:00-setup Payment microservice with Clean Architecture, bounded context for payment processing
 
 # Set up code standards
-/ddd:setup-code-formating
+/setup-code-formating
 
 # Design the domain model
 claude "design the domain model for a payment processing bounded context"
@@ -385,7 +385,7 @@ claude "implement order processing with Clean Architecture"
 ```bash
 # Setup
 /sdd:00-setup E-commerce platform with Clean Architecture
-/ddd:setup-code-formating
+/setup-code-formating
 
 # Specification
 /sdd:01-brainstorm Shopping cart feature
@@ -405,7 +405,7 @@ claude "implement order processing with Clean Architecture"
 claude "add payment processing integration"
 
 # Review for DDD compliance
-/code-review:review-local-changes
+/review-local-changes
 
 # The software-architecture skill ensures review checks:
 # - Layer boundaries

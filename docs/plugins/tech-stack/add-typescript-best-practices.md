@@ -1,4 +1,4 @@
-# /tech-stack:add-typescript-best-practices - TypeScript Configuration
+# /add-typescript-best-practices - TypeScript Configuration
 
 Sets up TypeScript best practices and code style rules in your CLAUDE.md file, providing Claude with explicit guidelines for generating consistent, type-safe code.
 
@@ -6,7 +6,7 @@ Sets up TypeScript best practices and code style rules in your CLAUDE.md file, p
 - Output - Updated CLAUDE.md with TypeScript guidelines
 
 ```bash
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 ```
 
 ## Arguments

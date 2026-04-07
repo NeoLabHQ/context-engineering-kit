@@ -1,12 +1,12 @@
-# /sdd:add-task - Draft Task Creation
+# /add-task - Draft Task Creation
 
-Create a draft task file that captures the user's intent with structured metadata, proper classification, and dependency tracking — ready for refinement by `/sdd:plan`.
+Create a draft task file that captures the user's intent with structured metadata, proper classification, and dependency tracking — ready for refinement by `/plan-task`.
 
 - Purpose — Transform a user prompt into a well-structured draft task file with an action-oriented title, type classification, and optional dependencies
 - Output — Task file at `.specs/tasks/draft/<name>.<type>.md`
 
 ```bash
-/sdd:add-task "Task description" [dependency-file-paths...]
+/add-task "Task description" [dependency-file-paths...]
 ```
 
 ## Arguments
@@ -136,25 +136,25 @@ depends_on: <list of dependency task files>
 
 ```bash
 # Simple feature request
-/sdd:add-task "Add user profile view with name, email, and avatar"
+/add-task "Add user profile view with name, email, and avatar"
 
 # Bug report
-/sdd:add-task "Fix login timeout on slow connections"
+/add-task "Fix login timeout on slow connections"
 
 # Refactoring task
-/sdd:add-task "Restructure authentication module for better testability"
+/add-task "Restructure authentication module for better testability"
 
 # Task with dependency
-/sdd:add-task "Add role-based access control" @.specs/tasks/draft/implement-user-auth-service.feature.md
+/add-task "Add role-based access control" @.specs/tasks/draft/implement-user-auth-service.feature.md
 
 # Multiple dependencies
-/sdd:add-task "Implement dashboard analytics" @.specs/tasks/draft/implement-auth.feature.md @.specs/tasks/draft/add-user-tracking.feature.md
+/add-task "Implement dashboard analytics" @.specs/tasks/draft/implement-auth.feature.md @.specs/tasks/draft/add-user-tracking.feature.md
 
 # Test task
-/sdd:add-task "Add unit tests for payment processing service"
+/add-task "Add unit tests for payment processing service"
 
 # CI/CD task
-/sdd:add-task "Add GitHub Actions workflow for automated testing"
+/add-task "Add GitHub Actions workflow for automated testing"
 ```
 
 ## Artifacts Generated
@@ -163,21 +163,21 @@ depends_on: <list of dependency task files>
 .specs/
 └── tasks/
     └── draft/
-        └── <name>.<type>.md    # Draft task file (ready for /sdd:plan)
+        └── <name>.<type>.md    # Draft task file (ready for /plan-task)
 ```
 
 ## What Happens Next
 
 After creating a draft task, proceed with the SDD workflow:
 
-1. **Plan** — Run `/sdd:plan` to refine the draft into a full specification with architecture, implementation steps, and verification rubrics
-2. **Implement** — Run `/sdd:implement` to execute the planned steps with quality-gated verification
+1. **Plan** — Run `/plan-task` to refine the draft into a full specification with architecture, implementation steps, and verification rubrics
+2. **Implement** — Run `/implement-task` to execute the planned steps with quality-gated verification
 3. **Ship** — Use `/git:commit` and `/git:create-pr` to deliver
 
 ```bash
-/sdd:add-task "Add validation to form inputs"
-/sdd:plan @.specs/tasks/draft/add-validation-form-inputs.feature.md
-/sdd:implement
+/add-task "Add validation to form inputs"
+/plan-task @.specs/tasks/draft/add-validation-form-inputs.feature.md
+/implement-task
 ```
 
 ## Best Practices
@@ -185,5 +185,5 @@ After creating a draft task, proceed with the SDD workflow:
 - Keep descriptions focused — one task per prompt; decompose large features into multiple dependent tasks.
 - Provide dependencies explicitly — use task file paths as additional arguments when tasks have ordering requirements.
 - Use natural language — the agent infers type and title from your description; no special formatting is needed.
-- Review the draft — verify the generated title and type before running `/sdd:plan`.
+- Review the draft — verify the generated title and type before running `/plan-task`.
 - Decompose before planning — creating smaller tasks with dependencies produces better specifications than one large task.

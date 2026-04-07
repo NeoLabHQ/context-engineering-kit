@@ -17,8 +17,8 @@ Reflection and self-improvement commands based on Self-Refine and Reflexion pape
 
 Comprehensive code review commands using specialized agents. [More info](../plugins/code-review/README.md).
 
-- `/code-review:review-local-changes` - Comprehensive review of local uncommitted changes using specialized agents with code improvement suggestions.
-- `/code-review:review-pr` - Comprehensive pull request review using specialized agents.
+- `/review-local-changes` - Comprehensive review of local uncommitted changes using specialized agents with code improvement suggestions.
+- `/review-pr` - Comprehensive pull request review using specialized agents.
 
 ### Git
 
@@ -48,12 +48,12 @@ Complete Spec-Driven Development workflow commands. [More info](../plugins/sdd/R
 
 Continuous improvement and problem analysis commands. [More info](../plugins/kaizen/README.md).
 
-- `/kaizen:analyze` - Auto-selects best Kaizen method (Gemba Walk, Value Stream, or Muda) for target analysis.
-- `/kaizen:analyze-problem` - Comprehensive A3 one-page problem analysis with root cause and action plan.
-- `/kaizen:why` - Iterative Five Whys root cause analysis drilling from symptoms to fundamentals.
-- `/kaizen:root-cause-tracing` - Systematically traces bugs backward through call stack to identify source of invalid data or incorrect behavior.
-- `/kaizen:cause-and-effect` - Systematic Fishbone analysis exploring problem causes across six categories.
-- `/kaizen:plan-do-check-act` - Iterative PDCA cycle for systematic experimentation and continuous improvement.
+- `/analyse` - Auto-selects best Kaizen method (Gemba Walk, Value Stream, or Muda) for target analysis.
+- `/analyse-problem` - Comprehensive A3 one-page problem analysis with root cause and action plan.
+- `/why` - Iterative Five Whys root cause analysis drilling from symptoms to fundamentals.
+- `/root-cause-tracing` - Systematically traces bugs backward through call stack to identify source of invalid data or incorrect behavior.
+- `/cause-and-effect` - Systematic Fishbone analysis exploring problem causes across six categories.
+- `/plan-do-check-act` - Iterative PDCA cycle for systematic experimentation and continuous improvement.
 
 ### Customaize Agent
 
@@ -72,8 +72,8 @@ Commands for creating and testing custom Claude Code extensions. [More info](../
 
 Test-first development methodology with agent-orchestrated coverage. [More info](../plugins/tdd/README.md).
 
-- `/tdd:write-tests` - Systematically add test coverage for local code changes using specialized review and development agents
-- `/tdd:fix-tests` - Fix failing tests after business logic changes or refactoring using orchestrated agents
+- `/write-tests` - Systematically add test coverage for local code changes using specialized review and development agents
+- `/fix-tests` - Fix failing tests after business logic changes or refactoring using orchestrated agents
 
 ### Subagent-Driven Development (SADD)
 
@@ -81,35 +81,35 @@ Execution framework for parallel/sequential task dispatch, competitive generatio
 
 #### Execution Commands
 
-- `/sadd:launch-sub-agent` - Launch focused sub-agents with intelligent model selection, Zero-shot CoT reasoning, and self-critique verification
-- `/sadd:do-and-judge` - Execute a single task with implementation sub-agent, independent judge verification, and automatic retry loop until passing
-- `/sadd:do-in-parallel` - Execute the same task across multiple independent targets in parallel with context isolation
-- `/sadd:do-in-steps` - Execute complex tasks through sequential sub-agent orchestration with automatic decomposition and context passing
-- `/sadd:do-competitively` - Execute tasks through competitive generation, multi-judge evaluation, and evidence-based synthesis to produce superior results
-- `/sadd:tree-of-thoughts` - Execute complex reasoning through systematic exploration of solution space, pruning unpromising branches, and synthesizing the best solution
+- `/launch-sub-agent` - Launch focused sub-agents with intelligent model selection, Zero-shot CoT reasoning, and self-critique verification
+- `/do-and-judge` - Execute a single task with implementation sub-agent, independent judge verification, and automatic retry loop until passing
+- `/do-in-parallel` - Execute the same task across multiple independent targets in parallel with context isolation
+- `/do-in-steps` - Execute complex tasks through sequential sub-agent orchestration with automatic decomposition and context passing
+- `/do-competitively` - Execute tasks through competitive generation, multi-judge evaluation, and evidence-based synthesis to produce superior results
+- `/tree-of-thoughts` - Execute complex reasoning through systematic exploration of solution space, pruning unpromising branches, and synthesizing the best solution
 
 #### Evaluation Commands
 
-- `/sadd:judge-with-debate` - Evaluate solutions through iterative multi-judge debate with consensus building or disagreement reporting
-- `/sadd:judge` - Evaluate completed work using LLM-as-Judge with structured rubrics and evidence-based scoring
+- `/judge-with-debate` - Evaluate solutions through iterative multi-judge debate with consensus building or disagreement reporting
+- `/judge` - Evaluate completed work using LLM-as-Judge with structured rubrics and evidence-based scoring
 
 ### Docs
 
 Documentation management commands. [More info](../plugins/docs/README.md).
 
-- `/docs:update-docs` - Update implementation documentation after completing development phases
+- `/update-docs` - Update implementation documentation after completing development phases
 
 ### Domain-Driven Development (DDD)
 
 Commands for setting up domain-driven development practices. [More info](../plugins/ddd/README.md).
 
-- `/ddd:setup-code-formating` - Sets up code formatting rules and style guidelines in CLAUDE.md
+- `/setup-code-formating` - Sets up code formatting rules and style guidelines in CLAUDE.md
 
 ### Tech Stack
 
 Commands for language and framework-specific best practices. [More info](../plugins/tech-stack/README.md).
 
-- `/tech-stack:add-typescript-best-practices` - Setup TypeScript best practices and code style rules in CLAUDE.md
+- `/add-typescript-best-practices` - Setup TypeScript best practices and code style rules in CLAUDE.md
 
 ### MCP
 
@@ -125,12 +125,12 @@ Structured reasoning with ADI (Abduction-Deduction-Induction) cycle for auditabl
 
 #### Workflow Command
 
-- `/fpf:propose-hypotheses` - Execute complete FPF reasoning cycle from hypothesis generation to decision. Orchestrates the full ADI cycle: initialize context, generate hypotheses, verify logic, validate evidence, audit trust, and produce a Design Rationale Record (DRR).
+- `/propose-hypotheses` - Execute complete FPF reasoning cycle from hypothesis generation to decision. Orchestrates the full ADI cycle: initialize context, generate hypotheses, verify logic, validate evidence, audit trust, and produce a Design Rationale Record (DRR).
 
 #### Utility Commands
 
-- `/fpf:status` - Show current FPF phase and hypothesis counts across knowledge layers (L0/L1/L2).
-- `/fpf:query` - Search the FPF knowledge base and display hypothesis details with assurance information.
-- `/fpf:decay` - Manage evidence freshness: refresh stale evidence, deprecate obsolete decisions, or waive with documented rationale.
-- `/fpf:actualize` - Reconcile the FPF knowledge base with codebase changes, detecting context drift and stale evidence.
-- `/fpf:reset` - Archive current session and reset the FPF cycle for a fresh start.
+- `/status` - Show current FPF phase and hypothesis counts across knowledge layers (L0/L1/L2).
+- `/query` - Search the FPF knowledge base and display hypothesis details with assurance information.
+- `/decay` - Manage evidence freshness: refresh stale evidence, deprecate obsolete decisions, or waive with documented rationale.
+- `/actualize` - Reconcile the FPF knowledge base with codebase changes, detecting context drift and stale evidence.
+- `/reset` - Archive current session and reset the FPF cycle for a fresh start.

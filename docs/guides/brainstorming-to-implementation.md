@@ -100,7 +100,7 @@ After reviewing options, select your preferred approach or ask for more explorat
 For architectural decisions with long-term consequences, consider using the [FPF plugin](../plugins/fpf/README.md) to systematically evaluate approaches:
 
 ```bash
-/fpf:propose-hypotheses What caching strategy should we use for our API?
+/propose-hypotheses What caching strategy should we use for our API?
 ```
 
 FPF provides:
@@ -140,7 +140,7 @@ After each section, confirm it matches your expectations or request changes. Onc
 
 ### 4. Create task and plan specification
 
-Use the `/sdd:add-task` command to create a task file from the refined design, then `/sdd:plan` to generate a detailed specification with architecture, implementation steps, and verification criteria.
+Use the `/sdd:add-task` command to create a task file from the refined design, then `/plan-task` to generate a detailed specification with architecture, implementation steps, and verification criteria.
 
 ```bash
 /sdd:add-task "Implement faceted search with Elasticsearch, filters, and autocomplete"
@@ -151,17 +151,17 @@ After LLM completes, review the task file in `.specs/tasks/draft/`. You can adju
 Then run planning to generate the full specification:
 
 ```bash
-/sdd:plan
+/plan-task
 ```
 
-After LLM completes, review the refined specification in `.specs/tasks/todo/`. The plan includes architecture design, implementation steps with parallelization, and verification rubrics. You can adjust and run `/sdd:plan --refine` to iterate.
+After LLM completes, review the refined specification in `.specs/tasks/todo/`. The plan includes architecture design, implementation steps with parallelization, and verification rubrics. You can adjust and run `/plan-task --refine` to iterate.
 
 ### 5. Implement features
 
-Use the `/sdd:implement` command to execute the implementation. This produces working code with tests and verification.
+Use the `/implement-task` command to execute the implementation. This produces working code with tests and verification.
 
 ```bash
-/sdd:implement
+/implement-task
 ```
 
 During implementation, the LLM executes each step with quality gates, writes tests, and verifies the solution works as expected. More info in [Spec-Driven Development](./spec-driven-development.md) workflow.
@@ -171,7 +171,7 @@ During implementation, the LLM executes each step with quality gates, writes tes
 Complete the workflow with code review and pull request creation.
 
 ```bash
-/code-review:review-local-changes
+/review-local-changes
 /git:commit
 /git:create-pr
 ```

@@ -13,7 +13,7 @@ Real-world scenarios demonstrating effective use of the Docs plugin for maintain
 > claude "implement user authentication with JWT tokens"
 
 # Update documentation to reflect changes
-> /docs:update-docs
+> /update-docs
 ```
 
 **Expected Flow**:
@@ -48,7 +48,7 @@ Real-world scenarios demonstrating effective use of the Docs plugin for maintain
 > claude "add /api/v2/products endpoint with CRUD operations"
 
 # Update API documentation specifically
-> /docs:update-docs api
+> /update-docs api
 ```
 
 **Expected Flow**:
@@ -105,7 +105,7 @@ Create a new product.
 > claude "add Stripe subscription support to payments module"
 
 # Document the specific module
-> /docs:update-docs src/payments/
+> /update-docs src/payments/
 ```
 
 **Expected Flow**:
@@ -150,7 +150,7 @@ See: [Payment Integration Guide](../../docs/guides/payments.md) for detailed set
 
 ```bash
 # Run full documentation audit and update
-> /docs:update-docs
+> /update-docs
 ```
 
 **Expected Flow**:
@@ -192,7 +192,7 @@ See: [Payment Integration Guide](../../docs/guides/payments.md) for detailed set
 
 ```bash
 # Update JSDoc comments for complex code
-> /docs:update-docs jsdoc
+> /update-docs jsdoc
 ```
 
 **Expected Flow**:
@@ -239,7 +239,7 @@ async function calculateShipping(
 
 ```bash
 # Update only README files
-> /docs:update-docs readme
+> /update-docs readme
 ```
 
 **Expected Flow**:
@@ -281,13 +281,13 @@ async function calculateShipping(
 > /reflexion:reflect
 
 # 3. Write tests
-> /tdd:write-tests
+> /write-tests
 
 # 4. Review code
-> /code-review:review-local-changes
+> /review-local-changes
 
 # 5. Update documentation
-> /docs:update-docs
+> /update-docs
 
 # 6. Commit everything
 > /git:commit
@@ -304,7 +304,7 @@ async function calculateShipping(
 > /sdd:05-document  # Feature-specific docs
 
 # Broader project documentation update
-> /docs:update-docs
+> /update-docs
 ```
 
 ### Documentation After Refactoring
@@ -314,10 +314,10 @@ async function calculateShipping(
 > claude "refactor authentication to use middleware pattern"
 
 # Review the changes
-> /code-review:review-local-changes
+> /review-local-changes
 
 # Update affected documentation
-> /docs:update-docs src/auth/
+> /update-docs src/auth/
 
 # Save refactoring insights
 > /reflexion:memorize "Authentication refactoring patterns"
@@ -330,13 +330,13 @@ async function calculateShipping(
 > claude "migrate /api/users to v2 with breaking changes"
 
 # Document the migration
-> /docs:update-docs api
+> /update-docs api
 
 # Add migration guide
 > claude "create migration guide from v1 to v2 API"
 
 # Validate documentation
-> /docs:update-docs
+> /update-docs
 ```
 
 ## Common Patterns
@@ -345,11 +345,11 @@ async function calculateShipping(
 
 | Scenario | Command | Focus |
 |----------|---------|-------|
-| After implementing feature | `/docs:update-docs` | Full assessment |
-| After adding API endpoints | `/docs:update-docs api` | API documentation |
-| After module changes | `/docs:update-docs src/module/` | Module-specific |
-| Periodic maintenance | `/docs:update-docs` | Full audit |
-| Before release | `/docs:update-docs` | Comprehensive review |
+| After implementing feature | `/update-docs` | Full assessment |
+| After adding API endpoints | `/update-docs api` | API documentation |
+| After module changes | `/update-docs src/module/` | Module-specific |
+| Periodic maintenance | `/update-docs` | Full audit |
+| Before release | `/update-docs` | Comprehensive review |
 
 ### Documentation Priority Order
 

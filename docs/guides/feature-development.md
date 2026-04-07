@@ -83,26 +83,26 @@ After it finish reflection and fixes, review the generated code to ensure it add
 
 ### 2. Write tests
 
-Use the `/tdd:write-tests` command to generate tests covering the changes you made. You can optionally specify areas to focus on.
+Use the `/write-tests` command to generate tests covering the changes you made. You can optionally specify areas to focus on.
 
 ```bash
-/tdd:write-tests
+/write-tests
 ```
 
 Or with specific focus areas:
 
 ```bash
-/tdd:write-tests Focus on edge cases and error handling
+/write-tests Focus on edge cases and error handling
 ```
 
 After LLM completes, verify that all tests pass. If tests fail, ask the LLM to fix the issues before continuing.
 
 ### 3. Review local changes
 
-Use the `/code-review:review-local-changes` command to run a comprehensive multi-agent code review on your uncommitted changes.
+Use the `/review-local-changes` command to run a comprehensive multi-agent code review on your uncommitted changes.
 
 ```bash
-/code-review:review-local-changes
+/review-local-changes
 ```
 
 After LLM completes, review the findings organized by severity (Critical, High, Medium, Low). Address Critical and High priority issues before committing. You can ask the LLM to fix specific issues.

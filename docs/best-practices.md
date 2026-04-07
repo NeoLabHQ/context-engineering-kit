@@ -137,10 +137,10 @@ Read CLAUDE.md and follow its guidelines
 /sdd:00-setup Use FastAPI, PostgreSQL, follow Clean Architecture
 
 # Add language best practices
-/tech-stack:add-typescript-best-practices
+/add-typescript-best-practices
 
 # Setup code quality standards
-/ddd:setup-code-formating
+/setup-code-formating
 ```
 
 **Regular maintenance:**

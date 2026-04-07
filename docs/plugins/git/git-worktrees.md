@@ -1,4 +1,4 @@
-# worktrees - Parallel Branch Development
+# git-worktrees - Parallel Branch Development
 
 Use when working on multiple branches simultaneously, context switching without stashing, reviewing PRs while developing, testing in isolation, or comparing implementations across branches.
 

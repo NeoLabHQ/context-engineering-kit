@@ -20,10 +20,10 @@ Quint Code makes this visible instead of hiding it.
 
 ## Checking Your Evidence
 
-Run `/fpf:decay` to see what's stale:
+Run `/decay` to see what's stale:
 
 ```
-/fpf:decay
+/decay
 ```
 
 You'll get a freshness report showing which holons have expired evidence:
@@ -53,7 +53,7 @@ When you see stale evidence, you have three options:
 
 **When:** The decision is still correct, you just need fresh proof.
 
-**How:** Run `/fpf:propose-hypotheses run only validation step` on the hypothesis to gather new evidence.
+**How:** Run `/propose-hypotheses run only validation step` on the hypothesis to gather new evidence.
 
 ```
 User: The Redis benchmark is old but Redis is still the right choice.
@@ -120,7 +120,7 @@ The agent sees the freshness report and understands context. When you say "waive
 If you want to be explicit, you can:
 
 ```
-/fpf:decay --waive ev-benchmark-2024-06-15 --until 2025-02-01 --rationale "Migration pending"
+/decay --waive ev-benchmark-2024-06-15 --until 2025-02-01 --rationale "Migration pending"
 ```
 
 But natural language works fine.
@@ -138,14 +138,14 @@ Think of it like a chain. Three strong links and one rusted link? The chain brea
 ### Weekly Maintenance
 
 ```
-/fpf:decay                    # What's stale?
+/decay                    # What's stale?
 # For each item: refresh, deprecate, or waive
 ```
 
 ### Before a Release
 
 ```
-/fpf:decay                    # Check for stale decisions
+/decay                    # Check for stale decisions
 # Either refresh evidence or explicitly waive with rationale
 # Waivers become part of release documentation
 ```
@@ -155,7 +155,7 @@ Think of it like a chain. Three strong links and one rusted link? The chain brea
 Dependency update? API change? Security advisory?
 
 ```
-/fpf:decay                    # What's affected?
+/decay                    # What's affected?
 # Deprecate obsolete decisions
 # Start new hypothesis cycle for replacements
 ```

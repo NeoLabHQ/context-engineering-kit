@@ -386,7 +386,7 @@ All issues resolved in parallel - 15 minutes total vs ~45 minutes sequential.
 
 ```bash
 # Run additional review after SADD completes
-> /code-review:review-local-changes
+> /review-local-changes
 
 # Address any additional findings
 > claude "Fix the medium priority issues from code review"

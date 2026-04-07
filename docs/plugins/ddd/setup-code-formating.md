@@ -1,4 +1,4 @@
-# /ddd:setup-code-formating - Code Style Configuration
+# /setup-code-formating - Code Style Configuration
 
 Establishes consistent code formatting rules and style guidelines by updating your project's CLAUDE.md file with enforced standards.
 
@@ -6,7 +6,7 @@ Establishes consistent code formatting rules and style guidelines by updating yo
 - Output - Updated CLAUDE.md with formatting rules
 
 ```bash
-/ddd:setup-code-formating
+/setup-code-formating
 ```
 
 ## Arguments
@@ -41,12 +41,12 @@ The command configures the following standards:
 
 ```bash
 # Basic setup - adds formatting rules to CLAUDE.md
-/ddd:setup-code-formating
+/setup-code-formating
 
 # Typically used during project initialization
 /sdd:00-setup Use React, TypeScript, Node.js
-/tech-stack:add-typescript-best-practices
-/ddd:setup-code-formating
+/add-typescript-best-practices
+/setup-code-formating
 ```
 
 ## Best Practices

@@ -1,4 +1,4 @@
-# notes - Commit Metadata Annotations
+# git-notes - Commit Metadata Annotations
 
 Use when adding metadata to commits without changing history, tracking review status, test results, code quality annotations, or supplementing commit messages post-hoc.
 

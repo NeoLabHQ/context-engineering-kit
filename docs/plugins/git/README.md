@@ -53,6 +53,6 @@ Most commands require GitHub CLI (`gh`) for full functionality including creatin
 
 ## Skills
 
-- [worktrees](./worktrees.md) - Skill for Parallel Branch Development in same file system using git worktrees.
-- [notes](./notes.md) - Skill about using git notes to add metadata to commits without changing history.
+- [git-worktrees](./git-worktrees.md) - Skill for Parallel Branch Development in same file system using git worktrees.
+- [git-notes](./git-notes.md) - Skill about using git notes to add metadata to commits without changing history.
 

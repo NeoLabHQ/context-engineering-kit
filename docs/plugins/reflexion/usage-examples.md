@@ -206,7 +206,7 @@ Verdict: ✅ Ready to ship
 
 ### With Code Review
 ```bash
-> /code-review:review-local-changes
+> /review-local-changes
 > /reflexion:memorize "Code review findings"
 ```
 
@@ -219,6 +219,6 @@ Verdict: ✅ Ready to ship
 
 ### With Kaizen
 ```bash
-> /kaizen:why "Why did the bug occur?"
+> /why "Why did the bug occur?"
 > /reflexion:memorize "Root cause patterns"
 ```

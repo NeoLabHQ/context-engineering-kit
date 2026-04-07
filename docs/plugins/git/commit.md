@@ -47,7 +47,7 @@ Optional flags like `--no-verify` to skip pre-commit checks.
 > /git:commit --no-verify
 
 # After code review
-> /code-review:review-local-changes
+> /review-local-changes
 > /git:commit
 ```
 

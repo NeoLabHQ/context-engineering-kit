@@ -1,4 +1,4 @@
-# /sdd:plan - Task Refinement & Planning
+# /plan-task - Task Refinement & Planning
 
 Refine a draft task specification into a fully planned, implementation-ready task through multi-agent analysis, architecture synthesis, and quality-gated verification.
 
@@ -6,7 +6,7 @@ Refine a draft task specification into a fully planned, implementation-ready tas
 - Output - A refined task file moved to `.specs/tasks/todo/`, plus skill files in `.claude/skills/` and analysis files in `.specs/analysis/`
 
 ```bash
-/sdd:plan .specs/tasks/draft/add-validation.feature.md [options]
+/plan-task .specs/tasks/draft/add-validation.feature.md [options]
 ```
 
 ## Arguments
@@ -171,25 +171,25 @@ You can also pass a requirement change directly: `/plan --refine <requirement ch
 
 ```bash
 # Refine a draft task with all stages (default)
-/sdd:plan .specs/tasks/draft/add-validation.feature.md
+/plan-task .specs/tasks/draft/add-validation.feature.md
 
 # Fast refinement — minimal stages, lower quality bar
-/sdd:plan .specs/tasks/draft/quick-fix.bug.md --fast
+/plan-task .specs/tasks/draft/quick-fix.bug.md --fast
 
 # One-shot — business analysis + decomposition only, no judges
-/sdd:plan .specs/tasks/draft/simple-task.feature.md --one-shot
+/plan-task .specs/tasks/draft/simple-task.feature.md --one-shot
 
 # Continue from a specific stage
-/sdd:plan .specs/tasks/draft/complex-feature.feature.md --continue decomposition
+/plan-task .specs/tasks/draft/complex-feature.feature.md --continue decomposition
 
 # High-quality refinement with human review checkpoints
-/sdd:plan .specs/tasks/draft/critical-api.feature.md --target-quality 4.5 --human-in-the-loop 2,3,4,5,6
+/plan-task .specs/tasks/draft/critical-api.feature.md --target-quality 4.5 --human-in-the-loop 2,3,4,5,6
 
 # Skip research phase (you already know the tech stack)
-/sdd:plan .specs/tasks/draft/my-task.feature.md --skip research
+/plan-task .specs/tasks/draft/my-task.feature.md --skip research
 
 # Incremental refinement after editing the spec
-/sdd:plan .specs/tasks/todo/my-task.feature.md --refine
+/plan-task .specs/tasks/todo/my-task.feature.md --refine
 ```
 
 ## Artifacts Generated

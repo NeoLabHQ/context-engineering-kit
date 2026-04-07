@@ -1,4 +1,4 @@
-# /code-review:review-local-changes - Local Changes Review
+# /review-local-changes - Local Changes Review
 
 Review uncommitted local changes using all specialized agents with code improvement suggestions.
 
@@ -6,7 +6,7 @@ Review uncommitted local changes using all specialized agents with code improvem
 - Output - Structured report with findings by severity
 
 ```bash
-/code-review:review-local-changes [review-aspects] [--min-impact critical|high|medium|medium-low|low] [--json]
+/review-local-changes [review-aspects] [--min-impact critical|high|medium|medium-low|low] [--json]
 ```
 
 ## Arguments
@@ -58,23 +58,23 @@ Review uncommitted local changes using all specialized agents with code improvem
 
 ```bash
 # Review all local changes (default: --min-impact high, markdown output)
-> /code-review:review-local-changes
+> /review-local-changes
 
 # Focus on security aspects
-> /code-review:review-local-changes security
+> /review-local-changes security
 
 # Lower the threshold to catch medium-impact issues
-> /code-review:review-local-changes --min-impact medium
+> /review-local-changes --min-impact medium
 
 # Focus on security and performance, medium threshold
-> /code-review:review-local-changes security, performance --min-impact medium
+> /review-local-changes security, performance --min-impact medium
 
 # Critical-only issues in JSON for programmatic consumption
-> /code-review:review-local-changes --min-impact critical --json
+> /review-local-changes --min-impact critical --json
 
 # After implementing a feature
 > claude "implement user authentication"
-> /code-review:review-local-changes
+> /review-local-changes
 ```
 
 ### JSON Output

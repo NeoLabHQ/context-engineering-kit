@@ -354,11 +354,11 @@ Key components:
 - Plug-and-play module enables practical self-evolution during test-time inference
 
 **Relevance to CEK**:
-Directly informs the `/sadd:judge` command's approach to work evaluation. The rubric-based verification and iterative feedback refinement patterns align with the command's structured evaluation rubrics and self-verification loops.
+Directly informs the `/judge` command's approach to work evaluation. The rubric-based verification and iterative feedback refinement patterns align with the command's structured evaluation rubrics and self-verification loops.
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge` - rubric-guided evaluation with iterative improvement)
+- SADD (`/judge` - rubric-guided evaluation with iterative improvement)
 
 **Technical Notes**:
 
@@ -391,12 +391,12 @@ Key components:
 - Enables continuous improvement of judge prompts and configurations
 
 **Relevance to CEK**:
-Informs the design of multi-layer evaluation systems where judges are themselves evaluated. Supports the `/sadd:judge-with-debate` command's approach to reaching consensus through multiple judge perspectives.
+Informs the design of multi-layer evaluation systems where judges are themselves evaluated. Supports the `/judge-with-debate` command's approach to reaching consensus through multiple judge perspectives.
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge-with-debate` - multi-judge consensus with meta-evaluation)
-- SADD (`/sadd:judge` - quality validation of judge outputs)
+- SADD (`/judge-with-debate` - multi-judge consensus with meta-evaluation)
+- SADD (`/judge` - quality validation of judge outputs)
 
 **Technical Notes**:
 
@@ -428,12 +428,12 @@ Key components:
 - Effective across diverse open-ended tasks including creative writing and code generation
 
 **Relevance to CEK**:
-Directly informs the rubric-based evaluation patterns in SADD plugin commands. The automatic rubric generation approach enables `/sadd:judge` to create task-specific evaluation criteria dynamically.
+Directly informs the rubric-based evaluation patterns in SADD plugin commands. The automatic rubric generation approach enables `/judge` to create task-specific evaluation criteria dynamically.
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge` - dynamic rubric generation for task-specific evaluation)
-- SADD (`/sadd:do-and-judge` - rubric-guided verification loops)
+- SADD (`/judge` - dynamic rubric generation for task-specific evaluation)
+- SADD (`/do-and-judge` - rubric-guided verification loops)
 
 **Technical Notes**:
 
@@ -465,12 +465,12 @@ Key components:
 - Effective rubrics balance comprehensiveness with clarity
 
 **Relevance to CEK**:
-Provides methodology for designing evaluation rubrics used across SADD plugin commands. Supports the principle-based evaluation approach in `/sadd:judge` and related commands.
+Provides methodology for designing evaluation rubrics used across SADD plugin commands. Supports the principle-based evaluation approach in `/judge` and related commands.
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge` - structured rubric design)
-- SADD (`/sadd:judge-with-debate` - rubric-based multi-judge evaluation)
+- SADD (`/judge` - structured rubric design)
+- SADD (`/judge-with-debate` - rubric-based multi-judge evaluation)
 - Code Review (principle-based evaluation criteria)
 
 **Technical Notes**:
@@ -576,7 +576,7 @@ Core technique for the SADD meta-judge's checklist generation. The meta-judge pr
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge` - checklist-based evaluation, `/sadd:do-and-judge` - verification checklists)
+- SADD (`/judge` - checklist-based evaluation, `/do-and-judge` - verification checklists)
 
 **Technical Notes**:
 
@@ -605,7 +605,7 @@ Informs the SADD judge's checklist evaluation approach. The decomposition of rub
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge` - boolean checklist evaluation)
+- SADD (`/judge` - boolean checklist evaluation)
 
 **Technical Notes**:
 
@@ -634,7 +634,7 @@ Validates the SADD architecture where meta-judge (strong model) generates criter
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge` - checklist-guided grading, meta-judge separation)
+- SADD (`/judge` - checklist-guided grading, meta-judge separation)
 
 **Technical Notes**:
 
@@ -663,7 +663,7 @@ Complements the SADD judge's approach to evaluation by treating each checklist i
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge` - assertion-style evaluation criteria)
+- SADD (`/judge` - assertion-style evaluation criteria)
 
 **Technical Notes**:
 
@@ -896,7 +896,7 @@ Supports the SADD judge's approach to adaptive evaluation, where scoring criteri
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge` - adaptive rubric application)
+- SADD (`/judge` - adaptive rubric application)
 
 **Technical Notes**:
 
@@ -954,8 +954,8 @@ Informs the SADD judge's approach to evaluating complex implementations by asses
 
 **Used By Plugins**:
 
-- SADD (`/sadd:judge` - decomposed evaluation)
-- SADD (`/sadd:judge-with-debate` - independent judge assessments)
+- SADD (`/judge` - decomposed evaluation)
+- SADD (`/judge-with-debate` - independent judge assessments)
 
 **Technical Notes**:
 
@@ -1272,11 +1272,11 @@ Core principles:
 - Adopted by universities, publishers, and style guides worldwide
 
 **Relevance to CEK**:
-Directly informs the `/docs:write-concisely` command. The skill applies Strunk's rules to automatically improve documentation clarity and reduce word count while maintaining meaning.
+Directly informs the `/write-concisely` command. The skill applies Strunk's rules to automatically improve documentation clarity and reduce word count while maintaining meaning.
 
 **Used By Plugins**:
 
-- Docs (`/docs:write-concisely`, `/docs:update-docs`)
+- Docs (`/write-concisely`, `/update-docs`)
 
 **Technical Notes**:
 

@@ -1,4 +1,4 @@
-# /tdd:fix-tests - Fix Failing Tests
+# /fix-tests - Fix Failing Tests
 
 Systematically fix all failing tests after business logic changes or refactoring using orchestrated agents.
 
@@ -6,7 +6,7 @@ Systematically fix all failing tests after business logic changes or refactoring
 - Output - Fixed tests that pass while preserving test intent
 
 ```bash
-/tdd:fix-tests ["focus area or modules"]
+/fix-tests ["focus area or modules"]
 ```
 
 ## Arguments
@@ -47,16 +47,16 @@ Optional specification of which tests or modules to focus on. Defaults to all fa
 
 ```bash
 # Fix all failing tests
-> /tdd:fix-tests
+> /fix-tests
 
 # Focus on specific test files
-> /tdd:fix-tests user authentication tests
+> /fix-tests user authentication tests
 
 # Fix tests in specific module
-> /tdd:fix-tests payment module tests
+> /fix-tests payment module tests
 
 # Focus on integration tests
-> /tdd:fix-tests integration tests only
+> /fix-tests integration tests only
 ```
 
 ## Best practices
