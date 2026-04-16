@@ -896,7 +896,7 @@ Launch agent:
 
   Task File: <TASK_FILE>
 
-  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, code-review:bug-hunter. Also include general agents: opus, sonnet, haiku}
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
 
   CRITICAL: DO NOT OUTPUT YOUR PARALLELIZATION, ONLY CREATE THE SCRATCHPAD AND UPDATE THE TASK FILE.
   ```
@@ -935,7 +935,7 @@ Launch judge:
   reorganized for maximum parallel execution with explicit dependencies, agent assignments, and
   parallelization diagram.
 
-  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, code-review:bug-hunter. Also include general agents: opus, sonnet, haiku}
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
 
   ### Rubric
   1. Dependency Accuracy (weight: 0.35)

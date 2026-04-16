@@ -1,6 +1,6 @@
 # Plugin management commands
 
-plugins := "code-review customaize-agent ddd docs git kaizen mcp reflexion sadd sdd tdd tech-stack fpf"
+plugins := "review customaize-agent ddd docs git kaizen mcp reflexion sadd sdd tdd tech-stack fpf"
 marketplace := ".claude-plugin/marketplace.json"
 
 # Show all commands

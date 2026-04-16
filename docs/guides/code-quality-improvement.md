@@ -16,7 +16,7 @@ For root cause analysis of bugs and incidents, use the [Debugging and Root Cause
 
 - [Kaizen](../plugins/kaizen/README.md)
 - [Reflexion](../plugins/reflexion/README.md)
-- [Code Review](../plugins/code-review/README.md)
+- [Review](../plugins/review/README.md)
 - [Git](../plugins/git/README.md)
 
 ## Workflow
@@ -84,10 +84,10 @@ After LLM completes, review the analysis findings including identified waste, bo
 
 ### 2. Get multi-perspective critique
 
-Use the `/reflexion:critique` command to get comprehensive feedback from multiple specialized perspectives. This surfaces issues that might be missed by a single analysis approach.
+Use the `/critique` command to get comprehensive feedback from multiple specialized perspectives. This surfaces issues that might be missed by a single analysis approach.
 
 ```bash
-/reflexion:critique
+/critique
 ```
 
 After LLM completes, review the structured feedback from multiple judges covering different aspects like security, performance, maintainability, and design. Note the consensus points and any areas of disagreement.
@@ -130,20 +130,20 @@ After LLM completes, review the findings from multiple specialized agents (Bug H
 
 ### 6. Preserve learnings
 
-Use the `/reflexion:memorize` command to capture valuable insights from this improvement cycle for future reference.
+Use the `/memorize` command to capture valuable insights from this improvement cycle for future reference.
 
 ```bash
-/reflexion:memorize Performance optimization patterns for checkout flow
+/memorize Performance optimization patterns for checkout flow
 ```
 
 After LLM completes, the insights are added to your project's CLAUDE.md file. This builds a knowledge base of patterns, pitfalls, and solutions that improve future development.
 
 ### 7. Create conventional commit
 
-Use the `/git:commit` command to create a well-formatted commit message following conventional commit standards.
+Use the `/commit` command to create a well-formatted commit message following conventional commit standards.
 
 ```bash
-/git:commit
+/commit
 ```
 
 After LLM completes, review the generated commit message which describes the improvement, its rationale, and measurable impact. The commit is ready to push to your repository.

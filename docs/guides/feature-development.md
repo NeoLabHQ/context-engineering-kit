@@ -15,7 +15,7 @@ For complex features requiring architecture planning, use [Spec-Driven Developme
 
 - [Reflexion](../plugins/reflexion/README.md)
 - [TDD](../plugins/tdd/README.md)
-- [Code Review](../plugins/code-review/README.md)
+- [Review](../plugins/review/README.md)
 - [Git](../plugins/git/README.md)
 
 ## Workflow
@@ -109,29 +109,29 @@ After LLM completes, review the findings organized by severity (Critical, High, 
 
 ### 4. Preserve learnings
 
-Use the `/reflexion:memorize` command to save valuable insights and patterns discovered during development to your project memory.
+Use the `/memorize` command to save valuable insights and patterns discovered during development to your project memory.
 
 ```bash
-/reflexion:memorize
+/memorize
 ```
 
 Or with specific context:
 
 ```bash
-/reflexion:memorize "Email validation patterns and regex considerations"
+/memorize "Email validation patterns and regex considerations"
 ```
 
 After LLM completes, the insights are saved to CLAUDE.md, making them available for future development sessions.
 
 ### 5. Create commit
 
-Use the `/git:commit` command to create a well-formatted conventional commit with appropriate emoji.
+Use the `/commit` command to create a well-formatted conventional commit with appropriate emoji.
 
 ```bash
-/git:commit
+/commit
 ```
 
-After LLM completes, a commit is created with a descriptive message following conventional commit format. You can then push your changes or create a pull request using `/git:create-pr`.
+After LLM completes, a commit is created with a descriptive message following conventional commit format. You can then push your changes or create a pull request using `/create-pr`.
 
 ## Tips
 

@@ -14,7 +14,7 @@ For well-defined requirements, skip brainstorming and use [Spec-Driven Developme
 ## Plugins needed for this workflow
 
 - [SDD](../plugins/sdd/README.md)
-- [Code Review](../plugins/code-review/README.md)
+- [Review](../plugins/review/README.md)
 - [Git](../plugins/git/README.md)
 - [FPF](../plugins/fpf/README.md) (optional, for systematic hypothesis evaluation)
 
@@ -59,10 +59,10 @@ For well-defined requirements, skip brainstorming and use [Spec-Driven Developme
 
 ### 1. Brainstorm the idea
 
-Use the `/sdd:brainstorm` command to start a collaborative dialogue. The LLM will explore your project context and ask clarifying questions one at a time.
+Use the `/brainstorm` command to start a collaborative dialogue. The LLM will explore your project context and ask clarifying questions one at a time.
 
 ```bash
-/sdd:brainstorm Users want better search but requirements are unclear
+/brainstorm Users want better search but requirements are unclear
 ```
 
 After starting, the LLM will:
@@ -140,10 +140,10 @@ After each section, confirm it matches your expectations or request changes. Onc
 
 ### 4. Create task and plan specification
 
-Use the `/sdd:add-task` command to create a task file from the refined design, then `/plan-task` to generate a detailed specification with architecture, implementation steps, and verification criteria.
+Use the `/add-task` command to create a task file from the refined design, then `/plan-task` to generate a detailed specification with architecture, implementation steps, and verification criteria.
 
 ```bash
-/sdd:add-task "Implement faceted search with Elasticsearch, filters, and autocomplete"
+/add-task "Implement faceted search with Elasticsearch, filters, and autocomplete"
 ```
 
 After LLM completes, review the task file in `.specs/tasks/draft/`. You can adjust the task file to incorporate additional details from the brainstorming session.
@@ -172,8 +172,8 @@ Complete the workflow with code review and pull request creation.
 
 ```bash
 /review-local-changes
-/git:commit
-/git:create-pr
+/commit
+/create-pr
 ```
 
 After completion, your feature is ready for merge.

@@ -271,8 +271,8 @@ Use agents that are available in the project. There are examples of agents that 
 | `business-analyst` | Requirements documents, user stories | Code, technical docs |
 | `researcher` | Skill definitions, technology evaluations | Code, implementation |
 | `code-explorer` | Codebase analysis reports | Code changes, docs |
-| `code-review:code-reviewer` | Code review feedback | Code changes |
-| `code-review:bug-hunter` | Bug analysis reports | Bug fixes (code) |
+| `review:code-reviewer` | Code review feedback | Code changes |
+| `review:bug-hunter` | Bug analysis reports | Bug fixes (code) |
 
 ##### Model Selection Guide
 
@@ -308,7 +308,7 @@ Also used as general agents for any task when unsure about specialized agents.
    │   └─► researcher
    │
    ├─► Code review feedback
-   │   └─► code-review:code-reviewer
+   │   └─► review:code-reviewer
    │
    └─► Mixed/Other outputs
        │

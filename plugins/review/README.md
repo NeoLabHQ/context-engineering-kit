@@ -1,4 +1,4 @@
-# Code Review Plugin
+# Review Plugin
 
 Comprehensive multi-agent code review system that examines code from multiple specialized perspectives to catch bugs, security issues, and quality problems before they reach production.
 
@@ -17,7 +17,7 @@ The Code Review plugin implements a multi-agent code review system where special
 
 ```bash
 # Install the plugin
-/plugin install code-review@NeoLabHQ/context-engineering-kit
+/plugin install review@NeoLabHQ/context-engineering-kit
 
 # Review uncommitted local changes
 > /review-local-changes
@@ -189,7 +189,7 @@ jobs:
           use_sticky_comment: true
 
           plugin_marketplaces: https://github.com/NeoLabHQ/context-engineering-kit.git
-          plugins: "code-review@context-engineering-kit\ngit@context-engineering-kit\ntdd@context-engineering-kit\nsadd@context-engineering-kit\nddd@context-engineering-kit\nsdd@context-engineering-kit\nkaizen@context-engineering-kit"
+          plugins: "review@context-engineering-kit\ngit@context-engineering-kit\ntdd@context-engineering-kit\nsadd@context-engineering-kit\nddd@context-engineering-kit\nsdd@context-engineering-kit\nkaizen@context-engineering-kit"
 
           prompt: '/review-pr ${{ github.repository }}/pull/${{ github.event.pull_request.number }} Note: The PR branch is already checked out in the current working directory.'
 

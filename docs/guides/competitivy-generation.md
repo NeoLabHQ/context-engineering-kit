@@ -22,7 +22,7 @@ For simple features that don't require competitive exploration, use [Feature Dev
 
 - [SADD](../plugins/sadd/README.md) - Competitive execution
 - [TDD](../plugins/tdd/README.md) - Test coverage
-- [Code Review](../plugins/code-review/README.md) - Final validation
+- [Review](../plugins/review/README.md) - Final validation
 - [Git](../plugins/git/README.md) - Version control
 
 ## Workflow
@@ -115,10 +115,10 @@ Address Critical and High priority findings before committing.
 
 ### 4. Create Commit
 
-Use `/git:commit` to create a well-formatted conventional commit.
+Use `/commit` to create a well-formatted conventional commit.
 
 ```bash
-/git:commit
+/commit
 ```
 
 ## Quality Comparison

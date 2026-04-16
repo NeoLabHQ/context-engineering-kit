@@ -220,7 +220,7 @@ To view all available plugins:
 
 - [Reflexion](https://cek.neolab.finance/plugins/reflexion) - Introduces feedback and refinement loops to improve output quality.
 - [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd) - Introduces commands for specification-driven development, based on Continuous Learning + LLM-as-Judge + Agent Swarm. Achieves **development as compilation** through reliable code generation.
-- [Code Review](https://cek.neolab.finance/plugins/code-review) - Introduces codebase and PR review commands and skills using multiple specialized agents.
+- [Review](https://cek.neolab.finance/plugins/review) - Introduces code and PR review commands and skills using multiple specialized agents with impact/confidence filtering.
 - [Git](https://cek.neolab.finance/plugins/git) - Introduces commands for commit and PR creation.
 - [Test-Driven Development](https://cek.neolab.finance/plugins/tdd) - Introduces commands for test-driven development, common anti-patterns and skills for testing using subagents.
 - [Subagent-Driven Development](https://cek.neolab.finance/plugins/sadd) - Introduces skills for subagent-driven development, which dispatches a fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
@@ -260,20 +260,20 @@ They are proven to **increase output quality by 8–21%** based on both automati
 
 On top of that, the plugin is based on the [Agentic Context Engineering](https://arxiv.org/abs/2510.04618) paper that uses memory updates after reflection, and **consistently outperforms strong baselines by 10.6%** on agents.
 
-### [Code Review](https://cek.neolab.finance/plugins/code-review)
+### [Review](https://cek.neolab.finance/plugins/review)
 
-Comprehensive code review commands using multiple specialized agents for thorough code quality evaluation.
+Comprehensive code and PR review commands using multiple specialized agents for thorough code quality evaluation with impact/confidence filtering.
 
 **How to install**
 
 ```bash
-/plugin install code-review@NeoLabHQ/context-engineering-kit
+/plugin install review@NeoLabHQ/context-engineering-kit
 ```
 
 **Commands**
 
-- [/review-local-changes](https://cek.neolab.finance/plugins/code-review/review-local-changes) - Comprehensive review of local uncommitted changes using specialized agents with code improvement suggestions
-- [/review-pr](https://cek.neolab.finance/plugins/code-review/review-pr) - Comprehensive pull request review using specialized agents
+- [/review-local-changes](https://cek.neolab.finance/plugins/review/review-local-changes) - Comprehensive review of local uncommitted changes using specialized agents with code improvement suggestions
+- [/review-pr](https://cek.neolab.finance/plugins/review/review-pr) - Comprehensive pull request review using specialized agents
 
 **Agents**
 

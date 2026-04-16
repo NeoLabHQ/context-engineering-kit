@@ -1,6 +1,6 @@
-# Code Review Plugin - Usage Examples
+# Review Plugin - Usage Examples
 
-Real-world scenarios demonstrating effective use of the Code Review plugin.
+Real-world scenarios demonstrating effective use of the code Review plugin.
 
 ## Basic Workflows
 
@@ -37,7 +37,7 @@ Action Required: Fix critical issues before committing
 > /review-local-changes
 
 # Clean review - commit
-> /git:commit "Add user registration with validation and security"
+> /commit "Add user registration with validation and security"
 ```
 
 ### Example 2: Pull Request Review
@@ -46,7 +46,7 @@ Action Required: Fix critical issues before committing
 
 ```bash
 # Create PR
-> /git:create-pr "Add payment processing"
+> /create-pr "Add payment processing"
 
 # Review PR #456
 > /review-pr 456
@@ -118,7 +118,7 @@ High Risk:
 > /review-local-changes security
 
 # Clean security audit
-> /git:commit "Add OAuth2 with security best practices"
+> /commit "Add OAuth2 with security best practices"
 ```
 
 ## Test Coverage Reviews
@@ -169,7 +169,7 @@ Test Quality Issues:
 > /review-local-changes tests
 
 # Coverage now: 82% ✓
-> /git:commit "Add shopping cart with comprehensive tests"
+> /commit "Add shopping cart with comprehensive tests"
 ```
 
 ## Code Quality Improvements
@@ -248,7 +248,7 @@ High Priority:
 > /review-local-changes
 # Code Quality Score: 8/10 ✓
 
-> /git:commit "Refactor OrderProcessor - improved quality from 3/10 to 8/10"
+> /commit "Refactor OrderProcessor - improved quality from 3/10 to 8/10"
 ```
 
 ## Contract Validation
@@ -302,7 +302,7 @@ Documentation:
 # Verify contracts
 > /review-local-changes contracts
 
-> /git:commit "Add POST /api/v2/orders with consistent contracts"
+> /commit "Add POST /api/v2/orders with consistent contracts"
 ```
 
 ## Integration Patterns
@@ -321,7 +321,7 @@ Documentation:
 > claude "address all critical and high priority findings"
 
 # Deep reflection
-> /reflexion:critique
+> /critique
 # Additional perspective caught architectural concerns
 
 # Apply all feedback
@@ -332,9 +332,9 @@ Documentation:
 # Clean ✓
 
 # Save learnings
-> /reflexion:memorize
+> /memorize
 
-> /git:commit "Add real-time notifications with comprehensive quality review"
+> /commit "Add real-time notifications with comprehensive quality review"
 ```
 
 ### Example 8: Code Review + SDD Workflow
@@ -343,12 +343,11 @@ Documentation:
 
 ```bash
 # Specify and plan
-> /sdd:01-specify "Add webhook system for third-party integrations"
-> /sdd:02-plan
-> /sdd:03-tasks
+> /add-task "Add webhook system for third-party integrations"
+> /plan-task
 
 # Implement
-> /sdd:04-implement
+> /implement-task
 
 # Code review after implementation
 > /review-local-changes
@@ -371,12 +370,12 @@ High:
 
 # Verify fixes
 > /review-local-changes
-# Clean ✓
+# Found 7 issues
 
-# Document
-> /sdd:05-document
+# Fix issues
+> /do-in-steps fix all issues
 
-> /git:commit "Add webhook system with security and validation"
+> /commit "Add webhook system with security and validation"
 ```
 
 ## Historical Context Usage
@@ -427,7 +426,7 @@ Similar Past Issues:
 > /review-local-changes
 # Historical context issues resolved ✓
 
-> /git:commit "Add API key authentication following existing patterns"
+> /commit "Add API key authentication following existing patterns"
 ```
 
 ## Bug Prevention
@@ -488,7 +487,7 @@ Edge Cases Not Handled:
 > /review-local-changes
 # No critical bugs ✓
 
-> /git:commit "Add recommendation engine with bug fixes"
+> /commit "Add recommendation engine with bug fixes"
 ```
 
 ## Performance Reviews
@@ -547,7 +546,7 @@ Suggested Optimizations:
 # Benchmark
 > claude "add performance tests to verify 1000 req/sec target"
 
-> /git:commit "Optimize product search for high throughput"
+> /commit "Optimize product search for high throughput"
 ```
 
 ## Continuous Improvement

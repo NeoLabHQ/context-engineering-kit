@@ -15,7 +15,7 @@ For simple, obvious bugs (typos, single-line fixes), use [Feature Development](.
 
 - [Git](../plugins/git/README.md)
 - [Kaizen](../plugins/kaizen/README.md)
-- [Code Review](../plugins/code-review/README.md)
+- [Review](../plugins/review/README.md)
 - [Reflexion](../plugins/reflexion/README.md)
 
 ## Workflow
@@ -73,10 +73,10 @@ For simple, obvious bugs (typos, single-line fixes), use [Feature Development](.
 
 ### 1. Load issue context
 
-Use the `/git:analyze-issue` command to load the bug report from GitHub and extract technical details.
+Use the `/analyze-issue` command to load the bug report from GitHub and extract technical details.
 
 ```bash
-/git:analyze-issue #123
+/analyze-issue #123
 ```
 
 After LLM completes, you will have a structured understanding of the bug symptoms, reproduction steps, affected areas, and any related issues or context from the discussion.
@@ -131,20 +131,20 @@ After LLM completes, address any findings from the multi-agent review. Pay speci
 
 ### 6. Preserve learnings
 
-Use the `/reflexion:memorize` command to capture insights from this bug investigation for future reference.
+Use the `/memorize` command to capture insights from this bug investigation for future reference.
 
 ```bash
-/reflexion:memorize Bug pattern: race conditions in Redis operations
+/memorize Bug pattern: race conditions in Redis operations
 ```
 
 After LLM completes, your CLAUDE.md will be updated with learnings about this bug pattern, helping prevent similar issues in future development. This builds institutional knowledge about your codebase's pitfalls.
 
 ### 7. Commit with context
 
-Use the `/git:commit` command to create a well-documented commit that links to the issue and explains the fix.
+Use the `/commit` command to create a well-documented commit that links to the issue and explains the fix.
 
 ```bash
-/git:commit
+/commit
 ```
 
 After LLM completes, your commit will follow conventional commit format with the bug fix type, proper scope, and reference to the issue (e.g., `Fixes #123`). This creates a searchable history for future debugging.

@@ -15,7 +15,7 @@ Reflection and self-improvement commands based on Self-Refine and Reflexion pape
 
 ### Code Review
 
-Comprehensive code review commands using specialized agents. [More info](../plugins/code-review/README.md).
+Comprehensive code review commands using specialized agents. [More info](../plugins/review/README.md).
 
 - `/review-local-changes` - Comprehensive review of local uncommitted changes using specialized agents with code improvement suggestions.
 - `/review-pr` - Comprehensive pull request review using specialized agents.
@@ -24,25 +24,22 @@ Comprehensive code review commands using specialized agents. [More info](../plug
 
 Commands for Git operations including commits, pull requests, and worktree management. [More info](../plugins/git/README.md).
 
-- `/git:commit` - Create well-formatted commits with conventional commit messages and emoji.
-- `/git:create-pr` - Create pull requests using GitHub CLI with proper templates and formatting.
-- `/git:analyze-issue` - Analyze a GitHub issue and create a detailed technical specification.
-- `/git:load-issues` - Load all open issues from GitHub and save them as markdown files.
-- `/git:create-worktree` - Create git worktrees for parallel development with automatic dependency installation.
-- `/git:compare-worktrees` - Compare files and directories between git worktrees.
-- `/git:merge-worktree` - Merge changes from worktrees with selective checkout, cherry-picking, or patch selection.
+- `/commit` - Create well-formatted commits with conventional commit messages and emoji.
+- `/create-pr` - Create pull requests using GitHub CLI with proper templates and formatting.
+- `/analyze-issue` - Analyze a GitHub issue and create a detailed technical specification.
+- `/load-issues` - Load all open issues from GitHub and save them as markdown files.
+- `/create-worktree` - Create git worktrees for parallel development with automatic dependency installation.
+- `/compare-worktrees` - Compare files and directories between git worktrees.
+- `/merge-worktree` - Merge changes from worktrees with selective checkout, cherry-picking, or patch selection.
 
 ### Spec-Driven Development (SDD)
 
 Complete Spec-Driven Development workflow commands. [More info](../plugins/sdd/README.md).
 
-- `/sdd:00-setup` - Create or update the project constitution from interactive or provided principle inputs.
-- `/sdd:01-specify` - Create or update the feature specification from a natural language feature description.
-- `/sdd:02-plan` - Plan the feature development based on the feature specification.
-- `/sdd:03-tasks` - Create detailed implementation tasks from feature plans with complexity analysis.
-- `/sdd:04-implement` - Execute feature implementation following task list with TDD approach and quality review.
-- `/sdd:05-document` - Document completed feature implementation with API guides, architecture updates, and lessons learned.
-- `/sdd:brainstorm` - Refines rough ideas into fully-formed designs through collaborative questioning and exploration.
+- `/brainstorm` - Refines rough ideas into fully-formed designs through collaborative questioning and exploration
+- `/add-task` - Create task template file with initial prompt
+- `/plan-task` - Analyze prompt, generate required skills and refine task specification
+- `/implement-task` - Execute feature implementation following task list with TDD approach and quality review
 
 ### Kaizen
 
@@ -59,14 +56,14 @@ Continuous improvement and problem analysis commands. [More info](../plugins/kai
 
 Commands for creating and testing custom Claude Code extensions. [More info](../plugins/customaize-agent/README.md).
 
-- `/customaize-agent:create-agent` - Comprehensive guide for creating Claude Code agents with proper structure, triggering conditions, system prompts, and validation
-- `/customaize-agent:create-command` - Interactive assistant for creating new Claude commands with proper structure and patterns
-- `/customaize-agent:create-workflow-command` - Create workflow commands that orchestrate multi-step execution through sub-agents with file-based task prompts
-- `/customaize-agent:create-skill` - Guide for creating effective skills with test-driven approach
-- `/customaize-agent:create-hook` - Create and configure git hooks with intelligent project analysis and automated testing
-- `/customaize-agent:test-skill` - Verify skills work under pressure and resist rationalization using RED-GREEN-REFACTOR cycle
-- `/customaize-agent:test-prompt` - Test any prompt (commands, hooks, skills, subagent instructions) using RED-GREEN-REFACTOR cycle with subagents
-- `/customaize-agent:apply-anthropic-skill-best-practices` - Comprehensive guide for skill development based on Anthropic's official best practices
+- `/create-agent` - Comprehensive guide for creating Claude Code agents with proper structure, triggering conditions, system prompts, and validation
+- `/create-command` - Interactive assistant for creating new Claude commands with proper structure and patterns
+- `/create-workflow-command` - Create workflow commands that orchestrate multi-step execution through sub-agents with file-based task prompts
+- `/create-skill` - Guide for creating effective skills with test-driven approach
+- `/create-hook` - Create and configure git hooks with intelligent project analysis and automated testing
+- `/test-skill` - Verify skills work under pressure and resist rationalization using RED-GREEN-REFACTOR cycle
+- `/test-prompt` - Test any prompt (commands, hooks, skills, subagent instructions) using RED-GREEN-REFACTOR cycle with subagents
+- `/apply-anthropic-skill-best-practices` - Comprehensive guide for skill development based on Anthropic's official best practices
 
 ### Test-Driven Development (TDD)
 
@@ -98,6 +95,7 @@ Execution framework for parallel/sequential task dispatch, competitive generatio
 Documentation management commands. [More info](../plugins/docs/README.md).
 
 - `/update-docs` - Update implementation documentation after completing development phases
+- `/write-concisely` - Apply *The Elements of Style* principles to make documentation clearer and more professional
 
 ### Domain-Driven Development (DDD)
 
@@ -115,9 +113,9 @@ Commands for language and framework-specific best practices. [More info](../plug
 
 Commands for integrating Model Context Protocol servers. [More info](../plugins/mcp/README.md).
 
-- `/mcp:setup-context7-mcp` - Guide for setting up the Context7 MCP server to load documentation for specific technologies.
-- `/mcp:setup-serena-mcp` - Guide for setting up the Serena MCP server for semantic code retrieval and editing capabilities.
-- `/mcp:build-mcp` - Guide for creating high-quality MCP servers that enable LLMs to interact with external services.
+- `/setup-context7-mcp` - Guide for setting up the Context7 MCP server to load documentation for specific technologies.
+- `/setup-serena-mcp` - Guide for setting up the Serena MCP server for semantic code retrieval and editing capabilities.
+- `/build-mcp` - Guide for creating high-quality MCP servers that enable LLMs to interact with external services.
 
 ### First Principles Framework (FPF)
 

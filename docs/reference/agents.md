@@ -6,7 +6,7 @@ Complete alphabetical index of all specialized agents available across Context E
 
 ### Code Review
 
-Specialized agents for comprehensive code quality analysis. [More info](../plugins/code-review/README.md).
+Specialized agents for comprehensive code quality analysis. [More info](../plugins/review/README.md).
 
 - `bug-hunter` - Identifies potential bugs, edge cases, and error-prone patterns.
 - `code-quality-reviewer` - Evaluates code structure, readability, and maintainability.

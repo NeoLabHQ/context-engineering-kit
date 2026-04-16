@@ -17,7 +17,7 @@ Other types of reviews:
 
 ## Plugins needed for this workflow
 
-- [Code Review](../plugins/code-review/README.md)
+- [Review](../plugins/review/README.md)
 - [Reflexion](../plugins/reflexion/README.md)
 - [Git](../plugins/git/README.md)
 
@@ -132,10 +132,10 @@ After LLM completes, compare the new findings with the original PR review. If Cr
 
 ### 5. Get final critique
 
-Use the `/reflexion:critique` command to get an additional multi-perspective review before pushing. This provides a final quality check from multiple specialized judges.
+Use the `/critique` command to get an additional multi-perspective review before pushing. This provides a final quality check from multiple specialized judges.
 
 ```bash
-/reflexion:critique
+/critique
 ```
 
 After LLM completes, review the critique feedback. Address any significant concerns raised. The critique offers perspectives that complement the code review agents.
@@ -152,10 +152,10 @@ After push completes, the PR will be updated with your fixes. Reviewers can now 
 
 ### 7. Preserve learnings
 
-Use the `/reflexion:memorize` command to save valuable patterns, decisions, and insights discovered during the review process to your project memory.
+Use the `/memorize` command to save valuable patterns, decisions, and insights discovered during the review process to your project memory.
 
 ```bash
-/reflexion:memorize
+/memorize
 ```
 
 After LLM completes, your CLAUDE.md file is updated with learnings from this review cycle. These insights help improve future development and reviews.
@@ -166,7 +166,7 @@ After LLM completes, your CLAUDE.md file is updated with learnings from this rev
 
 **Iterate efficiently**: Run review commands after each batch of fixes rather than after each individual fix to save time.
 
-**Learn from patterns**: Use `/reflexion:memorize` to capture recurring issues as project guidelines to prevent them in future PRs.
+**Learn from patterns**: Use `/memorize` to capture recurring issues as project guidelines to prevent them in future PRs.
 
 **Combine perspectives**: The six review agents and reflexion critique provide complementary views - consider all perspectives before marking issues as resolved.
 

@@ -89,7 +89,7 @@ Ensure tests are:
 
 If there are multiple changed files, or one file with complex logic, then you need to use specialized agents to cover the changes. Following this guidline:
 
-6. **Launch `code-review:test-coverage-reviewer` agents (parallel)** (Sonnet or Opus models)
+6. **Launch `review:test-coverage-reviewer` agents (parallel)** (Sonnet or Opus models)
    - Launch one coverage-reviewer agent per changed file
    - Provide each agent with:
      - **Context**: What changed in this file (git diff)
@@ -112,7 +112,7 @@ If there are multiple changed files, or one file with complex logic, then you ne
      - **Constraint**: Add new tests, don't modify existing logic (unless clearly broken)
 
 8. **Verify coverage (iteration)** (Sonnet or Opus models)
-   - Launch `code-review:test-coverage-reviewer` agents again per file
+   - Launch `review:test-coverage-reviewer` agents again per file
    - Provide:
      - **Context**: Original changes + new tests added
      - **Goal**: Verify all critical business logic is covered

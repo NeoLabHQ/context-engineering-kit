@@ -1,5 +1,5 @@
 {
-  "name": "code-review",
+  "name": "review",
   "version": "1.1.1",
   "description": "Introduce codebase and PR review commands and skills using multiple specialized agents.",
   "author": {
