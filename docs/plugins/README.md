@@ -145,7 +145,6 @@ Code quality and architecture patterns including Clean Architecture and SOLID pr
 
 **Key Features:**
 
-* Code formatting setup
 * 14 composable rules organized into Architecture, Function Design, Explicitness, and Code Quality categories
 * Covers Clean Architecture, Command-Query Separation, Functional Core/Imperative Shell, and more
 

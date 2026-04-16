@@ -451,17 +451,13 @@ Learn more about available customization options in [Customization](https://cek.
 
 ### [Domain-Driven Development](https://cek.neolab.finance/plugins/ddd)
 
-Commands for setting up domain-driven development best practices focused on code quality.
+Code quality framework with rules for Clean Architecture, SOLID principles, and Domain-Driven Design patterns.
 
 **How to install**
 
 ```bash
 /plugin install ddd@NeoLabHQ/context-engineering-kit
 ```
-
-**Commands**
-
-- [/setup-code-formatting](https://cek.neolab.finance/plugins/ddd/setup-code-formating) - Sets up code formatting rules and style guidelines in CLAUDE.md
 
 **Rules**
 

@@ -27,28 +27,22 @@ After installing a plugin, its commands become available. View all commands:
 /help
 ```
 
-Commands are namespaced by plugin, making their origin clear:
-
-- `/reflexion:reflect` - From the reflexion plugin
-- `/git:commit` - From the git plugin
-- `/sdd:01-specify` - From the sdd plugin
 
 ### Command Syntax
 
 ```bash
-/plugin-name:command-name [optional-argument]
+/command-name [optional-argument]
 ```
 
 **Examples:**
 
 ```bash
 # No argument required
-/reflexion:reflect
-/git:commit
+/reflect
+/commit
 
 # With argument
-/sdd:01-specify Add user authentication with OAuth
-/analyse Target the checkout flow for optimization
+/add-task Add user authentication with OAuth
 ```
 
 ---
@@ -122,10 +116,10 @@ Main Claude Session (You)
 /review-local-changes
 
 # Launches business-analyst agent
-/sdd:01-specify Add user authentication
+/add-task Add user authentication
 
 # Launches researcher, code-explorer, and software-architect agents
-/sdd:02-plan
+/plan-task
 ```
 
 **Manual invocation** - Request specific agents directly:
@@ -293,7 +287,7 @@ Several plugins read from and write to `CLAUDE.md`:
 
 ```bash
 # After reflecting, save insights to CLAUDE.md
-/reflexion:memorize
+/memorize
 ```
 
 **What it adds:**
@@ -304,36 +298,12 @@ Several plugins read from and write to `CLAUDE.md`:
 - Common mistakes to avoid
 - Successful approaches to replicate
 
-**Tech Stack plugin** - Adds language/framework practices:
 
-```bash
-/add-typescript-best-practices
-```
-
-**What it adds:**
-
-- Language-specific best practices
-- Framework usage patterns
-- Code style guidelines
-- Common anti-patterns for the tech stack
-
-**DDD plugin** - Sets up code quality standards:
-
-```bash
-/setup-code-formating
-```
-
-**What it adds:**
-
-- Code formatting rules
-- Architecture principles
-- SOLID principle applications
-- Clean Architecture patterns
 
 **MCP plugin** - Documents MCP server requirements:
 
 ```bash
-/mcp:setup-context7-mcp
+/setup-context7-mcp
 ```
 
 **What it adds:**
@@ -341,16 +311,3 @@ Several plugins read from and write to `CLAUDE.md`:
 - MCP server integration requirements
 - When and how to use specific MCP servers
 - Configuration and usage patterns
-
-**SDD plugin** - Establishes project constitution:
-
-```bash
-/sdd:00-setup Use NestJS, follow SOLID and Clean Architecture
-```
-
-**What it adds:**
-
-- Project constitution and governance
-- Core architectural principles
-- Technology stack decisions
-- Development standards
