@@ -1,9 +1,9 @@
 {
-    "name": "kaizen",
-    "version": "1.0.0",
-    "description": "Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root cause of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.",
-    "author": {
-      "name": "Vlad Goncharov",
-      "email": "vlad.goncharov@neolab.finance"
-    }
+  "name": "kaizen",
+  "version": "3.0.0",
+  "description": "Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root cause of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.",
+  "author": {
+    "name": "Vlad Goncharov",
+    "email": "vlad.goncharov@neolab.finance"
+  }
 }

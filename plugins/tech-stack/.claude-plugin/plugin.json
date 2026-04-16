@@ -1,9 +1,9 @@
 {
-    "name": "tech-stack",
-    "version": "1.0.0",
-    "description": "Commands for setup or update of CLAUDE.md file with best practices for specific language or framework.",
-    "author": {
-      "name": "Vlad Goncharov",
-      "email": "vlad.goncharov@neolab.finance"
-    }
+  "name": "tech-stack",
+  "version": "3.0.0",
+  "description": "Commands for setup or update of CLAUDE.md file with best practices for specific language or framework.",
+  "author": {
+    "name": "Vlad Goncharov",
+    "email": "vlad.goncharov@neolab.finance"
+  }
 }
