@@ -28,9 +28,6 @@ Commands for Git operations including commits, pull requests, and worktree manag
 - `/create-pr` - Create pull requests using GitHub CLI with proper templates and formatting.
 - `/analyze-issue` - Analyze a GitHub issue and create a detailed technical specification.
 - `/load-issues` - Load all open issues from GitHub and save them as markdown files.
-- `/create-worktree` - Create git worktrees for parallel development with automatic dependency installation.
-- `/compare-worktrees` - Compare files and directories between git worktrees.
-- `/merge-worktree` - Merge changes from worktrees with selective checkout, cherry-picking, or patch selection.
 
 ### Spec-Driven Development (SDD)
 

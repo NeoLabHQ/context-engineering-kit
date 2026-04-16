@@ -49,8 +49,8 @@ Start by understanding the current project context, then ask questions one at a 
 **Implementation (if continuing):**
 
 - Ask: "Ready to set up for implementation?"
-- Use git:create-worktree to create isolated workspace
-- Use sdd:add-task to create task file for target approach 
+- Use `/worktrees create` to create isolated workspace
+- Use `/add-task` to create task file for target approach 
 
 ## Key Principles
 

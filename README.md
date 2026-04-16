@@ -304,14 +304,11 @@ Commands and skills for streamlined Git operations including commits, pull reque
 - [/create-pr](https://cek.neolab.finance/plugins/git/create-pr) - Create pull requests using GitHub CLI with proper templates and formatting
 - [/analyze-issue](https://cek.neolab.finance/plugins/git/analyze-issue) - Analyze a GitHub issue and create a detailed technical specification
 - [/load-issues](https://cek.neolab.finance/plugins/git/load-issues) - Load all open issues from GitHub and save them as markdown files
-- [/create-worktree](https://cek.neolab.finance/plugins/git/create-worktree) - Create git worktrees for parallel development with automatic dependency installation
-- [/compare-worktrees](https://cek.neolab.finance/plugins/git/compare-worktrees) - Compare files and directories between git worktrees
-- [/merge-worktree](https://cek.neolab.finance/plugins/git/merge-worktree) - Merge changes from worktrees with selective checkout, cherry-picking, or patch selection
+- [/worktree](https://cek.neolab.finance/plugins/git/git-worktrees) - Create, compare, and merge git worktrees for parallel development with automatic dependency installation
 
 **Skills**
 
-- **git-worktrees** - Git worktree commands and workflow patterns for parallel branch development
-- **git-notes** - Git notes commands for attaching non-invasive metadata to commits
+- [notes](https://cek.neolab.finance/plugins/git/git-notes) - Skill about using git notes to add metadata to commits without changing history.
 
 ### [Test-Driven Development](https://cek.neolab.finance/plugins/tdd)
 
