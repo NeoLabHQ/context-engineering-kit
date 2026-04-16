@@ -94,17 +94,8 @@ Documentation management commands. [More info](../plugins/docs/README.md).
 - `/update-docs` - Update implementation documentation after completing development phases
 - `/write-concisely` - Apply *The Elements of Style* principles to make documentation clearer and more professional
 
-### Domain-Driven Development (DDD)
 
-Commands for setting up domain-driven development practices. [More info](../plugins/ddd/README.md).
 
-- `/setup-code-formating` - Sets up code formatting rules and style guidelines in CLAUDE.md
-
-### Tech Stack
-
-Commands for language and framework-specific best practices. [More info](../plugins/tech-stack/README.md).
-
-- `/add-typescript-best-practices` - Setup TypeScript best practices and code style rules in CLAUDE.md
 
 ### MCP
 

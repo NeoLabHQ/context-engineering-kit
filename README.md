@@ -229,7 +229,7 @@ To view all available plugins:
 - [Kaizen](https://cek.neolab.finance/plugins/kaizen) - Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root causes of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.
 - [Customaize Agent](https://cek.neolab.finance/plugins/customaize-agent) - Commands and skills for writing and refining commands, hooks, and skills for Claude Code. Includes Anthropic Best Practices and [Agent Persuasion Principles](https://arxiv.org/abs/2508.00614) that can be useful for sub-agent workflows.
 - [Docs](https://cek.neolab.finance/plugins/docs) - Commands for analyzing projects, writing and refining documentation.
-- [Tech Stack](https://cek.neolab.finance/plugins/tech-stack) - Commands for setting up or updating CLAUDE.md file with best practices for specific languages or frameworks.
+- [Tech Stack](https://cek.neolab.finance/plugins/tech-stack) - Rules for language-specific best practices, automatically applied when working on matching file types.
 - [MCP](https://cek.neolab.finance/plugins/mcp) - Commands for setting up well-known MCP server integration if needed and updating CLAUDE.md file with requirements to use this MCP server for the current project.
 
 ### [Reflexion](https://cek.neolab.finance/plugins/reflexion)
@@ -590,7 +590,7 @@ Commands for project analysis and documentation management based on proven writi
 
 ### [Tech Stack](https://cek.neolab.finance/plugins/tech-stack)
 
-Commands for setting up language and framework-specific best practices.
+Rules for language and framework-specific best practices, automatically applied when the agent works on matching file types.
 
 **How to install**
 
@@ -598,9 +598,10 @@ Commands for setting up language and framework-specific best practices.
 /plugin install tech-stack@NeoLabHQ/context-engineering-kit
 ```
 
-**Commands**
+**Rules**
 
-- [/add-typescript-best-practices](https://cek.neolab.finance/plugins/tech-stack/add-typescript-best-practices) - Setup TypeScript best practices and code style rules in CLAUDE.md
+- TypeScript Best Practices - Type system guidelines, code style, async patterns, and code quality standards, automatically loaded when agent reading or writing `.ts` files
+
 
 ### [MCP](https://cek.neolab.finance/plugins/mcp)
 
