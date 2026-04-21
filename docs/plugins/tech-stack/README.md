@@ -11,7 +11,6 @@ Focused on:
 
 The Tech Stack plugin provides rules for language and framework-specific best practices. Rules are automatically loaded into the agent's context when working with matching file types (e.g., `**/*.ts` for TypeScript). No manual invocation is needed -- once the plugin is installed, the agent receives relevant coding standards whenever it reads or writes files of that type.
 
-For team-wide adoption, the `/add-typescript-best-practices` command adds rules configuration to your CLAUDE.md, ensuring all team members share the same standards via version control.
 
 ## Quick Start
 
