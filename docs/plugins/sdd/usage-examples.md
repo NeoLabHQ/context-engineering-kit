@@ -10,7 +10,7 @@ Real-world scenarios demonstrating the effective use of the Spec-Driven Developm
 
 ```bash
 # Step 1: Create draft task
-/sdd:add-task "Add user profile view and edit functionality with name, email, and avatar"
+/add-task "Add user profile view and edit functionality with name, email, and avatar"
 
 # Step 2: Plan — research, analyze, decompose, parallelize, verify
 /plan-task @.specs/tasks/draft/add-user-profile.feature.md
@@ -24,8 +24,8 @@ Real-world scenarios demonstrating the effective use of the Spec-Driven Developm
 /implement-task @.specs/tasks/todo/add-user-profile.feature.md
 
 # Step 5: Commit and create PR
-/git:commit
-/git:create-pr
+/commit
+/create-pr
 ```
 
 **What happens during `/plan-task`**:
@@ -55,7 +55,7 @@ Real-world scenarios demonstrating the effective use of the Spec-Driven Developm
 
 ```bash
 # Create the task
-/sdd:add-task "Fix null pointer in user service when email is empty"
+/add-task "Fix null pointer in user service when email is empty"
 
 # Fast planning — only business analysis + decomposition, lower quality bar
 /plan-task @.specs/tasks/draft/fix-null-pointer-user-service.bug.md --fast
@@ -74,10 +74,10 @@ The `--fast` flag sets `--target-quality 3.0 --max-iterations 1 --included-stage
 
 ```bash
 # Brainstorm the approach first
-/sdd:brainstorm We need to add billing capabilities for our B2B SaaS. Organizations should have subscription plans, usage tracking, and invoice generation.
+/brainstorm We need to add billing capabilities for our B2B SaaS. Organizations should have subscription plans, usage tracking, and invoice generation.
 
 # Create the task with clear scope
-/sdd:add-task "Implement multi-tenant billing with hybrid pricing and Stripe integration"
+/add-task "Implement multi-tenant billing with hybrid pricing and Stripe integration"
 
 # High-quality planning with human review at each phase
 /plan-task @.specs/tasks/draft/implement-billing-stripe.feature.md --target-quality 4.5 --human-in-the-loop 2,3,4,5,6
@@ -188,23 +188,23 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 ```bash
 # Create tasks with dependencies
-/sdd:add-task "Implement user authentication service"
+/add-task "Implement user authentication service"
 # Created: .specs/tasks/draft/implement-user-auth-service.feature.md
 
-/sdd:add-task "Add role-based access control" @.specs/tasks/draft/implement-user-auth-service.feature.md
+/add-task "Add role-based access control" @.specs/tasks/draft/implement-user-auth-service.feature.md
 # Created: .specs/tasks/draft/add-role-based-access-control.feature.md
 # Depends on: implement-user-auth-service.feature.md
 
 # Plan and implement in order
 /plan-task @.specs/tasks/draft/implement-user-auth-service.feature.md
 /implement-task
-/git:commit
+/commit
 
 /plan-task @.specs/tasks/draft/add-role-based-access-control.feature.md
 /implement-task
-/git:commit
+/commit
 
-/git:create-pr
+/create-pr
 ```
 
 ---
@@ -215,16 +215,16 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 ```bash
 # Quick diverse idea generation
-/sdd:create-ideas "caching strategies for a real-time product catalog"
+/create-ideas "caching strategies for a real-time product catalog"
 
 # Output: 5 diverse ideas with probability scores
 # Pick the most promising approach
 
 # Deeper exploration with collaborative dialogue
-/sdd:brainstorm "We need real-time features but are not sure about WebSockets vs. Server-Sent Events"
+/brainstorm "We need real-time features but are not sure about WebSockets vs. Server-Sent Events"
 
 # After brainstorm produces a design document:
-/sdd:add-task "Implement real-time stock updates using WebSocket connections"
+/add-task "Implement real-time stock updates using WebSocket connections"
 /plan-task @.specs/tasks/draft/implement-realtime-stock-updates.feature.md
 /implement-task
 ```
@@ -278,7 +278,7 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 ```bash
 # 1. Create and plan the task
-/sdd:add-task "Add user notification preferences with email digest settings"
+/add-task "Add user notification preferences with email digest settings"
 /plan-task @.specs/tasks/draft/add-notification-preferences.feature.md
 
 # 2. Review specification, make edits if needed
@@ -289,15 +289,15 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 /implement-task
 
 # 5. Commit and create PR
-/git:commit
-/git:create-pr
+/commit
+/create-pr
 ```
 
 ### Research-Heavy Features
 
 ```bash
 # For unfamiliar technology — brainstorm first
-/sdd:brainstorm "We need real-time features, but I'm not sure about WebSockets vs. Server-Sent Events"
+/brainstorm "We need real-time features, but I'm not sure about WebSockets vs. Server-Sent Events"
 
 # The research phase in /plan-task will:
 # - Launch researcher agent to compare libraries
@@ -305,7 +305,7 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 # - Check existing codebase patterns
 # - Create a reusable skill document
 
-/sdd:add-task "Add real-time collaboration with WebSocket support"
+/add-task "Add real-time collaboration with WebSocket support"
 /plan-task @.specs/tasks/draft/add-realtime-collaboration.feature.md
 ```
 
@@ -329,9 +329,9 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 ### Common Patterns
 
-1. **Brainstorm before task creation** — Use `/sdd:brainstorm` for vague requirements, `/sdd:create-ideas` for quick diverse options
+1. **Brainstorm before task creation** — Use `/brainstorm` for vague requirements, `/create-ideas` for quick diverse options
 2. **Review specifications** — Edit the task file and use `--refine` to propagate changes
-3. **Decompose large tasks** — Create multiple tasks with dependencies using `/sdd:add-task`
+3. **Decompose large tasks** — Create multiple tasks with dependencies using `/add-task`
 4. **Use human-in-the-loop for critical decisions** — Architecture and decomposition phases benefit most from human review
 5. **Continue interrupted work** — Use `--continue` to resume implementation, `--refine` after manual fixes
 

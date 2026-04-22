@@ -16,7 +16,7 @@ Real-world scenarios demonstrating effective use of the MCP plugin for documenta
 > /plugin install mcp@NeoLabHQ/context-engineering-kit
 
 # Configure documentation access
-> /mcp:setup-context7-mcp nextjs 14, prisma, typescript, zod
+> /setup-context7-mcp nextjs 14, prisma, typescript, zod
 ```
 
 **Expected Flow**:
@@ -56,7 +56,7 @@ After setup, when you ask about Next.js Server Actions or Prisma relations, the 
 > cd existing-project
 
 # Let the command analyze your project
-> /mcp:setup-context7-mcp
+> /setup-context7-mcp
 ```
 
 **Expected Flow**:
@@ -85,7 +85,7 @@ Setting up documentation for: react, @reduxjs/toolkit, express, postgresql, type
 
 ```bash
 # Set up Codemap CLI for codebase visualization
-> /mcp:setup-codemap-cli
+> /setup-codemap-cli
 ```
 
 **Expected Flow**:
@@ -149,7 +149,7 @@ Updated .gitignore with .codemap/ directory.
 
 ```bash
 # Set up Serena for semantic analysis
-> /mcp:setup-serena-mcp
+> /setup-serena-mcp
 ```
 
 **Expected Flow**:
@@ -176,7 +176,7 @@ Configuration needed:
 1. Add Serena to your MCP configuration
 2. Restart Claude to load the new MCP server
 
-After restart, run: /mcp:setup-serena-mcp continue
+After restart, run: /setup-serena-mcp continue
 ```
 
 **After Successful Setup**:
@@ -214,10 +214,10 @@ Updated CLAUDE.md with Serena usage guidelines.
 
 ```bash
 # First, set up documentation access
-> /mcp:setup-context7-mcp react, graphql, @apollo/client
+> /setup-context7-mcp react, graphql, @apollo/client
 
 # Then, set up semantic code analysis
-> /mcp:setup-serena-mcp
+> /setup-serena-mcp
 ```
 
 **Result in CLAUDE.md**:
@@ -260,7 +260,7 @@ Key usage points:
 
 ```bash
 # Set up paper search MCP via Docker MCP
-> /mcp:setup-arxiv-mcp
+> /setup-arxiv-mcp
 ```
 
 **Expected Flow**:
@@ -330,7 +330,7 @@ Paper Search MCP is now configured!
 
 ```bash
 # Start the MCP server development guide
-> /mcp:build-mcp
+> /build-mcp
 
 # When prompted, describe your use case:
 > "I want to build an MCP server that lets the LLM read and post messages
@@ -440,7 +440,7 @@ async def search_messages(params: SearchMessagesInput) -> str:
 **Scenario**: Your company has an internal API for managing customer data and you want LLM access.
 
 ```bash
-> /mcp:build-mcp
+> /build-mcp
 
 > "Build an MCP server for our internal Customer API at https://api.internal.com
    I need to search customers, view customer details, and update customer status"
@@ -509,20 +509,21 @@ Try:
 
 ```bash
 # Set up MCP servers at project start
-> /mcp:setup-context7-mcp react, typescript, prisma
-> /mcp:setup-serena-mcp
+> /setup-context7-mcp react, typescript, prisma
+> /setup-serena-mcp
 
 # Research phase - Context7 provides current documentation
-> /sdd:01-research
+> /add-task "Integrate prisma for database operations"
+> /plan-task
 
 # Implementation - Serena helps navigate codebase
-> /sdd:04-implement
+> /implement-task
 
 # Review with semantic understanding
-> /reflexion:critique
+> /critique
 
 # Save learnings
-> /reflexion:memorize
+> /memorize
 ```
 
 **How MCP Enhances Each Phase**:
@@ -541,7 +542,7 @@ Try:
 **Scenario**: Context7 cannot find documentation for a library you need.
 
 ```bash
-> /mcp:setup-context7-mcp obscure-library
+> /setup-context7-mcp obscure-library
 
 # Response:
 # Documentation not found for: obscure-library
@@ -568,7 +569,7 @@ Try:
 **Scenario**: Serena fails to index your project correctly.
 
 ```bash
-> /mcp:setup-serena-mcp
+> /setup-serena-mcp
 
 # Issue: Indexing failed for src/generated/*
 # These files are auto-generated and should be excluded
@@ -581,7 +582,7 @@ Try:
 > "Configure Serena to exclude the src/generated directory from indexing"
 
 # Re-run indexing
-> /mcp:setup-serena-mcp
+> /setup-serena-mcp
 
 # Result:
 # Indexing complete:
@@ -596,32 +597,33 @@ Try:
 
 ```bash
 # Set up documentation, then verify configuration
-> /mcp:setup-context7-mcp react, nextjs
-> /reflexion:reflect
+> /setup-context7-mcp react, nextjs
+> /reflect
 
 # After building a custom MCP server, get comprehensive review
-> /mcp:build-mcp
-> /reflexion:critique
-> /reflexion:memorize "MCP server design patterns"
+> /build-mcp
+> /critique
+> /memorize "MCP server design patterns"
 ```
 
 ### With SDD (Spec-Driven Development)
 
 ```bash
 # Documentation access improves research quality
-> /mcp:setup-context7-mcp
-> /sdd:01-research
+> /setup-context7-mcp
+> /add-task "Integrate prisma for database operations"
+> /plan-task
 
 # Semantic analysis helps implementation
-> /mcp:setup-serena-mcp
-> /sdd:04-implement
+> /setup-serena-mcp
+> /implement-task
 ```
 
 ### With TDD
 
 ```bash
 # Semantic analysis helps find test targets
-> /mcp:setup-serena-mcp
+> /setup-serena-mcp
 > /write-tests
 ```
 
@@ -629,11 +631,11 @@ Try:
 
 ```bash
 # Semantic analysis aids root cause investigation
-> /mcp:setup-serena-mcp
+> /setup-serena-mcp
 > /why "Why is the authentication failing?"
 
 # Codemap visualizes codebase for root cause tracing
-> /mcp:setup-codemap-cli
+> /setup-codemap-cli
 > /root-cause-tracing
 ```
 
@@ -641,9 +643,9 @@ Try:
 
 ```bash
 # Set up complete MCP tooling for a new project
-> /mcp:setup-context7-mcp react, typescript, prisma
-> /mcp:setup-serena-mcp
-> /mcp:setup-codemap-cli
+> /setup-context7-mcp react, typescript, prisma
+> /setup-serena-mcp
+> /setup-codemap-cli
 
 # Now Claude has:
 # - Up-to-date documentation access (Context7)

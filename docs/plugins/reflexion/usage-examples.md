@@ -13,7 +13,7 @@ The simplest way to use reflection is with the automatic hooks. Include the word
 > claude "implement user authentication, then reflect"
 
 # Claude implements the feature, then automatically:
-# 1. Runs /reflexion:reflect
+# 1. Runs /reflect
 # 2. Reviews its own work
 # 3. Fixes any issues found or suggests improvements
 ```
@@ -42,7 +42,7 @@ The simplest way to use reflection is with the automatic hooks. Include the word
 > claude "create a function to format phone numbers to (XXX) XXX-XXXX format"
 
 # Quick reflection
-> /reflexion:reflect
+> /reflect
 ```
 
 **Expected Flow**:
@@ -70,16 +70,16 @@ Reflection Output:
 > claude "implement OAuth2 authentication with Google and GitHub providers"
 
 # Comprehensive multi-perspective review
-> /reflexion:critique
+> /critique
 
 # Address findings
 > claude "implement the Critical and High priority items from the critique"
 
 # Quick check
-> /reflexion:reflect
+> /reflect
 
 # Save learnings
-> /reflexion:memorize
+> /memorize
 ```
 
 **Expected Critique Output**:
@@ -108,7 +108,7 @@ High Priority:
 > claude "implement Stripe payment processing with subscription support"
 
 # Reflect on implementation
-> /reflexion:reflect
+> /reflect
 ```
 
 **Reflection finds optimization opportunity**:
@@ -126,10 +126,10 @@ Performance Analysis:
 > claude "refactor payment processing to use background jobs"
 
 # Confirm improvement
-> /reflexion:reflect
+> /reflect
 
 # Save pattern
-> /reflexion:memorize
+> /memorize
 ```
 
 **Memorized Knowledge** (added to CLAUDE.md):
@@ -157,16 +157,16 @@ Performance Analysis:
 > claude "design a caching strategy for our product catalog API"
 
 # Get multi-perspective review
-> /reflexion:critique
+> /critique
 
 # Debate reveals issues
 > claude "update caching design based on critique"
 
 # Re-evaluate
-> /reflexion:critique
+> /critique
 
 # Finalize
-> /reflexion:memorize --section="Architecture Decisions"
+> /memorize --section="Architecture Decisions"
 ```
 
 **First Critique**:
@@ -192,14 +192,14 @@ Verdict: ✅ Ready to ship
 > claude "implement caching layer"
 
 # First reflection
-> /reflexion:reflect
+> /reflect
 
 # Address issues and reflect again
 > claude "fix the issues identified"
-> /reflexion:reflect
+> /reflect
 
 # Capture final insights
-> /reflexion:memorize
+> /memorize
 ```
 
 ## Integration with Other Plugins
@@ -207,18 +207,17 @@ Verdict: ✅ Ready to ship
 ### With Code Review
 ```bash
 > /review-local-changes
-> /reflexion:memorize "Code review findings"
+> /memorize "Code review findings"
 ```
 
 ### With SDD
 ```bash
-> /sdd:04-implement
-> /reflexion:reflect
-> /sdd:05-document
+> /implement-task
+> /reflect
 ```
 
 ### With Kaizen
 ```bash
 > /why "Why did the bug occur?"
-> /reflexion:memorize "Root cause patterns"
+> /memorize "Root cause patterns"
 ```

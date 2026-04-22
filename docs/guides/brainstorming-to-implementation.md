@@ -16,7 +16,6 @@ For well-defined requirements, skip brainstorming and use [Spec-Driven Developme
 - [SDD](../plugins/sdd/README.md)
 - [Review](../plugins/review/README.md)
 - [Git](../plugins/git/README.md)
-- [FPF](../plugins/fpf/README.md) (optional, for systematic hypothesis evaluation)
 
 ## Workflow
 
@@ -94,34 +93,6 @@ The LLM will present options like:
 ```
 
 After reviewing options, select your preferred approach or ask for more exploration. The LLM leads with its recommendation and explains the reasoning.
-
-#### Using FPF for Systematic Evaluation
-
-For architectural decisions with long-term consequences, consider using the [FPF plugin](../plugins/fpf/README.md) to systematically evaluate approaches:
-
-```bash
-/propose-hypotheses What caching strategy should we use for our API?
-```
-
-FPF provides:
-
-- **Structured hypothesis generation** - Multiple competing options with diverse perspectives
-- **Logical verification** - Check each option against project constraints
-- **Evidence validation** - Empirical testing with trust scores
-- **Auditable decisions** - Full reasoning trail preserved in `.fpf/` directory
-
-**When to use FPF vs SDD brainstorming:**
-
-| Scenario | Use FPF | Use SDD Brainstorming |
-|----------|---------|----------------------|
-| Architectural decisions with long-term impact | Yes | No |
-| Multiple viable approaches needing systematic comparison | Yes | Maybe |
-| Decisions requiring audit trails | Yes | No |
-| Quick exploration of ideas | No | Yes |
-| Easily reversible decisions | No | Yes |
-| Time-critical situations | No | Yes |
-
-See [FPF plugin documentation](../plugins/fpf/README.md) for detailed workflow steps.
 
 ### 3. Present design
 

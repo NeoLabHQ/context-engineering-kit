@@ -46,7 +46,7 @@ Solutions:
 > claude "Add index on transactions.user_id and update migration"
 
 # Memorize the pattern for future reference
-> /reflexion:memorize "Database performance patterns"
+> /memorize "Database performance patterns"
 ```
 
 ---
@@ -637,7 +637,7 @@ Priority: LOW
 > /why "Why does the payment fail for international cards?"
 
 # After understanding root cause, memorize the pattern
-> /reflexion:memorize "International payment processing patterns"
+> /memorize "International payment processing patterns"
 ```
 
 ### With Code Review
@@ -657,7 +657,7 @@ Priority: LOW
 
 ```bash
 # 1. Load issue context
-> /git:analyze-issue #456
+> /analyze-issue #456
 
 # 2. Trace to root cause
 > /root-cause-tracing
@@ -669,17 +669,17 @@ Priority: LOW
 > claude "Fix the issue based on root cause analysis"
 
 # 5. Memorize learnings
-> /reflexion:memorize "Bug patterns from issue #456"
+> /memorize "Bug patterns from issue #456"
 
 # 6. Commit with context
-> /git:commit
+> /commit
 ```
 
 ### With SDD (Quality Improvement After Implementation)
 
 ```bash
 # After implementing feature
-> /sdd:04-implement
+> /implement-task
 
 # Analyze for waste and improvements
 > /analyse "Check implementation for waste"
@@ -687,6 +687,4 @@ Priority: LOW
 # If issues found, plan improvement
 > /plan-do-check-act "Optimize implementation"
 
-# Document final implementation
-> /sdd:05-document
 ```
