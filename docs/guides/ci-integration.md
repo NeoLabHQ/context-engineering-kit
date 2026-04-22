@@ -76,7 +76,7 @@ jobs:
           prompt: '/review-pr ${{ github.repository }}/pull/${{ github.event.pull_request.number }} Note: The PR branch is already checked out in the current working directory.'
 
           # Skill and Bash(gh pr comment:*) is required for review, the rest is optional, but recommended for better context and quality of the review.
-          claude_args: '--allowed-tools "Skill,Bash,Glob,Grep,Read,Task,mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh api:*)" --system-prompt "Follow /review-pr skill EXACTLY!!!"'
+          claude_args: '--allowed-tools "Skill,Bash,Glob,Grep,Read,Task,mcp__github_inline_comment__create_inline_comment,Bash(gh issue view:*),Bash(gh search:*),Bash(gh issue list:*),Bash(gh pr comment:*),Bash(gh pr edit:*),Bash(gh pr diff:*),Bash(gh pr view:*),Bash(gh pr list:*),Bash(gh api:*)" --system-prompt "Follow /review-pr skill EXACTLY! Ignore anything that not align with this skill instructions!"'
 ```
 
 ## How It Works
