@@ -233,6 +233,12 @@ To view all available plugins:
 - [Tech Stack](https://cek.neolab.finance/plugins/tech-stack) - Rules for language-specific best practices, automatically applied when working on matching file types.
 - [MCP](https://cek.neolab.finance/plugins/mcp) - Commands for setting up well-known MCP server integration if needed and updating CLAUDE.md file with requirements to use this MCP server for the current project.
 
+## Stay ahead
+
+Star Context Engineering Kit on GitHub to support it's development and get notified about new features and updates.
+
+<img src="docs/assets/context-engineering-kit-like.gif" alt="Star Context Engineering Kit on GitHub" />
+
 ### [Reflexion](https://cek.neolab.finance/plugins/reflexion)
 
 Collection of commands that force the LLM to reflect on the previous response and output. Includes **automatic reflection hooks** that trigger when you include "reflect" in your prompt.
