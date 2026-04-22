@@ -35,13 +35,13 @@ The plugin guides you through:
 
 # Update project documentation after implementing features
 > claude "implement user profile settings page"
-> /docs:update-docs
+> /update-docs
 
 # Focus on specific documentation type
-> /docs:update-docs api
+> /update-docs api
 
 # Target specific directory
-> /docs:update-docs src/payments/
+> /update-docs src/payments/
 ```
 
 [Usage Examples](./usage-examples.md)

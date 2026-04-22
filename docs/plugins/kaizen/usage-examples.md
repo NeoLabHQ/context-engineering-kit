@@ -10,7 +10,7 @@ Real-world scenarios demonstrating effective use of the Kaizen plugin for root c
 
 ```bash
 # Start with Five Whys to find root cause
-> /kaizen:why "Users see 500 error on checkout during peak hours"
+> /why "Users see 500 error on checkout during peak hours"
 ```
 
 **Expected Flow**:
@@ -46,7 +46,7 @@ Solutions:
 > claude "Add index on transactions.user_id and update migration"
 
 # Memorize the pattern for future reference
-> /reflexion:memorize "Database performance patterns"
+> /memorize "Database performance patterns"
 ```
 
 ---
@@ -57,7 +57,7 @@ Solutions:
 
 ```bash
 # Use Fishbone analysis for multi-factor investigation
-> /kaizen:cause-and-effect "E2E tests fail intermittently, pass on retry"
+> /cause-and-effect "E2E tests fail intermittently, pass on retry"
 ```
 
 **Expected Fishbone Output**:
@@ -107,7 +107,7 @@ SOLUTIONS (Priority Order):
 **Follow-up with PDCA**:
 ```bash
 # Plan systematic improvement
-> /kaizen:plan-do-check-act "Reduce flaky test rate from 15% to under 2%"
+> /plan-do-check-act "Reduce flaky test rate from 15% to under 2%"
 ```
 
 ---
@@ -118,7 +118,7 @@ SOLUTIONS (Priority Order):
 
 ```bash
 # Create comprehensive A3 problem analysis
-> /kaizen:analyse-problem "Production database outage during peak traffic"
+> /analyse-problem "Production database outage during peak traffic"
 ```
 
 **Expected A3 Output**:
@@ -259,7 +259,7 @@ DATE: 2024-11-14
 
 ```bash
 # Start PDCA cycle for measured improvement
-> /kaizen:plan-do-check-act "Reduce Docker build time from 45 minutes to under 10 minutes"
+> /plan-do-check-act "Reduce Docker build time from 45 minutes to under 10 minutes"
 ```
 
 **Expected PDCA Cycle**:
@@ -357,7 +357,7 @@ ACT:
 
 ```bash
 # Use smart analysis to auto-select best method
-> /kaizen:analyse authentication module for technical debt
+> /analyse authentication module for technical debt
 ```
 
 **Kaizen auto-selects Muda (Waste) Analysis**:
@@ -456,7 +456,7 @@ Estimated Recovery:
 
 ```bash
 # Use root cause tracing for deep stack bugs
-> /kaizen:root-cause-tracing
+> /root-cause-tracing
 ```
 
 **Expected Trace**:
@@ -542,7 +542,7 @@ VERIFICATION:
 
 ```bash
 # Use analyse with Gemba Walk focus
-> /kaizen:analyse authentication implementation
+> /analyse authentication implementation
 ```
 
 **Kaizen selects Gemba Walk**:
@@ -634,59 +634,57 @@ Priority: LOW
 
 ```bash
 # Investigate bug root cause
-> /kaizen:why "Why does the payment fail for international cards?"
+> /why "Why does the payment fail for international cards?"
 
 # After understanding root cause, memorize the pattern
-> /reflexion:memorize "International payment processing patterns"
+> /memorize "International payment processing patterns"
 ```
 
 ### With Code Review
 
 ```bash
 # Get code review first
-> /code-review:review-local-changes
+> /review-local-changes
 
 # Analyze any quality issues found
-> /kaizen:cause-and-effect "High complexity in reviewed code"
+> /cause-and-effect "High complexity in reviewed code"
 
 # Plan systematic improvement
-> /kaizen:plan-do-check-act "Reduce cyclomatic complexity"
+> /plan-do-check-act "Reduce cyclomatic complexity"
 ```
 
 ### With Git (Full Bug Fix Workflow)
 
 ```bash
 # 1. Load issue context
-> /git:analyze-issue #456
+> /analyze-issue #456
 
 # 2. Trace to root cause
-> /kaizen:root-cause-tracing
+> /root-cause-tracing
 
 # 3. Understand why it happened
-> /kaizen:why
+> /why
 
 # 4. Implement fix based on root cause
 > claude "Fix the issue based on root cause analysis"
 
 # 5. Memorize learnings
-> /reflexion:memorize "Bug patterns from issue #456"
+> /memorize "Bug patterns from issue #456"
 
 # 6. Commit with context
-> /git:commit
+> /commit
 ```
 
 ### With SDD (Quality Improvement After Implementation)
 
 ```bash
 # After implementing feature
-> /sdd:04-implement
+> /implement-task
 
 # Analyze for waste and improvements
-> /kaizen:analyse "Check implementation for waste"
+> /analyse "Check implementation for waste"
 
 # If issues found, plan improvement
-> /kaizen:plan-do-check-act "Optimize implementation"
+> /plan-do-check-act "Optimize implementation"
 
-# Document final implementation
-> /sdd:05-document
 ```

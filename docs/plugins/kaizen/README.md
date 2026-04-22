@@ -24,25 +24,25 @@ They are based on the idea that most bugs and quality issues are symptoms of dee
 /plugin install kaizen@NeoLabHQ/context-engineering-kit
 
 # Investigate a bug's root cause
-> /kaizen:why "API returns 500 error on checkout"
+> /why "API returns 500 error on checkout"
 
 # Analyze code for improvement opportunities
-> /kaizen:analyse src/checkout/
+> /analyse src/checkout/
 
 # Document a complex problem comprehensively
-> /kaizen:analyse-problem "Database connection exhaustion during peak traffic"
+> /analyse-problem "Database connection exhaustion during peak traffic"
 ```
 
 [Usage Examples](./usage-examples.md)
 
 ## Commands
 
-- [/kaizen:why](./why.md) - Five Whys Root Cause Analysis. Iterative questioning technique that drills from surface symptoms to fundamental root causes by repeatedly asking "why."
-- [/kaizen:root-cause-tracing](./root-cause-tracing.md) - Bug Tracing Through Call Stack. Systematically traces bugs backward through the call stack to identify where invalid data or incorrect behavior originates.
-- [/kaizen:cause-and-effect](./cause-and-effect.md) - Fishbone Analysis. Systematic exploration of problem causes across six categories using the Ishikawa (Fishbone) diagram approach.
-- [/kaizen:analyse-problem](./analyse-problem.md) - A3 Problem Analysis. Comprehensive one-page problem documentation using the A3 format, covering Background, Current Condition, Goal, Root Cause, Countermeasures, Implementation Plan, and Follow-up.
-- [/kaizen:analyse](./analyse.md) - Smart Analysis Method Selection. Intelligently selects and applies the most appropriate Kaizen analysis technique based on what you're analyzing: Gemba Walk, Value Stream Mapping, or Muda (Waste) Analysis.
-- [/kaizen:plan-do-check-act](./plan-do-check-act.md) - PDCA Improvement Cycle. Four-phase iterative cycle for continuous improvement through systematic experimentation: Plan, Do, Check, Act.
+- [/why](./why.md) - Five Whys Root Cause Analysis. Iterative questioning technique that drills from surface symptoms to fundamental root causes by repeatedly asking "why."
+- [/root-cause-tracing](./root-cause-tracing.md) - Bug Tracing Through Call Stack. Systematically traces bugs backward through the call stack to identify where invalid data or incorrect behavior originates.
+- [/cause-and-effect](./cause-and-effect.md) - Fishbone Analysis. Systematic exploration of problem causes across six categories using the Ishikawa (Fishbone) diagram approach.
+- [/analyse-problem](./analyse-problem.md) - A3 Problem Analysis. Comprehensive one-page problem documentation using the A3 format, covering Background, Current Condition, Goal, Root Cause, Countermeasures, Implementation Plan, and Follow-up.
+- [/analyse](./analyse.md) - Smart Analysis Method Selection. Intelligently selects and applies the most appropriate Kaizen analysis technique based on what you're analyzing: Gemba Walk, Value Stream Mapping, or Muda (Waste) Analysis.
+- [/plan-do-check-act](./plan-do-check-act.md) - PDCA Improvement Cycle. Four-phase iterative cycle for continuous improvement through systematic experimentation: Plan, Do, Check, Act.
 
 
 ## Skills

@@ -4,43 +4,6 @@ Real-world scenarios demonstrating effective use of the Domain-Driven Developmen
 
 ## Examples
 
-### Project Initialization with DDD Standards
-
-**Scenario**: You're starting a new TypeScript project and want to establish consistent code quality from day one.
-
-```bash
-# Initialize Claude for your project
-/init
-
-# Set up project constitution with Clean Architecture
-/sdd:00-setup Use TypeScript, PostgreSQL, Clean Architecture, domain-driven design
-
-# Add TypeScript-specific best practices
-/tech-stack:add-typescript-best-practices
-
-# Add code formatting standards
-/ddd:setup-code-formating
-```
-
-**Expected Flow**:
-
-1. Project gets CLAUDE.md with base configuration
-2. Constitution establishes architectural principles in `specs/constitution.md`
-3. TypeScript guidelines added to CLAUDE.md
-4. Code formatting rules enforced in CLAUDE.md
-
-**Resulting CLAUDE.md Section**:
-```markdown
-## Code Style Rules
-
-### Code Formatting
-
-- No semicolons (enforced)
-- Single quotes (enforced)
-- No unnecessary curly braces (enforced)
-- 2-space indentation
-- Import order: external -> internal -> types
-```
 
 ### Implementing a Feature with DDD Principles
 
@@ -276,14 +239,10 @@ export class PhoneNumber {
 **Scenario**: Designing a new microservice that needs clear bounded context boundaries.
 
 ```bash
-# Define the bounded context
-/sdd:00-setup Payment microservice with Clean Architecture, bounded context for payment processing
 
-# Set up code standards
-/ddd:setup-code-formating
 
 # Design the domain model
-claude "design the domain model for a payment processing bounded context"
+claude "design the domain model for a payment processing bounded context for payment microservice with Clean Architecture, bounded context for payment processing"
 ```
 
 **Expected Domain Model**:
@@ -374,28 +333,26 @@ Suggested Refactoring:
 claude "implement order processing with Clean Architecture"
 
 # Reflect on architectural decisions
-/reflexion:reflect architecture
+/reflect architecture
 
 # Save learnings
-/reflexion:memorize --section="Architecture Decisions"
+/memorize --section="Architecture Decisions"
 ```
 
 ### With SDD for Full Development Lifecycle
 
 ```bash
-# Setup
-/sdd:00-setup E-commerce platform with Clean Architecture
-/ddd:setup-code-formating
 
-# Specification
-/sdd:01-brainstorm Shopping cart feature
-/sdd:02-draft-spec
+# Define
+/brainstorm Add shopping cart feature
+/add-task
+
+# Plan specification
+/plan-task
 
 # Implementation (DDD skill active)
-/sdd:04-implement
+/implement-task
 
-# Documentation
-/sdd:05-document
 ```
 
 ### With Code Review for Quality Gates
@@ -405,7 +362,7 @@ claude "implement order processing with Clean Architecture"
 claude "add payment processing integration"
 
 # Review for DDD compliance
-/code-review:review-local-changes
+/review-local-changes
 
 # The software-architecture skill ensures review checks:
 # - Layer boundaries

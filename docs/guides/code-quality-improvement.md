@@ -16,7 +16,7 @@ For root cause analysis of bugs and incidents, use the [Debugging and Root Cause
 
 - [Kaizen](../plugins/kaizen/README.md)
 - [Reflexion](../plugins/reflexion/README.md)
-- [Code Review](../plugins/code-review/README.md)
+- [Review](../plugins/review/README.md)
 - [Git](../plugins/git/README.md)
 
 ## Workflow
@@ -74,30 +74,30 @@ For root cause analysis of bugs and incidents, use the [Debugging and Root Cause
 
 ### 1. Analyze target area
 
-Use the `/kaizen:analyse` command to intelligently analyze your target area for improvement opportunities. The command auto-selects the best analysis method: Gemba Walk (code exploration), Value Stream Mapping (workflow/process), or Muda Analysis (waste identification).
+Use the `/analyse` command to intelligently analyze your target area for improvement opportunities. The command auto-selects the best analysis method: Gemba Walk (code exploration), Value Stream Mapping (workflow/process), or Muda Analysis (waste identification).
 
 ```bash
-/kaizen:analyse Target the checkout flow for performance optimization
+/analyse Target the checkout flow for performance optimization
 ```
 
 After LLM completes, review the analysis findings including identified waste, bottlenecks, or gaps between documentation and reality. The output provides actionable insights categorized by priority.
 
 ### 2. Get multi-perspective critique
 
-Use the `/reflexion:critique` command to get comprehensive feedback from multiple specialized perspectives. This surfaces issues that might be missed by a single analysis approach.
+Use the `/critique` command to get comprehensive feedback from multiple specialized perspectives. This surfaces issues that might be missed by a single analysis approach.
 
 ```bash
-/reflexion:critique
+/critique
 ```
 
 After LLM completes, review the structured feedback from multiple judges covering different aspects like security, performance, maintainability, and design. Note the consensus points and any areas of disagreement.
 
 ### 3. Plan improvements with PDCA cycle
 
-Use the `/kaizen:plan-do-check-act` command to create a structured improvement plan with measurable success criteria. This ensures changes are systematic and results can be verified.
+Use the `/plan-do-check-act` command to create a structured improvement plan with measurable success criteria. This ensures changes are systematic and results can be verified.
 
 ```bash
-/kaizen:plan-do-check-act Reduce API response time by 50%
+/plan-do-check-act Reduce API response time by 50%
 ```
 
 After LLM completes, review the PDCA plan which includes:
@@ -120,30 +120,30 @@ After LLM completes, the changes are applied to your local working directory. Th
 
 ### 5. Review local changes
 
-Use the `/code-review:review-local-changes` command to verify the quality of implemented changes before committing.
+Use the `/review-local-changes` command to verify the quality of implemented changes before committing.
 
 ```bash
-/code-review:review-local-changes
+/review-local-changes
 ```
 
 After LLM completes, review the findings from multiple specialized agents (Bug Hunter, Security Auditor, Code Quality Reviewer, etc.). Address any critical or high-priority issues before proceeding. If the review identifies significant problems, iterate back to step 4.
 
 ### 6. Preserve learnings
 
-Use the `/reflexion:memorize` command to capture valuable insights from this improvement cycle for future reference.
+Use the `/memorize` command to capture valuable insights from this improvement cycle for future reference.
 
 ```bash
-/reflexion:memorize Performance optimization patterns for checkout flow
+/memorize Performance optimization patterns for checkout flow
 ```
 
 After LLM completes, the insights are added to your project's CLAUDE.md file. This builds a knowledge base of patterns, pitfalls, and solutions that improve future development.
 
 ### 7. Create conventional commit
 
-Use the `/git:commit` command to create a well-formatted commit message following conventional commit standards.
+Use the `/commit` command to create a well-formatted commit message following conventional commit standards.
 
 ```bash
-/git:commit
+/commit
 ```
 
 After LLM completes, review the generated commit message which describes the improvement, its rationale, and measurable impact. The commit is ready to push to your repository.
@@ -154,26 +154,26 @@ Depending on your improvement goal, you may want to use specialized Kaizen comma
 
 ### For comprehensive problem documentation
 
-Use `/kaizen:analyse-problem` when you need a structured A3 one-page analysis with background, root cause, countermeasures, and implementation plan.
+Use `/analyse-problem` when you need a structured A3 one-page analysis with background, root cause, countermeasures, and implementation plan.
 
 ```bash
-/kaizen:analyse-problem API response times degraded after last release
+/analyse-problem API response times degraded after last release
 ```
 
 ### For iterative root cause investigation
 
-Use `/kaizen:why` (Five Whys) when you need to drill from symptoms to fundamental causes through iterative questioning.
+Use `/why` (Five Whys) when you need to drill from symptoms to fundamental causes through iterative questioning.
 
 ```bash
-/kaizen:why Why is the checkout page loading slowly?
+/why Why is the checkout page loading slowly?
 ```
 
 ### For systematic cause exploration
 
-Use `/kaizen:cause-and-effect` (Fishbone analysis) when exploring causes across multiple categories: People, Process, Technology, Methods, Environment, and Materials.
+Use `/cause-and-effect` (Fishbone analysis) when exploring causes across multiple categories: People, Process, Technology, Methods, Environment, and Materials.
 
 ```bash
-/kaizen:cause-and-effect Investigate causes of high memory usage in production
+/cause-and-effect Investigate causes of high memory usage in production
 ```
 
 ## Tips for Effective Quality Improvement

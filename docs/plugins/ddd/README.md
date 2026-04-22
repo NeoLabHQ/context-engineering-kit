@@ -28,22 +28,7 @@ These principles address the core challenge of software development: **managing 
 > claude "Use DDD rules to implement user authentication"
 ```
 
-## Code Formatting
-
-To enable code formatting rules, you can use the following command:
-
-```bash
-/ddd:setup-code-formating
-```
-
 [Usage Examples](./usage-examples.md)
-
-## Commands
-
-### setup-code-formating
-
-Establishes consistent code formatting rules and style guidelines by updating your project's CLAUDE.md file with enforced standards.
-See [setup-code-formating.md](./setup-code-formating.md) for detailed command documentation.
 
 ## Rules
 

@@ -1,4 +1,4 @@
-# /kaizen:analyse - Smart Analysis Method Selection
+# /analyse - Smart Analysis Method Selection
 
 Intelligently selects and applies the most appropriate Kaizen analysis technique based on what you're analyzing: Gemba Walk, Value Stream Mapping, or Muda (Waste) Analysis.
 
@@ -6,7 +6,7 @@ Intelligently selects and applies the most appropriate Kaizen analysis technique
 - Output - Detailed analysis using the most appropriate technique
 
 ```bash
-/kaizen:analyse ["target description"]
+/analyse ["target description"]
 ```
 
 ## Arguments
@@ -52,13 +52,13 @@ Optional target description (e.g., code area, workflow, or inefficiencies to inv
 
 ```bash
 # Explore unfamiliar code
-> /kaizen:analyse authentication implementation
+> /analyse authentication implementation
 
 # Optimize a workflow
-> /kaizen:analyse deployment pipeline
+> /analyse deployment pipeline
 
 # Find waste in codebase
-> /kaizen:analyse codebase for inefficiencies
+> /analyse codebase for inefficiencies
 ```
 
 ## Best Practices
@@ -67,4 +67,4 @@ Optional target description (e.g., code area, workflow, or inefficiencies to inv
 - Use VSM for process improvements - CI/CD, deployment, code review workflows
 - Use Muda for efficiency audits - Technical debt, cleanup initiatives
 - Combine methods - Gemba Walk can lead to Muda analysis findings
-- Document findings - Use /kaizen:analyse-problem for comprehensive documentation
+- Document findings - Use /analyse-problem for comprehensive documentation

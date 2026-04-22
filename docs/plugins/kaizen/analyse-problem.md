@@ -1,4 +1,4 @@
-# /kaizen:analyse-problem - A3 Problem Analysis
+# /analyse-problem - A3 Problem Analysis
 
 Comprehensive one-page problem documentation using the A3 format, covering Background, Current Condition, Goal, Root Cause, Countermeasures, Implementation Plan, and Follow-up.
 
@@ -6,7 +6,7 @@ Comprehensive one-page problem documentation using the A3 format, covering Backg
 - Output - Structured A3 report with actionable implementation plan
 
 ```bash
-/kaizen:analyse-problem ["problem description"]
+/analyse-problem ["problem description"]
 ```
 
 ## Arguments
@@ -31,13 +31,13 @@ This format forces concise, complete thinking that fits on one page.
 
 ```bash
 # Document a production incident
-> /kaizen:analyse-problem "API downtime due to connection pool exhaustion"
+> /analyse-problem "API downtime due to connection pool exhaustion"
 
 # Analyze a security vulnerability
-> /kaizen:analyse-problem "Critical SQL injection vulnerability discovered"
+> /analyse-problem "Critical SQL injection vulnerability discovered"
 
 # Plan a major improvement initiative
-> /kaizen:analyse-problem "CI/CD pipeline takes 45 minutes"
+> /analyse-problem "CI/CD pipeline takes 45 minutes"
 ```
 
 ### Example Output Structure

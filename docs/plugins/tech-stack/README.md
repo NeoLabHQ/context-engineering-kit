@@ -1,17 +1,16 @@
 # Tech Stack Plugin
 
-Language and framework-specific best practices plugin that configures your CLAUDE.md with standardized coding standards, ensuring consistent code quality across all AI-assisted development.
+Language and framework-specific best practices plugin that provides rules automatically loaded into agent context when working with matching file types, ensuring consistent code quality across all AI-assisted development.
 
 Focused on:
 
-- **Standardized Guidelines** - Pre-defined best practices for specific languages and frameworks
-- **Initial context building** - Updates of CLAUDE.md, so it will be loaded during every claude code session
+- **Automatic Rules** - Best practices loaded into context based on file types being worked on
+- **Zero Configuration** - Rules activate automatically when agent reads or writes matching files
 
 ## Overview
 
-The Tech Stack plugin provides commands for setting up language and framework-specific best practices in your CLAUDE.md file. Instead of manually defining coding standards, this plugin provides curated, production-tested guidelines that can be applied with a single command.
+The Tech Stack plugin provides rules for language and framework-specific best practices. Rules are automatically loaded into the agent's context when working with matching file types (e.g., `**/*.ts` for TypeScript). No manual invocation is needed -- once the plugin is installed, the agent receives relevant coding standards whenever it reads or writes files of that type.
 
-When Claude operates with explicit coding standards in CLAUDE.md, it produces more consistent and higher-quality code. The Tech Stack plugin bridges the gap between starting a new project and having well-defined development standards.
 
 ## Quick Start
 
@@ -19,26 +18,25 @@ When Claude operates with explicit coding standards in CLAUDE.md, it produces mo
 # Install the plugin
 /plugin install tech-stack@NeoLabHQ/context-engineering-kit
 
-# Add TypeScript best practices to your project
-/tech-stack:add-typescript-best-practices
+# Rules activate automatically when working on TypeScript files
+# No additional setup needed
 
-# Review the updated CLAUDE.md
-cat CLAUDE.md
+Refactor @src/main.ts to use generics
+-> TypeScript Best Practices automatically loaded and applied
 ```
 
-[Usage Examples](./usage-examples.md)
+## Rules
 
+Rules are context files that are automatically loaded when the agent works on files matching specific glob patterns. Unlike skills (which require manual invocation), rules apply transparently based on the file types being edited.
 
-### Why CLAUDE.md Matters
+| Rule | File Pattern | Description |
+|------|-------------|-------------|
+| [TypeScript Best Practices](typescript-best-practices.md) | `**/*.ts` | Type system guidelines, code style, async patterns, utility types, and code quality standards |
 
-CLAUDE.md is read by Claude at the start of every conversation. By placing coding standards here:
+### What TypeScript Best Practices Covers
 
-1. **Persistent Context** - Guidelines are always available to Claude
-2. **Project-Specific Rules** - Different projects can have different standards
-3. **Team Synchronization** - All team members share the same AI configuration
-4. **Version Control** - Guidelines are tracked alongside your code
-
-## Commands
-
-- [/tech-stack:add-typescript-best-practices](./add-typescript-best-practices.md) - Sets up TypeScript best practices and code style rules in your CLAUDE.md file, providing Claude with explicit guidelines for generating consistent, type-safe code.
-
+- **Code Style** - Strict typing, interfaces over types, enum usage, type guards
+- **Type System** - Inference, generics, conditional types, mapped types, opaque types
+- **Async Patterns** - async/await, Promise-based APIs, concurrent operations
+- **Code Quality** - Destructuring, naming conventions, library-first approach
+- **Utility Types** - Practical usage of Record, Partial, Omit, Pick, and more

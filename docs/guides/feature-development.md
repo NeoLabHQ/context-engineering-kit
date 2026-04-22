@@ -15,7 +15,7 @@ For complex features requiring architecture planning, use [Spec-Driven Developme
 
 - [Reflexion](../plugins/reflexion/README.md)
 - [TDD](../plugins/tdd/README.md)
-- [Code Review](../plugins/code-review/README.md)
+- [Review](../plugins/review/README.md)
 - [Git](../plugins/git/README.md)
 
 ## Workflow
@@ -83,55 +83,55 @@ After it finish reflection and fixes, review the generated code to ensure it add
 
 ### 2. Write tests
 
-Use the `/tdd:write-tests` command to generate tests covering the changes you made. You can optionally specify areas to focus on.
+Use the `/write-tests` command to generate tests covering the changes you made. You can optionally specify areas to focus on.
 
 ```bash
-/tdd:write-tests
+/write-tests
 ```
 
 Or with specific focus areas:
 
 ```bash
-/tdd:write-tests Focus on edge cases and error handling
+/write-tests Focus on edge cases and error handling
 ```
 
 After LLM completes, verify that all tests pass. If tests fail, ask the LLM to fix the issues before continuing.
 
 ### 3. Review local changes
 
-Use the `/code-review:review-local-changes` command to run a comprehensive multi-agent code review on your uncommitted changes.
+Use the `/review-local-changes` command to run a comprehensive multi-agent code review on your uncommitted changes.
 
 ```bash
-/code-review:review-local-changes
+/review-local-changes
 ```
 
 After LLM completes, review the findings organized by severity (Critical, High, Medium, Low). Address Critical and High priority issues before committing. You can ask the LLM to fix specific issues.
 
 ### 4. Preserve learnings
 
-Use the `/reflexion:memorize` command to save valuable insights and patterns discovered during development to your project memory.
+Use the `/memorize` command to save valuable insights and patterns discovered during development to your project memory.
 
 ```bash
-/reflexion:memorize
+/memorize
 ```
 
 Or with specific context:
 
 ```bash
-/reflexion:memorize "Email validation patterns and regex considerations"
+/memorize "Email validation patterns and regex considerations"
 ```
 
 After LLM completes, the insights are saved to CLAUDE.md, making them available for future development sessions.
 
 ### 5. Create commit
 
-Use the `/git:commit` command to create a well-formatted conventional commit with appropriate emoji.
+Use the `/commit` command to create a well-formatted conventional commit with appropriate emoji.
 
 ```bash
-/git:commit
+/commit
 ```
 
-After LLM completes, a commit is created with a descriptive message following conventional commit format. You can then push your changes or create a pull request using `/git:create-pr`.
+After LLM completes, a commit is created with a descriptive message following conventional commit format. You can then push your changes or create a pull request using `/create-pr`.
 
 ## Tips
 

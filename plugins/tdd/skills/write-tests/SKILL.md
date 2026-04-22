@@ -1,5 +1,5 @@
 ---
-name: tdd:write-tests
+name: write-tests
 description: Systematically add test coverage for all local code changes using specialized review and development agents. Add tests for uncommitted changes (including untracked files), or if everything is commited, then will cover latest commit.
 argument-hint: what tests or modules to focus on
 ---
@@ -89,7 +89,7 @@ Ensure tests are:
 
 If there are multiple changed files, or one file with complex logic, then you need to use specialized agents to cover the changes. Following this guidline:
 
-6. **Launch `code-review:test-coverage-reviewer` agents (parallel)** (Sonnet or Opus models)
+6. **Launch `review:test-coverage-reviewer` agents (parallel)** (Sonnet or Opus models)
    - Launch one coverage-reviewer agent per changed file
    - Provide each agent with:
      - **Context**: What changed in this file (git diff)
@@ -112,7 +112,7 @@ If there are multiple changed files, or one file with complex logic, then you ne
      - **Constraint**: Add new tests, don't modify existing logic (unless clearly broken)
 
 8. **Verify coverage (iteration)** (Sonnet or Opus models)
-   - Launch `code-review:test-coverage-reviewer` agents again per file
+   - Launch `review:test-coverage-reviewer` agents again per file
    - Provide:
      - **Context**: Original changes + new tests added
      - **Goal**: Verify all critical business logic is covered

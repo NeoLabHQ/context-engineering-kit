@@ -33,9 +33,10 @@ The marketplace is based on prompts used daily by our company developers for a l
 
 Updates from key releases:
 
-- **v2.0.0:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) was rewritten from scratch. It is now able to produce working code in 99% of cases on real-life production projects!
-- **v2.1.0:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) agents include high-level code quality guidelines from [DDD plugin](https://cek.neolab.finance/plugins/ddd).
+- **v3.0.0:** Added support for AMP and Hermes agents. [Tech Stack plugin](https://cek.neolab.finance/plugins/tech-stack) now automatically injects typescript best practices when agent reads or writes TypeScript files.
 - **v2.2.0:** [Subagent-Driven Development plugin](https://cek.neolab.finance/plugins/sadd) now works as a distilled version of [SDD plugin](https://cek.neolab.finance/plugins/sdd) using meta-judge and judge sub-agents for specification generation on the fly and in parallel to implementation. [DDD plugin](https://cek.neolab.finance/plugins/ddd) now includes Clean Architecture, DDD, SOLID, Functional Programming, and other pattern examples as rules that are automatically added to the context during code writing.
+- **v2.1.0:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) agents include high-level code quality guidelines from [DDD plugin](https://cek.neolab.finance/plugins/ddd).
+- **v2.0.0:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) was rewritten from scratch. It is now able to produce working code in 99% of cases on real-life production projects!
 
 ## Quick Start
 
@@ -179,7 +180,7 @@ The three plugins in this marketplace are designed to improve how accurately and
 <td>Resolves all issues similarly to /do-and-judge, but separately per file group</td>
 </tr>
 <tr>
-<td><a href="https://cek.neolab.finance/plugins/sdd">/plan + /implement</a></td>
+<td><a href="https://cek.neolab.finance/plugins/sdd">/plan-task + /implement-task</a></td>
 <td>94%</td>
 <td>93%</td>
 <td>85%</td>
@@ -188,7 +189,7 @@ The three plugins in this marketplace are designed to improve how accurately and
 <td>Performs the /do-in-steps flow, but the specification mitigates issues caused by inconsistent architecture and codebase size</td>
 </tr>
 <tr>
-<td><a href="https://cek.neolab.finance/plugins/sdd/brainstorm">/brainstorm</a> + <a href="https://cek.neolab.finance/plugins/sdd/plan">/plan</a> + <a href="https://cek.neolab.finance/plugins/sdd/implement">/implement</a></td>
+<td><a href="https://cek.neolab.finance/plugins/sdd/brainstorm">/brainstorm</a> + <a href="https://cek.neolab.finance/plugins/sdd/plan-task">/plan-task</a> + <a href="https://cek.neolab.finance/plugins/sdd/implement-task">/implement-task</a></td>
 <td>95%</td>
 <td>95%</td>
 <td>90%</td>
@@ -197,7 +198,7 @@ The three plugins in this marketplace are designed to improve how accurately and
 <td>Brainstorming decreases the number of incorrect decisions and missed requirements</td>
 </tr>
 <tr>
-<td><a href="https://cek.neolab.finance/plugins/sdd/plan">/plan</a> + human review + <a href="https://cek.neolab.finance/plugins/sdd/implement">/implement</a></td>
+<td><a href="https://cek.neolab.finance/plugins/sdd/plan-task">/plan-task</a> + human review + <a href="https://cek.neolab.finance/plugins/sdd/implement-task">/implement-task</a></td>
 <td>99%</td>
 <td>99%</td>
 <td>99%</td>
@@ -220,7 +221,7 @@ To view all available plugins:
 
 - [Reflexion](https://cek.neolab.finance/plugins/reflexion) - Introduces feedback and refinement loops to improve output quality.
 - [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd) - Introduces commands for specification-driven development, based on Continuous Learning + LLM-as-Judge + Agent Swarm. Achieves **development as compilation** through reliable code generation.
-- [Code Review](https://cek.neolab.finance/plugins/code-review) - Introduces codebase and PR review commands and skills using multiple specialized agents.
+- [Review](https://cek.neolab.finance/plugins/review) - Introduces code and PR review commands and skills using multiple specialized agents with impact/confidence filtering.
 - [Git](https://cek.neolab.finance/plugins/git) - Introduces commands for commit and PR creation.
 - [Test-Driven Development](https://cek.neolab.finance/plugins/tdd) - Introduces commands for test-driven development, common anti-patterns and skills for testing using subagents.
 - [Subagent-Driven Development](https://cek.neolab.finance/plugins/sadd) - Introduces skills for subagent-driven development, which dispatches a fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
@@ -229,8 +230,14 @@ To view all available plugins:
 - [Kaizen](https://cek.neolab.finance/plugins/kaizen) - Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root causes of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.
 - [Customaize Agent](https://cek.neolab.finance/plugins/customaize-agent) - Commands and skills for writing and refining commands, hooks, and skills for Claude Code. Includes Anthropic Best Practices and [Agent Persuasion Principles](https://arxiv.org/abs/2508.00614) that can be useful for sub-agent workflows.
 - [Docs](https://cek.neolab.finance/plugins/docs) - Commands for analyzing projects, writing and refining documentation.
-- [Tech Stack](https://cek.neolab.finance/plugins/tech-stack) - Commands for setting up or updating CLAUDE.md file with best practices for specific languages or frameworks.
+- [Tech Stack](https://cek.neolab.finance/plugins/tech-stack) - Rules for language-specific best practices, automatically applied when working on matching file types.
 - [MCP](https://cek.neolab.finance/plugins/mcp) - Commands for setting up well-known MCP server integration if needed and updating CLAUDE.md file with requirements to use this MCP server for the current project.
+
+## Stay ahead
+
+Star Context Engineering Kit on GitHub to support it's development and get notified about new features and updates.
+
+<img src="docs/assets/context-engineering-kit-like.gif" alt="Star Context Engineering Kit on GitHub" />
 
 ### [Reflexion](https://cek.neolab.finance/plugins/reflexion)
 
@@ -260,20 +267,20 @@ They are proven to **increase output quality by 8–21%** based on both automati
 
 On top of that, the plugin is based on the [Agentic Context Engineering](https://arxiv.org/abs/2510.04618) paper that uses memory updates after reflection, and **consistently outperforms strong baselines by 10.6%** on agents.
 
-### [Code Review](https://cek.neolab.finance/plugins/code-review)
+### [Review](https://cek.neolab.finance/plugins/review)
 
-Comprehensive code review commands using multiple specialized agents for thorough code quality evaluation.
+Comprehensive code and PR review commands using multiple specialized agents for thorough code quality evaluation with impact/confidence filtering.
 
 **How to install**
 
 ```bash
-/plugin install code-review@NeoLabHQ/context-engineering-kit
+/plugin install review@NeoLabHQ/context-engineering-kit
 ```
 
 **Commands**
 
-- [/code-review:review-local-changes](https://cek.neolab.finance/plugins/code-review/review-local-changes) - Comprehensive review of local uncommitted changes using specialized agents with code improvement suggestions
-- [/code-review:review-pr](https://cek.neolab.finance/plugins/code-review/review-pr) - Comprehensive pull request review using specialized agents
+- [/review-local-changes](https://cek.neolab.finance/plugins/review/review-local-changes) - Comprehensive review of local uncommitted changes using specialized agents with code improvement suggestions
+- [/review-pr](https://cek.neolab.finance/plugins/review/review-pr) - Comprehensive pull request review using specialized agents
 
 **Agents**
 
@@ -300,18 +307,15 @@ Commands and skills for streamlined Git operations including commits, pull reque
 
 **Commands**
 
-- [/git:commit](https://cek.neolab.finance/plugins/git/commit) - Create well-formatted commits with conventional commit messages and emoji
-- [/git:create-pr](https://cek.neolab.finance/plugins/git/create-pr) - Create pull requests using GitHub CLI with proper templates and formatting
-- [/git:analyze-issue](https://cek.neolab.finance/plugins/git/analyze-issue) - Analyze a GitHub issue and create a detailed technical specification
-- [/git:load-issues](https://cek.neolab.finance/plugins/git/load-issues) - Load all open issues from GitHub and save them as markdown files
-- [/git:create-worktree](https://cek.neolab.finance/plugins/git/create-worktree) - Create git worktrees for parallel development with automatic dependency installation
-- [/git:compare-worktrees](https://cek.neolab.finance/plugins/git/compare-worktrees) - Compare files and directories between git worktrees
-- [/git:merge-worktree](https://cek.neolab.finance/plugins/git/merge-worktree) - Merge changes from worktrees with selective checkout, cherry-picking, or patch selection
+- [/commit](https://cek.neolab.finance/plugins/git/commit) - Create well-formatted commits with conventional commit messages and emoji
+- [/create-pr](https://cek.neolab.finance/plugins/git/create-pr) - Create pull requests using GitHub CLI with proper templates and formatting
+- [/analyze-issue](https://cek.neolab.finance/plugins/git/analyze-issue) - Analyze a GitHub issue and create a detailed technical specification
+- [/load-issues](https://cek.neolab.finance/plugins/git/load-issues) - Load all open issues from GitHub and save them as markdown files
+- [/worktree](https://cek.neolab.finance/plugins/git/git-worktrees) - Create, compare, and merge git worktrees for parallel development with automatic dependency installation
 
 **Skills**
 
-- **worktrees** - Git worktree commands and workflow patterns for parallel branch development
-- **notes** - Git notes commands for attaching non-invasive metadata to commits
+- [notes](https://cek.neolab.finance/plugins/git/git-notes) - Skill about using git notes to add metadata to commits without changing history.
 
 ### [Test-Driven Development](https://cek.neolab.finance/plugins/tdd)
 
@@ -325,8 +329,8 @@ Commands and skills for test-driven development with anti-pattern detection.
 
 **Commands**
 
-- [/tdd:write-tests](https://cek.neolab.finance/plugins/tdd/write-tests) - Systematically add test coverage for local code changes using specialized review and development agents
-- [/tdd:fix-tests](https://cek.neolab.finance/plugins/tdd/fix-tests) - Fix failing tests after business logic changes or refactoring using orchestrated agents
+- [/write-tests](https://cek.neolab.finance/plugins/tdd/write-tests) - Systematically add test coverage for local code changes using specialized review and development agents
+- [/fix-tests](https://cek.neolab.finance/plugins/tdd/fix-tests) - Fix failing tests after business logic changes or refactoring using orchestrated agents
 
 **Skills**
 
@@ -344,14 +348,14 @@ Execution framework for competitive generation, multi-agent evaluation, and suba
 
 **Commands**
 
-- [/sadd:launch-sub-agent](https://cek.neolab.finance/plugins/sadd/launch-sub-agent) - Launch focused sub-agents with intelligent model selection, Zero-shot CoT reasoning, and self-critique verification
-- [/sadd:do-and-judge](https://cek.neolab.finance/plugins/sadd/do-and-judge) - Execute a single task with implementation sub-agent, independent judge verification, and automatic retry loop until passing
-- [/sadd:do-in-parallel](https://cek.neolab.finance/plugins/sadd/do-in-parallel) - Execute the same task across multiple independent targets in parallel with context isolation
-- [/sadd:do-in-steps](https://cek.neolab.finance/plugins/sadd/do-in-steps) - Execute complex tasks through sequential sub-agent orchestration with automatic decomposition and context passing
-- [/sadd:do-competitively](https://cek.neolab.finance/plugins/sadd/do-competitively) - Execute tasks through competitive generation, multi-judge evaluation, and evidence-based synthesis to produce superior results
-- [/sadd:tree-of-thoughts](https://cek.neolab.finance/plugins/sadd/tree-of-thoughts) - Execute complex reasoning through systematic exploration of solution space, pruning unpromising branches, and synthesizing the best solution
-- [/sadd:judge-with-debate](https://cek.neolab.finance/plugins/sadd/judge-with-debate) - Evaluate solutions through iterative multi-judge debate with consensus building or disagreement reporting
-- [/sadd:judge](https://cek.neolab.finance/plugins/sadd/judge) - Evaluate completed work using LLM-as-Judge with structured rubrics and evidence-based scoring
+- [/launch-sub-agent](https://cek.neolab.finance/plugins/sadd/launch-sub-agent) - Launch focused sub-agents with intelligent model selection, Zero-shot CoT reasoning, and self-critique verification
+- [/do-and-judge](https://cek.neolab.finance/plugins/sadd/do-and-judge) - Execute a single task with implementation sub-agent, independent judge verification, and automatic retry loop until passing
+- [/do-in-parallel](https://cek.neolab.finance/plugins/sadd/do-in-parallel) - Execute the same task across multiple independent targets in parallel with context isolation
+- [/do-in-steps](https://cek.neolab.finance/plugins/sadd/do-in-steps) - Execute complex tasks through sequential sub-agent orchestration with automatic decomposition and context passing
+- [/do-competitively](https://cek.neolab.finance/plugins/sadd/do-competitively) - Execute tasks through competitive generation, multi-judge evaluation, and evidence-based synthesis to produce superior results
+- [/tree-of-thoughts](https://cek.neolab.finance/plugins/sadd/tree-of-thoughts) - Execute complex reasoning through systematic exploration of solution space, pruning unpromising branches, and synthesizing the best solution
+- [/judge-with-debate](https://cek.neolab.finance/plugins/sadd/judge-with-debate) - Evaluate solutions through iterative multi-judge debate with consensus building or disagreement reporting
+- [/judge](https://cek.neolab.finance/plugins/sadd/judge) - Evaluate completed work using LLM-as-Judge with structured rubrics and evidence-based scoring
 
 **Skills**
 
@@ -366,13 +370,13 @@ This plugin is designed to consistently produce working code. It was tested on r
 
 #### Key Features
 
-- **Development as compilation** — The plugin works like a "compilation" or "nightly build" for your development process: `task specs → run /sdd:implement → working code`. After writing your prompt, you can launch the plugin and expect a working result when you come back. The time it takes depends on task complexity — simple tasks may finish in 30 minutes, while complex ones can take a few days.
+- **Development as compilation** — The plugin works like a "compilation" or "nightly build" for your development process: `task specs → run /implement-task → working code`. After writing your prompt, you can launch the plugin and expect a working result when you come back. The time it takes depends on task complexity — simple tasks may finish in 30 minutes, while complex ones can take a few days.
 - **Benchmark-level quality in real life** — Model benchmarks improve with each release, yet real-world results usually stay the same. That's because benchmarks reflect the best possible output a model can achieve, whereas in practice LLMs tend to drift toward sub-optimal solutions that can be wrong or non-functional. This plugin uses a variety of patterns to keep the model working at its peak performance.
 - **Customizable** — Balance result quality and process speed by adjusting command parameters. Learn more in the [Customization](./customization.md) section.
 - **Developer time-efficient** — The overall process is designed to minimize developer time and reduce the number of interactions, while still producing results better than what a model can generate from scratch. However, overall quality is highly proportional to the time you invest in iterating and refining the specification.
 - **Industry-standard** — The plugin's specification template is based on the arc42 standard, adjusted for LLM capabilities. Arc42 is a widely adopted, high-quality standard for software development documentation used by many companies and organizations.
 - **Works best in complex or large codebases** — While most other frameworks work best for new projects and greenfield development, this plugin is designed to perform better the more existing code and well-structured architecture you have. At each planning phase it includes a **codebase impact analysis** step that evaluates which files may be affected and which patterns to follow to achieve the desired result.
-- **Simple** — This plugin avoids unnecessary complexity and mainly uses just 3 commands, offloading process complexity to the model via multi-agent orchestration. `/sdd:implement` is a single command that produces working code from a task specification. To create that specification, you run `/sdd:add-task` and `/sdd:plan`, which analyze your prompt and iteratively refine the specification until it meets the required quality.
+- **Simple** — This plugin avoids unnecessary complexity and mainly uses just 3 commands, offloading process complexity to the model via multi-agent orchestration. `/implement-task` is a single command that produces working code from a task specification. To create that specification, you run `/sdd:add-task` and `/plan-task`, which analyze your prompt and iteratively refine the specification until it meets the required quality.
 
 #### Quick Start
 
@@ -384,10 +388,10 @@ Then run the following commands:
 
 ```bash
 # create .specs/tasks/draft/design-auth-middleware.feature.md file with initial prompt
-/sdd:add-task "Design and implement authentication middleware with JWT support"
+/add-task "Design and implement authentication middleware with JWT support"
 
 # write detailed specification for the task
-/sdd:plan
+/plan-task
 # will move task to .specs/tasks/todo/ folder
 ```
 
@@ -395,7 +399,7 @@ Restart the Claude Code session to clear context and start fresh. Then run the f
 
 ```bash
 # implement the task
-/sdd:implement @.specs/tasks/todo/design-auth-middleware.feature.md
+/implement-task @.specs/tasks/todo/design-auth-middleware.feature.md
 # produces working implementation and moves the task to .specs/tasks/done/ folder
 ```
 
@@ -404,28 +408,28 @@ Restart the Claude Code session to clear context and start fresh. Then run the f
 
 **Commands**
 
-- [/sdd:add-task](https://cek.neolab.finance/plugins/sdd/add-task) - Create task template file with initial prompt
-- [/sdd:plan](https://cek.neolab.finance/plugins/sdd/plan) - Analyze prompt, generate required skills and refine task specification
-- [/sdd:implement](https://cek.neolab.finance/plugins/sdd/implement) - Produce a working implementation of the task and verify it
+- [/add-task](https://cek.neolab.finance/plugins/sdd/add-task) - Create task template file with initial prompt
+- [/plan-task](https://cek.neolab.finance/plugins/sdd/plan) - Analyze prompt, generate required skills and refine task specification
+- [/implement-task](https://cek.neolab.finance/plugins/sdd/implement) - Produce a working implementation of the task and verify it
 
 Additional commands useful before creating a task:
 
-- [/sdd:create-ideas](https://cek.neolab.finance/plugins/sdd/create-ideas) - Generate diverse ideas on a given topic using creative sampling techniques
-- [/sdd:brainstorm](https://cek.neolab.finance/plugins/sdd/brainstorm) - Refine vague ideas into fully-formed designs through collaborative dialogue
+- [/create-ideas](https://cek.neolab.finance/plugins/sdd/create-ideas) - Generate diverse ideas on a given topic using creative sampling techniques
+- [/brainstorm](https://cek.neolab.finance/plugins/sdd/brainstorm) - Refine vague ideas into fully-formed designs through collaborative dialogue
 
 **Agents**
 
 | Agent | Description | Used By |
 |-------|-------------|---------|
-| `researcher` | Technology research, dependency analysis, best practices | `/sdd:plan` (Phase 2a) |
-| `code-explorer` | Codebase analysis, pattern identification, architecture mapping | `/sdd:plan` (Phase 2b) |
-| `business-analyst` | Requirements discovery, stakeholder analysis, specification writing | `/sdd:plan` (Phase 2c) |
-| `software-architect` | Architecture design, component design, implementation planning | `/sdd:plan` (Phase 3) |
-| `tech-lead` | Task decomposition, dependency mapping, risk analysis | `/sdd:plan` (Phase 4) |
-| `team-lead` | Step parallelization, agent assignment, execution planning | `/sdd:plan` (Phase 5) |
-| `qa-engineer` | Verification rubrics, quality gates, LLM-as-Judge definitions | `/sdd:plan` (Phase 6) |
-| `developer` | Code implementation, TDD execution, quality review, verification | `/sdd:implement` |
-| `tech-writer` | Technical documentation writing, API guides, architecture updates, lessons learned | `/sdd:implement` |
+| `researcher` | Technology research, dependency analysis, best practices | `/plan-task` (Phase 2a) |
+| `code-explorer` | Codebase analysis, pattern identification, architecture mapping | `/plan-task` (Phase 2b) |
+| `business-analyst` | Requirements discovery, stakeholder analysis, specification writing | `/plan-task` (Phase 2c) |
+| `software-architect` | Architecture design, component design, implementation planning | `/plan-task` (Phase 3) |
+| `tech-lead` | Task decomposition, dependency mapping, risk analysis | `/plan-task` (Phase 4) |
+| `team-lead` | Step parallelization, agent assignment, execution planning | `/plan-task` (Phase 5) |
+| `qa-engineer` | Verification rubrics, quality gates, LLM-as-Judge definitions | `/plan-task` (Phase 6) |
+| `developer` | Code implementation, TDD execution, quality review, verification | `/implement-task` |
+| `tech-writer` | Technical documentation writing, API guides, architecture updates, lessons learned | `/implement-task` |
 
 
 #### Patterns
@@ -454,17 +458,13 @@ Learn more about available customization options in [Customization](https://cek.
 
 ### [Domain-Driven Development](https://cek.neolab.finance/plugins/ddd)
 
-Commands for setting up domain-driven development best practices focused on code quality.
+Code quality framework with rules for Clean Architecture, SOLID principles, and Domain-Driven Design patterns.
 
 **How to install**
 
 ```bash
 /plugin install ddd@NeoLabHQ/context-engineering-kit
 ```
-
-**Commands**
-
-- [/ddd:setup-code-formatting](https://cek.neolab.finance/plugins/ddd/setup-code-formating) - Sets up code formatting rules and style guidelines in CLAUDE.md
 
 **Rules**
 
@@ -501,7 +501,7 @@ Then, audit for bias, decide, and document the rationale in a durable record.
 
 ```bash
 # Execute complete FPF cycle from hypothesis to decision
-/fpf:propose-hypotheses What caching strategy should we use?
+/propose-hypotheses What caching strategy should we use?
 
 # The workflow will:
 # 1. Initialize context and .fpf/ directory
@@ -515,12 +515,12 @@ Then, audit for bias, decide, and document the rationale in a durable record.
 
 **Commands**
 
-- [/fpf:propose-hypotheses](https://cek.neolab.finance/plugins/fpf/propose-hypotheses) - Execute complete FPF cycle from hypothesis to decision (main workflow)
-- [/fpf:status](https://cek.neolab.finance/plugins/fpf/status) - Show current FPF phase and hypothesis counts
-- [/fpf:query](https://cek.neolab.finance/plugins/fpf/query) - Search knowledge base with assurance info
-- [/fpf:decay](https://cek.neolab.finance/plugins/fpf/decay) - Manage evidence freshness (refresh/deprecate/waive)
-- [/fpf:actualize](https://cek.neolab.finance/plugins/fpf/actualize) - Reconcile knowledge with codebase changes
-- [/fpf:reset](https://cek.neolab.finance/plugins/fpf/reset) - Archive session and return to IDLE
+- [/propose-hypotheses](https://cek.neolab.finance/plugins/fpf/propose-hypotheses) - Execute complete FPF cycle from hypothesis to decision (main workflow)
+- [/status](https://cek.neolab.finance/plugins/fpf/status) - Show current FPF phase and hypothesis counts
+- [/query](https://cek.neolab.finance/plugins/fpf/query) - Search knowledge base with assurance info
+- [/decay](https://cek.neolab.finance/plugins/fpf/decay) - Manage evidence freshness (refresh/deprecate/waive)
+- [/actualize](https://cek.neolab.finance/plugins/fpf/actualize) - Reconcile knowledge with codebase changes
+- [/reset](https://cek.neolab.finance/plugins/fpf/reset) - Archive session and return to IDLE
 
 **Agent**
 
@@ -538,12 +538,12 @@ Continuous improvement methodology inspired by Japanese philosophy and Agile pra
 
 **Commands**
 
-- [/kaizen:analyse](https://cek.neolab.finance/plugins/kaizen/analyse) - Auto-selects best Kaizen method (Gemba Walk, Value Stream, or Muda) for target analysis
-- [/kaizen:analyse-problem](https://cek.neolab.finance/plugins/kaizen/analyse-problem) - Comprehensive A3 one-page problem analysis with root cause and action plan
-- [/kaizen:why](https://cek.neolab.finance/plugins/kaizen/why) - Iterative Five Whys root cause analysis drilling from symptoms to fundamentals
-- [/kaizen:root-cause-tracing](https://cek.neolab.finance/plugins/kaizen/root-cause-tracing) - Systematically traces bugs backward through call stack to identify source of invalid data or incorrect behavior
-- [/kaizen:cause-and-effect](https://cek.neolab.finance/plugins/kaizen/cause-and-effect) - Systematic Fishbone analysis exploring problem causes across six categories
-- [/kaizen:plan-do-check-act](https://cek.neolab.finance/plugins/kaizen/plan-do-check-act) - Iterative PDCA cycle for systematic experimentation and continuous improvement
+- [/analyse](https://cek.neolab.finance/plugins/kaizen/analyse) - Auto-selects best Kaizen method (Gemba Walk, Value Stream, or Muda) for target analysis
+- [/analyse-problem](https://cek.neolab.finance/plugins/kaizen/analyse-problem) - Comprehensive A3 one-page problem analysis with root cause and action plan
+- [/why](https://cek.neolab.finance/plugins/kaizen/why) - Iterative Five Whys root cause analysis drilling from symptoms to fundamentals
+- [/root-cause-tracing](https://cek.neolab.finance/plugins/kaizen/root-cause-tracing) - Systematically traces bugs backward through call stack to identify source of invalid data or incorrect behavior
+- [/cause-and-effect](https://cek.neolab.finance/plugins/kaizen/cause-and-effect) - Systematic Fishbone analysis exploring problem causes across six categories
+- [/plan-do-check-act](https://cek.neolab.finance/plugins/kaizen/plan-do-check-act) - Iterative PDCA cycle for systematic experimentation and continuous improvement
 
 **Skills**
 
@@ -588,12 +588,12 @@ Commands for project analysis and documentation management based on proven writi
 
 **Commands**
 
-- [/docs:update-docs](https://cek.neolab.finance/plugins/docs/update-docs) - Update implementation documentation after completing development phases
-- [/docs:write-concisely](https://cek.neolab.finance/plugins/docs/write-concisely) - Apply *The Elements of Style* principles to make documentation clearer and more professional
+- [/update-docs](https://cek.neolab.finance/plugins/docs/update-docs) - Update implementation documentation after completing development phases
+- [/write-concisely](https://cek.neolab.finance/plugins/docs/write-concisely) - Apply *The Elements of Style* principles to make documentation clearer and more professional
 
 ### [Tech Stack](https://cek.neolab.finance/plugins/tech-stack)
 
-Commands for setting up language and framework-specific best practices.
+Rules for language and framework-specific best practices, automatically applied when the agent works on matching file types.
 
 **How to install**
 
@@ -601,9 +601,10 @@ Commands for setting up language and framework-specific best practices.
 /plugin install tech-stack@NeoLabHQ/context-engineering-kit
 ```
 
-**Commands**
+**Rules**
 
-- [/tech-stack:add-typescript-best-practices](https://cek.neolab.finance/plugins/tech-stack/add-typescript-best-practices) - Setup TypeScript best practices and code style rules in CLAUDE.md
+- TypeScript Best Practices - Type system guidelines, code style, async patterns, and code quality standards, automatically loaded when agent reading or writing `.ts` files
+
 
 ### [MCP](https://cek.neolab.finance/plugins/mcp)
 

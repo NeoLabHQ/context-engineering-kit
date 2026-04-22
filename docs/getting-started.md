@@ -44,7 +44,7 @@ Then add the Context Engineering Kit marketplace to make all plugins available:
 /plugin
 ```
 
-You should see a list of available plugins from the marketplace, including reflexion, code-review, git, sdd, and others.
+You should see a list of available plugins from the marketplace, including reflexion, review, git, sdd, and others.
 
 ### Step 2: Install Your First Plugin
 
@@ -115,7 +115,7 @@ Install a specific plugin from the marketplace:
 
 # Examples
 /plugin install reflexion@NeoLabHQ/context-engineering-kit
-/plugin install code-review@NeoLabHQ/context-engineering-kit
+/plugin install review@NeoLabHQ/context-engineering-kit
 /plugin install sdd@NeoLabHQ/context-engineering-kit
 ```
 
@@ -125,7 +125,7 @@ Explore the [full plugin catalog](plugins/) to find tools that match your workfl
 
 **Popular plugins to explore next:**
 
-* [**Code Review**](plugins/code-review/) - Multi-agent code review with specialized reviewers (security, bugs, quality, tests)
+* [**Review**](plugins/review/) - Multi-agent code and PR review with specialized reviewers (security, bugs, quality, tests)
 * [**Git**](plugins/git/) - Streamlined Git workflows, commit creation, PR management
 * [**Spec-Driven Development**](plugins/sdd/) - Complete 6-stage workflow from specification to documentation
 * [**Test-Driven Development**](plugins/tdd/) - TDD best practices and anti-pattern detection

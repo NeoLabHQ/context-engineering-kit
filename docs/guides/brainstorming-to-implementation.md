@@ -14,9 +14,8 @@ For well-defined requirements, skip brainstorming and use [Spec-Driven Developme
 ## Plugins needed for this workflow
 
 - [SDD](../plugins/sdd/README.md)
-- [Code Review](../plugins/code-review/README.md)
+- [Review](../plugins/review/README.md)
 - [Git](../plugins/git/README.md)
-- [FPF](../plugins/fpf/README.md) (optional, for systematic hypothesis evaluation)
 
 ## Workflow
 
@@ -59,10 +58,10 @@ For well-defined requirements, skip brainstorming and use [Spec-Driven Developme
 
 ### 1. Brainstorm the idea
 
-Use the `/sdd:brainstorm` command to start a collaborative dialogue. The LLM will explore your project context and ask clarifying questions one at a time.
+Use the `/brainstorm` command to start a collaborative dialogue. The LLM will explore your project context and ask clarifying questions one at a time.
 
 ```bash
-/sdd:brainstorm Users want better search but requirements are unclear
+/brainstorm Users want better search but requirements are unclear
 ```
 
 After starting, the LLM will:
@@ -95,34 +94,6 @@ The LLM will present options like:
 
 After reviewing options, select your preferred approach or ask for more exploration. The LLM leads with its recommendation and explains the reasoning.
 
-#### Using FPF for Systematic Evaluation
-
-For architectural decisions with long-term consequences, consider using the [FPF plugin](../plugins/fpf/README.md) to systematically evaluate approaches:
-
-```bash
-/fpf:propose-hypotheses What caching strategy should we use for our API?
-```
-
-FPF provides:
-
-- **Structured hypothesis generation** - Multiple competing options with diverse perspectives
-- **Logical verification** - Check each option against project constraints
-- **Evidence validation** - Empirical testing with trust scores
-- **Auditable decisions** - Full reasoning trail preserved in `.fpf/` directory
-
-**When to use FPF vs SDD brainstorming:**
-
-| Scenario | Use FPF | Use SDD Brainstorming |
-|----------|---------|----------------------|
-| Architectural decisions with long-term impact | Yes | No |
-| Multiple viable approaches needing systematic comparison | Yes | Maybe |
-| Decisions requiring audit trails | Yes | No |
-| Quick exploration of ideas | No | Yes |
-| Easily reversible decisions | No | Yes |
-| Time-critical situations | No | Yes |
-
-See [FPF plugin documentation](../plugins/fpf/README.md) for detailed workflow steps.
-
 ### 3. Present design
 
 The LLM presents the validated approach as a design document in 200-300 word sections, checking after each section whether it looks right.
@@ -140,10 +111,10 @@ After each section, confirm it matches your expectations or request changes. Onc
 
 ### 4. Create task and plan specification
 
-Use the `/sdd:add-task` command to create a task file from the refined design, then `/sdd:plan` to generate a detailed specification with architecture, implementation steps, and verification criteria.
+Use the `/add-task` command to create a task file from the refined design, then `/plan-task` to generate a detailed specification with architecture, implementation steps, and verification criteria.
 
 ```bash
-/sdd:add-task "Implement faceted search with Elasticsearch, filters, and autocomplete"
+/add-task "Implement faceted search with Elasticsearch, filters, and autocomplete"
 ```
 
 After LLM completes, review the task file in `.specs/tasks/draft/`. You can adjust the task file to incorporate additional details from the brainstorming session.
@@ -151,17 +122,17 @@ After LLM completes, review the task file in `.specs/tasks/draft/`. You can adju
 Then run planning to generate the full specification:
 
 ```bash
-/sdd:plan
+/plan-task
 ```
 
-After LLM completes, review the refined specification in `.specs/tasks/todo/`. The plan includes architecture design, implementation steps with parallelization, and verification rubrics. You can adjust and run `/sdd:plan --refine` to iterate.
+After LLM completes, review the refined specification in `.specs/tasks/todo/`. The plan includes architecture design, implementation steps with parallelization, and verification rubrics. You can adjust and run `/plan-task --refine` to iterate.
 
 ### 5. Implement features
 
-Use the `/sdd:implement` command to execute the implementation. This produces working code with tests and verification.
+Use the `/implement-task` command to execute the implementation. This produces working code with tests and verification.
 
 ```bash
-/sdd:implement
+/implement-task
 ```
 
 During implementation, the LLM executes each step with quality gates, writes tests, and verifies the solution works as expected. More info in [Spec-Driven Development](./spec-driven-development.md) workflow.
@@ -171,9 +142,9 @@ During implementation, the LLM executes each step with quality gates, writes tes
 Complete the workflow with code review and pull request creation.
 
 ```bash
-/code-review:review-local-changes
-/git:commit
-/git:create-pr
+/review-local-changes
+/commit
+/create-pr
 ```
 
 After completion, your feature is ready for merge.

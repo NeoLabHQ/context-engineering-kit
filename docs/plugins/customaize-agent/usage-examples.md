@@ -57,7 +57,7 @@ Flag for manual review:
 > /customaize-agent:test-prompt .claude/commands/validate-api.md
 
 # Document the new command
-> /docs:update-docs
+> /update-docs
 ```
 
 ---
@@ -462,7 +462,7 @@ All baseline failures resolved.
 
 ```bash
 # Apply TDD to both code AND prompts
-> /tdd:write-tests src/auth.ts  # For code
+> /write-tests src/auth.ts  # For code
 
 > /customaize-agent:test-prompt .claude/commands/auth-flow.md  # For prompts
 

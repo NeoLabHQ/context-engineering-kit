@@ -76,10 +76,10 @@ For quick decisions with obvious solutions, skip FPF and decide directly. For de
 
 ### 1. Generate hypotheses
 
-Use the `/fpf:propose-hypotheses` command to start the FPF cycle. The FPF agent will generate 3-5 competing hypotheses for your problem.
+Use the `/propose-hypotheses` command to start the FPF cycle. The FPF agent will generate 3-5 competing hypotheses for your problem.
 
 ```bash
-/fpf:propose-hypotheses What caching strategy should we use?
+/propose-hypotheses What caching strategy should we use?
 ```
 
 After starting, the FPF agent will:
@@ -217,7 +217,7 @@ This ensures accountability and prevents AI from making unsupervised decisions.
 ### Starting the workflow
 
 ```bash
-/fpf:propose-hypotheses What caching strategy should we use for the product catalog?
+/propose-hypotheses What caching strategy should we use for the product catalog?
 ```
 
 ### Generated hypotheses (L0)
@@ -333,7 +333,7 @@ Evidence expires. A benchmark from 6 months ago may not reflect current performa
 ### Check stale evidence
 
 ```bash
-/fpf:decay
+/decay
 ```
 
 The decay command shows evidence that needs attention:
@@ -392,10 +392,10 @@ FPF integrates with other workflows at decision points:
 Use FPF to decide on architecture approach before creating the spec:
 
 ```bash
-/fpf:propose-hypotheses What architecture pattern should we use for this feature?
+/propose-hypotheses What architecture pattern should we use for this feature?
 # Review DRR and select approach
 /sdd:add-task "Implement feature using [selected approach]"
-/sdd:plan
+/plan-task
 ```
 
 ### During brainstorming
@@ -405,10 +405,10 @@ Use FPF to evaluate alternative designs:
 ```bash
 /sdd:brainstorm Users want better search but requirements are unclear
 # After exploring approaches, use FPF to decide
-/fpf:propose-hypotheses Which search implementation should we choose?
+/propose-hypotheses Which search implementation should we choose?
 # Continue with selected approach
 /sdd:add-task "Implement search with [selected approach]"
-/sdd:plan
+/plan-task
 ```
 
 ### For technical decisions
@@ -416,9 +416,9 @@ Use FPF to evaluate alternative designs:
 Use FPF for any architectural choice needing audit trail:
 
 ```bash
-/fpf:propose-hypotheses How should we deploy our application?
-/fpf:propose-hypotheses What testing strategy should we use?
-/fpf:propose-hypotheses Which database should we choose?
+/propose-hypotheses How should we deploy our application?
+/propose-hypotheses What testing strategy should we use?
+/propose-hypotheses Which database should we choose?
 ```
 
 ## Utility Commands
@@ -427,11 +427,11 @@ FPF provides utility commands for managing the knowledge base:
 
 | Command | Description |
 |---------|-------------|
-| `/fpf:status` | Show current FPF phase and hypothesis counts |
-| `/fpf:query` | Search knowledge base with assurance info |
-| `/fpf:decay` | Manage evidence freshness (refresh/deprecate/waive) |
-| `/fpf:actualize` | Reconcile knowledge with codebase changes |
-| `/fpf:reset` | Archive session and return to IDLE |
+| `/status` | Show current FPF phase and hypothesis counts |
+| `/query` | Search knowledge base with assurance info |
+| `/decay` | Manage evidence freshness (refresh/deprecate/waive) |
+| `/actualize` | Reconcile knowledge with codebase changes |
+| `/reset` | Archive session and return to IDLE |
 
 ## Related Resources
 

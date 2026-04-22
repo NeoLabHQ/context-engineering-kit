@@ -28,7 +28,7 @@ context-engineering-kit/
 
 ## Available Plugins
 
-code-review, customaize-agent, ddd, docs, git, kaizen, mcp, reflexion, sadd, sdd, tdd, tech-stack
+review, customaize-agent, ddd, docs, git, kaizen, mcp, reflexion, sadd, sdd, tdd, tech-stack
 
 ## Development Commands
 

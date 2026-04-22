@@ -1,5 +1,5 @@
 ---
-name: git:create-pr
+name: create-pr
 description: Create pull requests using GitHub CLI with proper templates and formatting
 argument-hint: None required - interactive guide for PR creation
 allowed-tools: Bash(gh pr:*), Bash(gh auth:*), Bash(git status:*), Bash(git push:*), Bash(git branch:*), Skill(git:commit)
@@ -38,9 +38,9 @@ Check if `gh` is installed, if not follow this instruction to install it:
 Before creating a PR, check for uncommitted changes:
 
 1. Run `git status` to check for uncommitted changes (staged, unstaged, or untracked files)
-2. If uncommitted changes exist, use the Skill tool to run the `git:commit` command first:
+2. If uncommitted changes exist, use the Skill tool to run the `commit` skill first:
    ```
-   Skill: git:commit
+   Skill: commit
    ```
 3. This ensures all your work is committed before creating the PR
 

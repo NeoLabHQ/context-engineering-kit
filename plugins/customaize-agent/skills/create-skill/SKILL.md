@@ -1,5 +1,5 @@
 ---
-name: customaize-agent:create-skill
+name: create-skill
 description: Guide for creating effective skills. This command should be used when users want to create a new skill (or update an existing skill) that extends Claude's capabilities with specialized knowledge, workflows, or tool integrations. Use when creating new skills, editing existing skills, or verifying skills work before deployment - applies TDD to process documentation by testing with subagents before writing, iterating until bulletproof against rationalization
 
 ---
@@ -20,7 +20,7 @@ You write test cases (pressure scenarios with subagents), watch them fail (basel
 
 **REQUIRED BACKGROUND:** You MUST understand Test-Driven Development before using this skill. That skill defines the fundamental RED-GREEN-REFACTOR cycle. This skill adapts TDD to documentation.
 
-**Official guidance:** The Anthropic's official skill authoring best practices provided at the `/customaize-agent:apply-anthropic-skill-best-practices` command, they enhance  `customize-agent:prompt-engineering` skill. Use skill and the document, as they not copy but add to each other. These document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
+**Official guidance:** The Anthropic's official skill authoring best practices provided at the `/apply-anthropic-skill-best-practices` command, they enhance  `prompt-engineering` skill. Use skill and the document, as they not copy but add to each other. These document provides additional patterns and guidelines that complement the TDD-focused approach in this skill.
 
 ## About Skills
 

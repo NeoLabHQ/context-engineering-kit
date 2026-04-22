@@ -1,4 +1,4 @@
-# /sdd:brainstorm - Idea Refinement
+# /brainstorm - Idea Refinement
 
 Transform rough ideas into fully-formed designs through collaborative dialogue, incremental validation, and design documentation.
 
@@ -6,7 +6,7 @@ Transform rough ideas into fully-formed designs through collaborative dialogue, 
 - Output - Design document in `.specs/plans/<topic>.design.md`
 
 ```bash
-/sdd:brainstorm initial feature concept
+/brainstorm initial feature concept
 ```
 
 ## Arguments
@@ -53,16 +53,16 @@ Optional initial concept to explore. Can be vague: "something to help with user 
 
 ```bash
 # Start with vague idea
-/sdd:brainstorm Something to improve user onboarding
+/brainstorm Something to improve user onboarding
 
 # More specific concept
-/sdd:brainstorm Real-time collaboration features for document editing
+/brainstorm Real-time collaboration features for document editing
 
 # Technical exploration
-/sdd:brainstorm Caching strategy for our product catalog API
+/brainstorm Caching strategy for our product catalog API
 
 # Process improvement
-/sdd:brainstorm Automated deployment pipeline for our microservices
+/brainstorm Automated deployment pipeline for our microservices
 ```
 
 ## Best practices
@@ -71,4 +71,4 @@ Optional initial concept to explore. Can be vague: "something to help with user 
 - Be open to alternatives - The first idea isn't always best
 - Engage with questions - Your answers shape the design
 - Validate incrementally - Catch issues early in design sections
-- Save the design - Use as input for `/sdd:add-task`
+- Save the design - Use as input for `/add-task`

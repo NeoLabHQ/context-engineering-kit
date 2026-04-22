@@ -9,7 +9,7 @@ This directory contains comprehensive documentation for all 13 plugins in the Co
 ## Quick Navigation
 
 * [Reflexion](reflexion/) - Self-refinement and iterative improvement
-* [Code Review](code-review/) - Multi-agent code quality analysis
+* [Review](review/) - Multi-agent code quality analysis
 * [Git](git/) - Streamlined Git operations
 * [Test-Driven Development](tdd/) - TDD methodology and best practices
 * [Subagent-Driven Development](sadd/) - Task delegation with quality gates
@@ -54,7 +54,7 @@ Self-refinement framework that introduces feedback and refinement loops to impro
 
 [Full Documentation](reflexion/)
 
-#### Code Review
+#### Review
 
 Comprehensive code review using multiple specialized agents for thorough quality evaluation.
 
@@ -66,7 +66,7 @@ Comprehensive code review using multiple specialized agents for thorough quality
 
 **When to use:** Before committing changes or creating pull requests.
 
-[Full Documentation](code-review/)
+[Full Documentation](review/)
 
 ### Development Workflows
 
@@ -145,7 +145,6 @@ Code quality and architecture patterns including Clean Architecture and SOLID pr
 
 **Key Features:**
 
-* Code formatting setup
 * 14 composable rules organized into Architecture, Function Design, Explicitness, and Code Quality categories
 * Covers Clean Architecture, Command-Query Separation, Functional Core/Imperative Shell, and more
 

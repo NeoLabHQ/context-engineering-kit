@@ -4,12 +4,12 @@ Guide for handling requirement changes at different stages of the SDD workflow.
 
 ## During Planning
 
-When the specification needs adjustment after `/plan` completes:
+When the specification needs adjustment after `/plan-task` completes:
 
 ### Option A: Pass the change directly
 
 ```bash
-/plan --refine <requirement change>
+/plan-task --refine <requirement change>
 ```
 
 The agent incorporates your change and re-runs affected stages.
@@ -18,20 +18,20 @@ The agent incorporates your change and re-runs affected stages.
 
 ```bash
 # Change authentication strategy
-/plan --refine Use session-based auth instead of JWT
+/plan-task --refine Use session-based auth instead of JWT
 
 # Add a constraint the agent missed
-/plan --refine The API must support pagination with cursor-based navigation, not offset
+/plan-task --refine The API must support pagination with cursor-based navigation, not offset
 
 # Narrow the scope
-/plan --refine Remove the admin dashboard from this task, we will handle it separately
+/plan-task --refine Remove the admin dashboard from this task, we will handle it separately
 ```
 
 ### Option B: Edit the spec, then refine
 
 1. Edit the task file in `.specs/tasks/todo/`
 2. Add `//` comments to lines that need clarification
-3. Run `/plan --refine`
+3. Run `/plan-task --refine`
 
 The agent detects your edits, identifies the earliest modified section, and re-runs all stages from that point onward. Earlier sections remain unchanged.
 
@@ -45,24 +45,24 @@ The agent detects your edits, identifies the earliest modified section, and re-r
 - PostgreSQL with Prisma ORM
 ```
 
-Then run `/plan --refine`. The agent re-runs from architecture synthesis onward, producing new implementation steps for GraphQL while preserving the research and business analysis stages.
+Then run `/plan-task --refine`. The agent re-runs from architecture synthesis onward, producing new implementation steps for GraphQL while preserving the research and business analysis stages.
 
 ### What `--refine` compares
 
-By default, `--refine` diffs local (unstaged) changes against staged changes. Both `/plan` and `/implement` stage their output at the end, so any manual edits you make afterward appear as unstaged changes.
+By default, `--refine` diffs local (unstaged) changes against staged changes. Both `/plan-task` and `/implement-task` stage their output at the end, so any manual edits you make afterward appear as unstaged changes.
 
-To compare against the last commit instead, specify it: `/plan --refine compare with last commit`.
+To compare against the last commit instead, specify it: `/plan-task --refine compare with last commit`.
 
 ## After Implementation
 
-When requirements change after `/implement` completes, choose based on the scope of the change:
+When requirements change after `/implement-task` completes, choose based on the scope of the change:
 
 ### Small code adjustments
 
 Edit the code directly, then run:
 
 ```bash
-/implement --refine
+/implement-task --refine
 ```
 
 The agent detects your changes, maps them to implementation steps, and aligns the rest of the codebase. If the judge passes your fix, it is accepted as-is. If it fails, the agent adjusts surrounding code to match your intent.
@@ -100,12 +100,12 @@ If requirements changed substantially, create a new task:
 
 ```bash
 /sdd:add-task "Refactor authentication implementation"
-/sdd:plan
+/plan-task
 # /clear (or re-open Claude Code)
-/sdd:implement
+/implement-task
 ```
 
-Re-running `/implement --refine` on large changes is less reliable than a fresh planning cycle. A new task produces a clean specification, proper architecture analysis, and accurate implementation steps.
+Re-running `/implement-task --refine` on large changes is less reliable than a fresh planning cycle. A new task produces a clean specification, proper architecture analysis, and accurate implementation steps.
 
 **Examples of changes that warrant a new task:**
 
@@ -121,23 +121,23 @@ A realistic sequence showing how refinement fits into the workflow:
 ```bash
 # 1. Create and plan the task
 /sdd:add-task "Add JWT authentication middleware"
-/sdd:plan
+/plan-task
 
 # 2. Review the spec — agent chose HS256, but you need RS256
-/plan --refine Use RS256 with rotating key pairs instead of HS256
+/plan-task --refine Use RS256 with rotating key pairs instead of HS256
 
 # 3. Clear context, then implement
 /clear
-/sdd:implement
+/implement-task
 
 # 4. Review the code — token expiry is 1 hour, you want 15 minutes
 vi src/config/auth.ts   # change TOKEN_EXPIRY to 900
-/implement --refine     # agent updates tests and documentation to match
+/implement-task --refine     # agent updates tests and documentation to match
 
 # 5. Product feedback: "Add refresh tokens"
 # This is a significant scope addition — create a new task
 /sdd:add-task "Add refresh token rotation for JWT auth"
-/sdd:plan
+/plan-task
 /clear
-/sdd:implement
+/implement-task
 ```

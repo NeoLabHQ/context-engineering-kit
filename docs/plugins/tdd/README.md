@@ -33,7 +33,7 @@ The plugin is based on foundational works including Kent Beck's *Test-Driven Dev
 # Manually make some changes that cause test failures
 
 # Fix failing tests
-> /tdd:fix-tests
+> /fix-tests
 ```
 
 ### After Implementation
@@ -44,7 +44,7 @@ If you implemented a new feature but have not written tests, you can use the `wr
 > claude "implement email validation for user registration"
 
 # Write tests after you made changes
-> /tdd:write-tests
+> /write-tests
 ```
 
 [Usage Examples](./usage-examples.md)

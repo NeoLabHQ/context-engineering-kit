@@ -6,12 +6,12 @@ allowed-tools: Bash(just set-version*), Bash(just set-marketplace-version*), Bas
 
 # Bump Plugin Version
 
-Detect changed plugins and bump their versions along with the marketplace version.
+If not instructions from user provided, detect changed plugins and bump their versions along with the marketplace version.
 
 ## Current State
 
-- Git status: !`git status --short`
-- Changed files in plugins: !`git diff --name-only HEAD | grep "^plugins/" | cut -d'/' -f2 | sort -u`
+- Git status: `git status --short`
+- Changed files in plugins: `git diff --name-only HEAD | grep "^plugins/" | cut -d'/' -f2 | sort -u`
 
 ## Instructions
 

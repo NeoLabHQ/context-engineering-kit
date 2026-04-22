@@ -15,7 +15,7 @@ For simple, obvious bugs (typos, single-line fixes), use [Feature Development](.
 
 - [Git](../plugins/git/README.md)
 - [Kaizen](../plugins/kaizen/README.md)
-- [Code Review](../plugins/code-review/README.md)
+- [Review](../plugins/review/README.md)
 - [Reflexion](../plugins/reflexion/README.md)
 
 ## Workflow
@@ -73,30 +73,30 @@ For simple, obvious bugs (typos, single-line fixes), use [Feature Development](.
 
 ### 1. Load issue context
 
-Use the `/git:analyze-issue` command to load the bug report from GitHub and extract technical details.
+Use the `/analyze-issue` command to load the bug report from GitHub and extract technical details.
 
 ```bash
-/git:analyze-issue #123
+/analyze-issue #123
 ```
 
 After LLM completes, you will have a structured understanding of the bug symptoms, reproduction steps, affected areas, and any related issues or context from the discussion.
 
 ### 2. Trace root cause
 
-Use the `/kaizen:root-cause-tracing` command to systematically trace the bug backward through the call stack.
+Use the `/root-cause-tracing` command to systematically trace the bug backward through the call stack.
 
 ```bash
-/kaizen:root-cause-tracing
+/root-cause-tracing
 ```
 
 After LLM completes, you will have identified where invalid data originates or where incorrect behavior starts. This traces from the symptom (e.g., wrong output) back to the source (e.g., missing validation in input handler).
 
 ### 3. Analyze with Five Whys
 
-Use the `/kaizen:why` command to drill deeper into why the root cause exists in the first place.
+Use the `/why` command to drill deeper into why the root cause exists in the first place.
 
 ```bash
-/kaizen:why
+/why
 ```
 
 After LLM completes, you will understand not just what went wrong, but why the codebase allowed it to happen. This reveals systemic issues like missing tests, unclear specifications, or architectural gaps that enabled the bug.
@@ -121,30 +121,30 @@ Claude will implement the fix and automatically review it for correctness.
 
 ### 5. Review fix
 
-Use the `/code-review:review-local-changes` command to ensure the fix is correct and doesn't introduce new issues.
+Use the `/review-local-changes` command to ensure the fix is correct and doesn't introduce new issues.
 
 ```bash
-/code-review:review-local-changes
+/review-local-changes
 ```
 
 After LLM completes, address any findings from the multi-agent review. Pay special attention to Bug Hunter findings (new edge cases) and Test Coverage (ensuring the bug has regression tests).
 
 ### 6. Preserve learnings
 
-Use the `/reflexion:memorize` command to capture insights from this bug investigation for future reference.
+Use the `/memorize` command to capture insights from this bug investigation for future reference.
 
 ```bash
-/reflexion:memorize Bug pattern: race conditions in Redis operations
+/memorize Bug pattern: race conditions in Redis operations
 ```
 
 After LLM completes, your CLAUDE.md will be updated with learnings about this bug pattern, helping prevent similar issues in future development. This builds institutional knowledge about your codebase's pitfalls.
 
 ### 7. Commit with context
 
-Use the `/git:commit` command to create a well-documented commit that links to the issue and explains the fix.
+Use the `/commit` command to create a well-documented commit that links to the issue and explains the fix.
 
 ```bash
-/git:commit
+/commit
 ```
 
 After LLM completes, your commit will follow conventional commit format with the bug fix type, proper scope, and reference to the issue (e.g., `Fixes #123`). This creates a searchable history for future debugging.
@@ -158,7 +158,7 @@ The Kaizen plugin offers additional analysis techniques for different scenarios:
 Use Fishbone (Cause-and-Effect) analysis to explore causes across six categories:
 
 ```bash
-/kaizen:cause-and-effect
+/cause-and-effect
 ```
 
 ### For comprehensive problem documentation
@@ -166,7 +166,7 @@ Use Fishbone (Cause-and-Effect) analysis to explore causes across six categories
 Use A3 analysis for a one-page problem summary with root cause and action plan:
 
 ```bash
-/kaizen:analyse-problem
+/analyse-problem
 ```
 
 ### For iterative experimentation
@@ -174,5 +174,5 @@ Use A3 analysis for a one-page problem summary with root cause and action plan:
 Use PDCA (Plan-Do-Check-Act) cycle when the fix requires testing hypotheses:
 
 ```bash
-/kaizen:plan-do-check-act
+/plan-do-check-act
 ```

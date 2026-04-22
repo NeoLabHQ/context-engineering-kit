@@ -63,10 +63,10 @@ After LLM completes, it will report whether the command handles scenarios correc
 
 ### 3. Document the extension
 
-Use the `/docs:update-docs` command to add the new command to project documentation.
+Use the `/update-docs` command to add the new command to project documentation.
 
 ```bash
-/docs:update-docs
+/update-docs
 ```
 
 After LLM completes, your command will be documented and discoverable by the team.
@@ -135,10 +135,10 @@ After LLM completes, your skill will be optimized for discoverability, progressi
 
 ### 4. Document the extension
 
-Use the `/docs:update-docs` command to add the new skill to project documentation.
+Use the `/update-docs` command to add the new skill to project documentation.
 
 ```bash
-/docs:update-docs
+/update-docs
 ```
 
 After LLM completes, your skill will be documented and the team can discover and use it.
@@ -308,4 +308,4 @@ Make skills discoverable:
 | Test skill under pressure | `/customaize-agent:test-skill` |
 | Apply Anthropic best practices | `/customaize-agent:apply-anthropic-skill-best-practices` |
 | Create git hook | `/customaize-agent:create-hook` |
-| Document changes | `/docs:update-docs` |
+| Document changes | `/update-docs` |

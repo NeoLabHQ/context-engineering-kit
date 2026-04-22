@@ -32,7 +32,7 @@ Browse our specialized plugins organized by area of focus:
 
 ### Quality & Refinement
 
-<table data-view="cards"><thead><tr><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td>Reflexion</td><td>Self-refinement loops</td><td><a href="plugins/reflexion/">reflexion</a></td></tr><tr><td>Code Review</td><td>Multi-agent code review system</td><td><a href="plugins/code-review/">code-review</a></td></tr><tr><td>Kaizen</td><td>Continuous improvement methodology</td><td><a href="plugins/kaizen/">kaizen</a></td></tr></tbody></table>
+<table data-view="cards"><thead><tr><th></th><th></th><th data-hidden data-card-target data-type="content-ref"></th></tr></thead><tbody><tr><td>Reflexion</td><td>Self-refinement loops</td><td><a href="plugins/reflexion/">reflexion</a></td></tr><tr><td>Code Review</td><td>Multi-agent code review system</td><td><a href="plugins/review/">review</a></td></tr><tr><td>Kaizen</td><td>Continuous improvement methodology</td><td><a href="plugins/kaizen/">kaizen</a></td></tr></tbody></table>
 
 ### Development Workflows
 

@@ -6,13 +6,13 @@ This plugin is designed to consistently and reproducibly produce working code. I
 
 ## Key Features
 
-- **Development as compilation** — The plugin functions like a "compilation" or "nightly build" for your development process: `task specs → run /sdd:implement → working code`. After writing your prompt, you can launch the plugin and expect a functional result when you return. The completion time depends on task complexity — simple tasks may finish within 30 minutes, while complex ones can take several days.
+- **Development as compilation** — The plugin functions like a "compilation" or "nightly build" for your development process: `task specs → run /implement-task → working code`. After writing your prompt, you can launch the plugin and expect a functional result when you return. The completion time depends on task complexity — simple tasks may finish within 30 minutes, while complex ones can take several days.
 - **Benchmark-level quality in real life** — Model benchmarks improve with each release, yet real-world results often stagnate. This is because benchmarks reflect the best possible output a model can achieve, whereas in practice LLMs tend to drift toward sub-optimal, non-functional solutions. This plugin uses a variety of patterns to keep the model operating at peak performance.
 - **Customizable** — Balance result quality and process speed by adjusting command parameters. Learn more in the [Customization](customization.md) section.
 - **Developer time-efficiency** — The overall process is designed to minimize developer time and reduce the number of interactions, while still producing results superior to what a model can generate from scratch. However, overall quality is proportional to the time invested in iterating on and refining the specification.
 - **Industry-standard** — The plugin's specification template is based on the arc42 standard, adjusted for LLM capabilities. Arc42 is a widely adopted, high-quality standard for software development documentation used by many organizations.
 - **Works best in complex or large codebases** — While most other frameworks work best for new projects and greenfield development, this plugin is designed to perform better as your codebase grows and your architecture becomes more structured. Each planning phase includes a **codebase impact analysis** step that evaluates which files may be affected and which patterns to follow to achieve the desired result.
-- **Simple** — This plugin avoids unnecessary complexity by primarily using only three commands, offloading process complexity to the model via multi-agent orchestration. `/sdd:implement` is a single command that produces functional code from a task specification. To create that specification, you run `/sdd:add-task` and `/sdd:plan`, which analyze your prompt and iteratively refine the specification until it meets the required quality standards.
+- **Simple** — This plugin avoids unnecessary complexity by primarily using only three commands, offloading process complexity to the model via multi-agent orchestration. `/implement-task` is a single command that produces functional code from a task specification. To create that specification, you run `/sdd:add-task` and `/plan-task`, which analyze your prompt and iteratively refine the specification until it meets the required quality standards.
 
 ## Quick Start
 
@@ -31,10 +31,10 @@ Then run the following commands:
 
 ```bash
 # Create the .specs/tasks/draft/design-auth-middleware.feature.md file with the initial prompt
-/sdd:add-task "Design and implement authentication middleware with JWT support"
+/add-task "Design and implement authentication middleware with JWT support"
 
 # Write a detailed specification for the task
-/sdd:plan
+/plan-task
 # Moves the task to the .specs/tasks/todo/ folder
 ```
 
@@ -42,7 +42,7 @@ Run `/clear` (or re-open Claude Code) to clear context and start fresh. Then run
 
 ```bash
 # Implement the task
-/sdd:implement @.specs/tasks/todo/design-auth-middleware.feature.md
+/implement-task @.specs/tasks/todo/design-auth-middleware.feature.md
 # Produces a working implementation and moves the task to the .specs/tasks/done/ folder
 ```
 
@@ -54,19 +54,19 @@ Run `/clear` (or re-open Claude Code) to clear context and start fresh. Then run
 
 End-to-end task implementation process from initial prompt to pull request, including commands from the [git](../git/README.md) plugin:
 
-- `/sdd:add-task` → Creates a `.specs/tasks/draft/<task-name>.<type>.md` file with the initial task description.
-- `/sdd:plan` → Generates a `.claude/skills/<skill-name>/SKILL.md` file with the skills needed to implement the task (by analyzing the library and framework documentation used in the codebase), then updates the task file with a refined specification and moves it to `.specs/tasks/todo/`.
-- `/sdd:implement` → Produces a working implementation, verifies it, then moves the task to `.specs/tasks/done/`.
-- `/git:commit` → Commits changes.
-- `/git:create-pr` → Creates a pull request.
+- `/add-task` → Creates a `.specs/tasks/draft/<task-name>.<type>.md` file with the initial task description.
+- `/plan-task` → Generates a `.claude/skills/<skill-name>/SKILL.md` file with the skills needed to implement the task (by analyzing the library and framework documentation used in the codebase), then updates the task file with a refined specification and moves it to `.specs/tasks/todo/`.
+- `/implement-task` → Produces a working implementation, verifies it, then moves the task to `.specs/tasks/done/`.
+- `/commit` → Commits changes.
+- `/create-pr` → Creates a pull request.
 
 ```
   1. Create        2. Plan         3. Implement           4. Ship
 +-------------+  +-----------+  +---------------+  +-----------------+
-|/sdd:add-task|  | /sdd:plan |  |/sdd:implement |  |  /git:commit    |
+|/add-task|  | /plan-task |  |/implement-task|  |  /commit    |
 +------+------+  +-----+-----+  +------+--------+  |       |         |
        |                |               |           |       v         |
-       v                v               v           |/git:create-pr   |
+       v                v               v           |/create-pr   |
                                                     +-------+---------+
                                                             |
                      Task Lifecycle                         |
@@ -80,14 +80,14 @@ End-to-end task implementation process from initial prompt to pull request, incl
 
 Core workflow commands:
 
-- [/sdd:add-task](add-task.md) - Create task template file with initial prompt
-- [/sdd:plan](plan.md) - Analyze prompt, generate required skills and refine task specification
-- [/sdd:implement](implement.md) - Produce working implementation of the task and verify it
+- [/add-task](add-task.md) - Create task template file with initial prompt
+- [/plan-task](plan-task.md) - Analyze prompt, generate required skills and refine task specification
+- [/implement-task](implement-task.md) - Produce working implementation of the task and verify it
 
 Additional commands useful before creating a task:
 
-- [/sdd:create-ideas](create-ideas.md) - Generate diverse ideas on a given topic using creative sampling techniques
-- [/sdd:brainstorm](brainstorm.md) - Refine vague ideas into fully-formed designs through collaborative dialogue
+- [/create-ideas](create-ideas.md) - Generate diverse ideas on a given topic using creative sampling techniques
+- [/brainstorm](brainstorm.md) - Refine vague ideas into fully-formed designs through collaborative dialogue
 
 ## Available Agents
 
@@ -95,15 +95,15 @@ The SDD plugin uses specialized agents for different phases of development:
 
 | Agent | Description | Used By |
 |-------|-------------|---------|
-| `researcher` | Technology research, dependency analysis, best practices | `/sdd:plan` (Phase 2a) |
-| `code-explorer` | Codebase analysis, pattern identification, architecture mapping | `/sdd:plan` (Phase 2b) |
-| `business-analyst` | Requirements discovery, stakeholder analysis, specification writing | `/sdd:plan` (Phase 2c) |
-| `software-architect` | Architecture design, component design, implementation planning | `/sdd:plan` (Phase 3) |
-| `tech-lead` | Task decomposition, dependency mapping, risk analysis | `/sdd:plan` (Phase 4) |
-| `team-lead` | Step parallelization, agent assignment, execution planning | `/sdd:plan` (Phase 5) |
-| `qa-engineer` | Verification rubrics, quality gates, LLM-as-Judge definitions | `/sdd:plan` (Phase 6) |
-| `developer` | Code implementation, TDD execution, quality review, verification | `/sdd:implement` |
-| `tech-writer` | Technical documentation, API guides, architecture updates, and lessons learned | `/sdd:implement` |
+| `researcher` | Technology research, dependency analysis, best practices | `/plan-task` (Phase 2a) |
+| `code-explorer` | Codebase analysis, pattern identification, architecture mapping | `/plan-task` (Phase 2b) |
+| `business-analyst` | Requirements discovery, stakeholder analysis, specification writing | `/plan-task` (Phase 2c) |
+| `software-architect` | Architecture design, component design, implementation planning | `/plan-task` (Phase 3) |
+| `tech-lead` | Task decomposition, dependency mapping, risk analysis | `/plan-task` (Phase 4) |
+| `team-lead` | Step parallelization, agent assignment, execution planning | `/plan-task` (Phase 5) |
+| `qa-engineer` | Verification rubrics, quality gates, LLM-as-Judge definitions | `/plan-task` (Phase 6) |
+| `developer` | Code implementation, TDD execution, quality review, verification | `/implement-task` |
+| `tech-writer` | Technical documentation, API guides, architecture updates, and lessons learned | `/implement-task` |
 
 ## Patterns
 
@@ -120,7 +120,7 @@ Key patterns implemented in this plugin:
 
 This plugin is not a "vibe coding" solution, though it can function like one out of the box. By default, it is designed to work from a single prompt through to task completion, making reasonable assumptions and evidence-based decisions instead of constantly asking for clarification. This is because developer time is more valuable than model time, allowing the developer to decide how much time is worth spending on a task. The plugin will always produce functional results, but quality may be sub-optimal without human feedback.
 
-To improve quality, you can correct the generated specification or leave comments using `//`, then run the `/sdd:plan` command again with the `--refine` flag. You can also verify each planning and implementation phase by adding the `--human-in-the-loop` flag. Majority of researches show that human feedback is the most effective way to improve results.
+To improve quality, you can correct the generated specification or leave comments using `//`, then run the `/plan-task` command again with the `--refine` flag. You can also verify each planning and implementation phase by adding the `--human-in-the-loop` flag. Majority of researches show that human feedback is the most effective way to improve results.
 
 Our tests showed that even when the initially generated specification was incorrect due to missing information or task complexity, the agent was still able to self-correct until it reached a working solution. However, this process often took longer, as the agent explored incorrect paths and stopped more frequently. To avoid this, we strongly recommend decomposing complex tasks into smaller, separate tasks with dependencies and reviewing the specification for each one. You can add dependencies between tasks as arguments to the `/sdd:add-task` command, and the model will link them by adding a `depends_on` section to the task file's frontmatter.
 
@@ -130,17 +130,17 @@ Learn more about available customization options in [Customization](customizatio
 
 ## FAQ
 
-**Do I need to re-run `/plan` or `/implement` after context compaction (`/compact`)?**
+**Do I need to re-run `/plan-task` or `/implement-task` after context compaction (`/compact`)?**
 
-After compaction, close the terminal and resume with `/plan --continue` or `/implement --continue`. This produces more predictable results than continuing in a compacted context. Using `/model sonnet[1m]` reduces compaction frequency.
+After compaction, close the terminal and resume with `/plan-task --continue` or `/implement-task --continue`. This produces more predictable results than continuing in a compacted context. Using `/model sonnet[1m]` reduces compaction frequency.
 
-**Do I need to prefix every prompt with `/plan` or `/implement`?**
+**Do I need to prefix every prompt with `/plan-task` or `/implement-task`?**
 
-No. Run these commands once to start the workflow. The only time to invoke them again is when you change the specification or code and want agents to update misaligned sections — use `/plan --refine` or `/implement --refine`.
+No. Run these commands once to start the workflow. The only time to invoke them again is when you change the specification or code and want agents to update misaligned sections — use `/plan-task --refine` or `/implement-task --refine`.
 
-**Should I clear context between `/plan` and `/implement`?**
+**Should I clear context between `/plan-task` and `/implement-task`?**
 
-Yes. Run `/clear` (or re-open Claude Code) after `/plan` completes and before running `/implement`. The planning phase fills the context with analysis artifacts; a clean context gives implementation agents better results.
+Yes. Run `/clear` (or re-open Claude Code) after `/plan-task` completes and before running `/implement-task`. The planning phase fills the context with analysis artifacts; a clean context gives implementation agents better results.
 
 ## Theoretical Foundation
 

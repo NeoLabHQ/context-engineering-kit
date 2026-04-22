@@ -27,28 +27,22 @@ After installing a plugin, its commands become available. View all commands:
 /help
 ```
 
-Commands are namespaced by plugin, making their origin clear:
-
-- `/reflexion:reflect` - From the reflexion plugin
-- `/git:commit` - From the git plugin
-- `/sdd:01-specify` - From the sdd plugin
 
 ### Command Syntax
 
 ```bash
-/plugin-name:command-name [optional-argument]
+/command-name [optional-argument]
 ```
 
 **Examples:**
 
 ```bash
 # No argument required
-/reflexion:reflect
-/git:commit
+/reflect
+/commit
 
 # With argument
-/sdd:01-specify Add user authentication with OAuth
-/kaizen:analyse Target the checkout flow for optimization
+/add-task Add user authentication with OAuth
 ```
 
 ---
@@ -119,13 +113,13 @@ Main Claude Session (You)
 
 ```bash
 # Launches multiple code review agents
-/code-review:review-local-changes
+/review-local-changes
 
 # Launches business-analyst agent
-/sdd:01-specify Add user authentication
+/add-task Add user authentication
 
 # Launches researcher, code-explorer, and software-architect agents
-/sdd:02-plan
+/plan-task
 ```
 
 **Manual invocation** - Request specific agents directly:
@@ -153,10 +147,10 @@ Workflow commands combine multiple sub-tasks into a single invocation:
 
 ### Example: FPF Propose-Hypotheses Workflow
 
-The FPF plugin's `/fpf:propose-hypotheses` command demonstrates this pattern:
+The FPF plugin's `/propose-hypotheses` command demonstrates this pattern:
 
 ```
-/fpf:propose-hypotheses How should we implement caching?
+/propose-hypotheses How should we implement caching?
        │
        ├── Step 1: Initialize Context (FPF Agent)
        │   └── Creates .fpf/context.md
@@ -195,8 +189,8 @@ The FPF plugin's `/fpf:propose-hypotheses` command demonstrates this pattern:
 | Use Case | Approach |
 |----------|----------|
 | Complete end-to-end process | Workflow command |
-| Check current state | Utility command (`/fpf:status`) |
-| Manage specific aspect | Utility command (`/fpf:decay`) |
+| Check current state | Utility command (`/status`) |
+| Manage specific aspect | Utility command (`/decay`) |
 | Iterate on single phase | Individual task prompts |
 
 ---
@@ -293,7 +287,7 @@ Several plugins read from and write to `CLAUDE.md`:
 
 ```bash
 # After reflecting, save insights to CLAUDE.md
-/reflexion:memorize
+/memorize
 ```
 
 **What it adds:**
@@ -304,36 +298,12 @@ Several plugins read from and write to `CLAUDE.md`:
 - Common mistakes to avoid
 - Successful approaches to replicate
 
-**Tech Stack plugin** - Adds language/framework practices:
 
-```bash
-/tech-stack:add-typescript-best-practices
-```
-
-**What it adds:**
-
-- Language-specific best practices
-- Framework usage patterns
-- Code style guidelines
-- Common anti-patterns for the tech stack
-
-**DDD plugin** - Sets up code quality standards:
-
-```bash
-/ddd:setup-code-formating
-```
-
-**What it adds:**
-
-- Code formatting rules
-- Architecture principles
-- SOLID principle applications
-- Clean Architecture patterns
 
 **MCP plugin** - Documents MCP server requirements:
 
 ```bash
-/mcp:setup-context7-mcp
+/setup-context7-mcp
 ```
 
 **What it adds:**
@@ -341,16 +311,3 @@ Several plugins read from and write to `CLAUDE.md`:
 - MCP server integration requirements
 - When and how to use specific MCP servers
 - Configuration and usage patterns
-
-**SDD plugin** - Establishes project constitution:
-
-```bash
-/sdd:00-setup Use NestJS, follow SOLID and Clean Architecture
-```
-
-**What it adds:**
-
-- Project constitution and governance
-- Core architectural principles
-- Technology stack decisions
-- Development standards

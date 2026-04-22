@@ -1,6 +1,6 @@
 {
   "name": "docs",
-  "version": "1.2.0",
+  "version": "3.0.0",
   "description": "Commands for analysing project, writing and refining documentation.",
   "author": {
     "name": "Vlad Goncharov",

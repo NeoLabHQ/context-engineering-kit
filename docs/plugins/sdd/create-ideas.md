@@ -1,14 +1,14 @@
-# /sdd:create-ideas - Idea Generation
+# /create-ideas - Idea Generation
 
 Generate ideas in one shot using creative sampling. Based on [Verbalized Sampling](https://arxiv.org/abs/2510.01171) - a training-free prompting strategy to mitigate mode collapse in LLMs by requesting responses with probabilities. Achieves 2-3x diversity improvement while maintaining quality.
 
-Different from `/sdd:brainstorm`, by much simpler and faster approach, but focused on generating ideas in one shot, don't include refinement, focuses on creativity. Can be used for any other purpose that include creative thinking.
+Different from `/brainstorm`, by much simpler and faster approach, but focused on generating ideas in one shot, don't include refinement, focuses on creativity. Can be used for any other purpose that include creative thinking.
 
 - Purpose - Generate responses which require high diversity and creativity, like brainstorming or creative writing
 - Output - List of ideas with text and probability scores
 
 ```bash
-/sdd:create-ideas [topic or problem] [optional: number of ideas]
+/create-ideas [topic or problem] [optional: number of ideas]
 ```
 
 ## Arguments
@@ -30,25 +30,25 @@ Topic or problem to generate ideas for. Optionally specify the number of ideas t
 
 ```bash
 # Generate creative ideas for a feature
-/sdd:create-ideas ways to improve user onboarding
+/create-ideas ways to improve user onboarding
 
 # Brainstorm solutions to a problem
-/sdd:create-ideas reduce API response times
+/create-ideas reduce API response times
 
 # Creative writing prompts
-/sdd:create-ideas write jokes about cats
+/create-ideas write jokes about cats
 
 # Generate more ideas
-/sdd:create-ideas 10 marketing slogans for a fitness app
+/create-ideas 10 marketing slogans for a fitness app
 
 # Technical alternatives
-/sdd:create-ideas caching strategies for real-time data
+/create-ideas caching strategies for real-time data
 ```
 
 ## When to Use
 
-- **Use `/sdd:create-ideas`** when you need quick, diverse ideas without refinement
-- **Use `/sdd:brainstorm`** when you need thorough exploration with validation and documentation
+- **Use `/create-ideas`** when you need quick, diverse ideas without refinement
+- **Use `/brainstorm`** when you need thorough exploration with validation and documentation
 
 ## Best practices
 

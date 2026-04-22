@@ -1,12 +1,12 @@
-# /reflexion:critique - Multi-Perspective Critique
+# /critique - Multi-Perspective Critique
 
-Memorize insights from reflections and updates CLAUDE.md file with this knowledge. Curates insights from reflections and critiques into CLAUDE.md using Agentic Context Engineering
+Comprehensive multi-perspective review using specialized judges with debate and consensus building
 
 - Purpose - Multi-perspective comprehensive review
 - Output - Structured feedback from multiple judges
 
 ```bash
-/reflexion:critique ["scope or focus area"]
+/critique ["scope or focus area"]
 ```
 
 ## Arguments
@@ -37,16 +37,16 @@ Each judge provides a score out of 10:
 
 ```bash
 # Review recent work from conversation
-> /reflexion:critique
+> /critique
 
 # Review specific files
-> /reflexion:critique src/auth/*.ts
+> /critique src/auth/*.ts
 
 # Review with security focus
-> /reflexion:critique --focus=security
+> /critique --focus=security
 
 # Review a git commit range
-> /reflexion:critique HEAD~3..HEAD
+> /critique HEAD~3..HEAD
 ```
 
 ## Best practices

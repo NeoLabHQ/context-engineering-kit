@@ -1,4 +1,4 @@
-# /docs:update-docs - Documentation Update
+# /update-docs - Documentation Update
 
 Comprehensive documentation update command that analyzes your project, identifies documentation needs, and creates or updates documentation following best practices.
 
@@ -6,7 +6,7 @@ Comprehensive documentation update command that analyzes your project, identifie
 - Output - Updated README files, API docs, JSDoc comments, and guides
 
 ```bash
-/docs:update-docs ["target directory or documentation type"]
+/update-docs ["target directory or documentation type"]
 ```
 
 ## Arguments
@@ -79,20 +79,20 @@ Optional target specification:
 
 ```bash
 # Full project documentation update
-> /docs:update-docs
+> /update-docs
 
 # Update API documentation after adding new endpoints
 > claude "add /api/v2/subscriptions endpoint"
-> /docs:update-docs api
+> /update-docs api
 
 # Document a specific module after changes
-> /docs:update-docs src/payments/
+> /update-docs src/payments/
 
 # Focus on README files only
-> /docs:update-docs readme
+> /update-docs readme
 
 # Update JSDoc comments for complex business logic
-> /docs:update-docs jsdoc
+> /update-docs jsdoc
 ```
 
 ## Quality Gates

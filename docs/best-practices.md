@@ -7,7 +7,7 @@
 ```bash
 # ❌ Don't install all plugins
 /plugin install reflexion@NeoLabHQ/context-engineering-kit
-/plugin install code-review@NeoLabHQ/context-engineering-kit
+/plugin install review@NeoLabHQ/context-engineering-kit
 /plugin install sdd@NeoLabHQ/context-engineering-kit
 # ... (if you won't use them all)
 
@@ -17,100 +17,28 @@
 
 ## Maximizing Quality
 
-**Use quality gates:**
-
-- Review after implementation
-- Reflect before finalizing
-- Critique for critical code
-
-**Leverage specialized agents:**
-
-- Code review agents catch domain-specific issues
-- SDD agents provide specialized expertise
-- Multiple agents offer diverse perspectives
-
-**Maintain CLAUDE.md:**
-
-- Update after major work
-- Review and refine regularly
-- Reference it actively
-
-**Follow methodologies:**
-
-- TDD prevents untested code
-- SDD ensures comprehensive specifications
-- DDD maintains clean architecture
-
-
-### Project-Specific Adaptation
-
-**Small projects:**
-
-- Focus on reflexion and code-review plugins
-- Skip full SDD workflow for simple features
-- Use git plugin for clean commits
-
-**Large projects:**
-
-- Full SDD workflow for complex features
-- Multiple specialized agents in parallel
-- Comprehensive CLAUDE.md maintenance
-
-**Team projects:**
-
-- Document everything in CLAUDE.md
-- Use SDD for shared understanding
-- Review all PRs with code-review agents
-
-**Solo projects:**
-
-- Balance quality and velocity
-- Use commands judiciously
-- Focus on learning and improvement
-
-### Getting Help
-
-Each command has a description of how it should be used and what it does.
-
-**Command help:**
+By using multiple plugins together you can maximize quality of results. For example, by combining `review`, `sdd`, `sadd`, `ddd` and `git` plugins, you can follow this workflow:
 
 ```bash
-/help
+# Create task file
+/add-tash "Add OAuth2 based authentication"
+# Write detailed specification by following Clean Architecture from DDD plugin
+/plan-task
+# Write code by following DDD and SOLID principles from DDD plugin
+/implement-task
+# Review code by following review plugin
+/review-local-changes and write found issues to review.md file
+# Fix found issues
+/do-in-steps fix issues from review.md file
+# Commit and create PR
+/create-pr
 ```
 
-Shows all available commands with descriptions.
+### Use commands tailored to task size
 
-### Best Practices for CLAUDE.md
-
-**Keep it curated:**
-
-- Remove outdated information
-- Consolidate duplicate insights
-- Organize by topic for easy reference
-
-**Use it actively:**
-
-- Reference it when starting new features
-- Update it after completing major work
-- Review it during code reviews
-
-**Make it actionable:**
-
-- Write specific guidance, not generic advice
-- Include examples and anti-patterns
-- Link to relevant documentation
-
-**Version control:**
-
-- Commit `CLAUDE.md` with code changes
-- Track evolution of project knowledge
-- Review changes during pull requests
-
-**Balance detail and brevity:**
-
-- Detailed enough to be useful
-- Concise enough to remain readable
-- Focus on project-specific insights
+- Small tasks - `/do-and-judge` from `sadd` plugin
+- Medium tasks - `/do-in-steps` from `sadd` plugin
+- Large tasks - `/plan-task` and `/implement-task` from `sdd` plugin
 
 ### Using CLAUDE.md Effectively
 
@@ -124,38 +52,11 @@ Read CLAUDE.md and follow its guidelines
 
 ```bash
 # Reflect on implementation
-/reflexion:reflect
+/reflect
 
 # Memorize key insights to CLAUDE.md
-/reflexion:memorize
+/memorize
 ```
 
-**When setting up new project:**
 
-```bash
-# Establish constitution
-/sdd:00-setup Use FastAPI, PostgreSQL, follow Clean Architecture
 
-# Add language best practices
-/tech-stack:add-typescript-best-practices
-
-# Setup code quality standards
-/ddd:setup-code-formating
-```
-
-**Regular maintenance:**
-
-- Review and consolidate monthly
-- Remove obsolete guidance
-- Update based on team retrospectives
-- Refine based on recurring issues
-
----
-
-### Hook
-
-A script or command that executes automatically at specific points in a workflow, typically Git hooks (pre-commit, pre-push, etc.).
-
-**CEK usage**: The customaize-agent plugin includes `/customaize-agent:create-hook` for setting up automated testing and quality checks.
-
-**Related**: [Customaize Agent Plugin](../plugins/customaize-agent/)

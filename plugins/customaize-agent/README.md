@@ -58,9 +58,9 @@ The plugin is built on Anthropic's official skill authoring best practices and r
 
 ## Skills
 
-- [customaize-agent:prompt-engineering](./prompt-engineering.md) - Advanced prompt engineering techniques including Anthropic's official best practices and research-backed persuasion principles.
-- [customaize-agent:context-engineering](./context-engineering.md) - Use when writing, editing, or optimizing commands, skills, or sub-agent prompts. Provides deep understanding of context mechanics in agent systems.
-- [customaize-agent:agent-evaluation](./agent-evaluation.md) - Use when testing prompt effectiveness, validating context engineering choices, or measuring agent improvement quality.
+- [prompt-engineering](./prompt-engineering.md) - Advanced prompt engineering techniques including Anthropic's official best practices and research-backed persuasion principles.
+- [context-engineering](./context-engineering.md) - Use when writing, editing, or optimizing commands, skills, or sub-agent prompts. Provides deep understanding of context mechanics in agent systems.
+- [agent-evaluation](./agent-evaluation.md) - Use when testing prompt effectiveness, validating context engineering choices, or measuring agent improvement quality.
 
 ## Theoretical Foundation
 

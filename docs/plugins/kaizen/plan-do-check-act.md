@@ -1,4 +1,4 @@
-# /kaizen:plan-do-check-act - PDCA Improvement Cycle
+# /plan-do-check-act - PDCA Improvement Cycle
 
 Four-phase iterative cycle for continuous improvement through systematic experimentation: Plan, Do, Check, Act.
 
@@ -6,7 +6,7 @@ Four-phase iterative cycle for continuous improvement through systematic experim
 - Output - PDCA cycle documentation with baseline, hypothesis, results, and next steps
 
 ```bash
-/kaizen:plan-do-check-act ["improvement goal"]
+/plan-do-check-act ["improvement goal"]
 ```
 
 ## Arguments
@@ -18,7 +18,7 @@ Optional improvement goal or problem to address. If not provided, you will be pr
 **Phase 1: PLAN**
 1. Define the problem or improvement goal
 2. Analyze current state (baseline metrics)
-3. Identify root causes (use /kaizen:why or /kaizen:cause-and-effect)
+3. Identify root causes (use /why or /cause-and-effect)
 4. Develop hypothesis: "If we change X, Y will improve"
 5. Design experiment: what to change, how to measure
 6. Set success criteria (measurable targets)
@@ -46,13 +46,13 @@ Optional improvement goal or problem to address. If not provided, you will be pr
 
 ```bash
 # Reduce build time
-> /kaizen:plan-do-check-act "Reduce Docker build from 45min to under 10min"
+> /plan-do-check-act "Reduce Docker build from 45min to under 10min"
 
 # Improve code quality
-> /kaizen:plan-do-check-act "Reduce production bugs from 8 to 4 per month"
+> /plan-do-check-act "Reduce production bugs from 8 to 4 per month"
 
 # Speed up code review
-> /kaizen:plan-do-check-act "Reduce PR merge time from 3 days to 1 day"
+> /plan-do-check-act "Reduce PR merge time from 3 days to 1 day"
 ```
 
 **Example Cycle**:

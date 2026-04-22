@@ -22,7 +22,7 @@ For simple features that don't require competitive exploration, use [Feature Dev
 
 - [SADD](../plugins/sadd/README.md) - Competitive execution
 - [TDD](../plugins/tdd/README.md) - Test coverage
-- [Code Review](../plugins/code-review/README.md) - Final validation
+- [Review](../plugins/review/README.md) - Final validation
 - [Git](../plugins/git/README.md) - Version control
 
 ## Workflow
@@ -62,10 +62,10 @@ For simple features that don't require competitive exploration, use [Feature Dev
 
 ### 1. Competitive Implementation
 
-Use `/sadd:do-competitively` to generate multiple solutions, evaluate them independently, and synthesize the best elements.
+Use `/do-competitively` to generate multiple solutions, evaluate them independently, and synthesize the best elements.
 
 ```bash
-/sadd:do-competitively "Implement JWT authentication middleware with token refresh, rate limiting, and secure session management"
+/do-competitively "Implement JWT authentication middleware with token refresh, rate limiting, and secure session management"
 ```
 
 **What happens:**
@@ -76,49 +76,49 @@ Use `/sadd:do-competitively` to generate multiple solutions, evaluate them indep
 For specific output location:
 
 ```bash
-/sadd:do-competitively "Design user authentication schema" --output "src/models/auth.ts"
+/do-competitively "Design user authentication schema" --output "src/models/auth.ts"
 ```
 
 With custom evaluation criteria:
 
 ```bash
-/sadd:do-competitively "Create API rate limiting middleware" --criteria "security,performance,maintainability"
+/do-competitively "Create API rate limiting middleware" --criteria "security,performance,maintainability"
 ```
 
 After completion, review the synthesized solution to ensure it meets your requirements.
 
 ### 2. Write Tests
 
-Use `/tdd:write-tests` to generate comprehensive test coverage for the synthesized solution.
+Use `/write-tests` to generate comprehensive test coverage for the synthesized solution.
 
 ```bash
-/tdd:write-tests
+/write-tests
 ```
 
 Or with specific focus:
 
 ```bash
-/tdd:write-tests Focus on security edge cases and error handling
+/write-tests Focus on security edge cases and error handling
 ```
 
 Verify all tests pass before continuing.
 
 ### 3. Review Local Changes
 
-Use `/code-review:review-local-changes` for final multi-agent validation.
+Use `/review-local-changes` for final multi-agent validation.
 
 ```bash
-/code-review:review-local-changes
+/review-local-changes
 ```
 
 Address Critical and High priority findings before committing.
 
 ### 4. Create Commit
 
-Use `/git:commit` to create a well-formatted conventional commit.
+Use `/commit` to create a well-formatted conventional commit.
 
 ```bash
-/git:commit
+/commit
 ```
 
 ## Quality Comparison
@@ -134,14 +134,14 @@ Use `/git:commit` to create a well-formatted conventional commit.
 
 ## Advanced: Combining with Tree of Thoughts
 
-For tasks requiring exploration before commitment, use `/sadd:tree-of-thoughts` first:
+For tasks requiring exploration before commitment, use `/tree-of-thoughts` first:
 
 ```bash
 # Explore approaches first
-/sadd:tree-of-thoughts "Design caching strategy for high-traffic API"
+/tree-of-thoughts "Design caching strategy for high-traffic API"
 
 # Then implement the winning approach competitively
-/sadd:do-competitively "Implement Redis-based caching with the write-through pattern identified above"
+/do-competitively "Implement Redis-based caching with the write-through pattern identified above"
 ```
 
 ## Advanced: Debate-Based Evaluation
@@ -150,10 +150,10 @@ For highest-stakes decisions where consensus is critical:
 
 ```bash
 # Implement competitively
-/sadd:do-competitively "Design payment processing flow" --output "src/services/payment.ts"
+/do-competitively "Design payment processing flow" --output "src/services/payment.ts"
 
 # Evaluate with iterative debate
-/sadd:judge-with-debate --solution "src/services/payment.ts" --task "Payment processing implementation" --criteria "security:30,correctness:30,reliability:20,performance:20"
+/judge-with-debate --solution "src/services/payment.ts" --task "Payment processing implementation" --criteria "security:30,correctness:30,reliability:20,performance:20"
 ```
 
 ## Tips

@@ -20,6 +20,6 @@ PR number or URL (optional - can work with current branch).
 > /git:attach-review-to-pr 456
 
 # After code review
-> /code-review:review-pr 456
+> /review-pr 456
 > /git:attach-review-to-pr 456
 ```

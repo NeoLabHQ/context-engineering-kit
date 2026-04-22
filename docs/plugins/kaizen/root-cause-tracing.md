@@ -1,4 +1,4 @@
-# /kaizen:root-cause-tracing - Bug Tracing Through Call Stack
+# /root-cause-tracing - Bug Tracing Through Call Stack
 
 Systematically traces bugs backward through the call stack to identify where invalid data or incorrect behavior originates.
 
@@ -6,7 +6,7 @@ Systematically traces bugs backward through the call stack to identify where inv
 - Output - Trace chain from symptom to original trigger with fix recommendation
 
 ```bash
-/kaizen:root-cause-tracing
+/root-cause-tracing
 ```
 
 ## Arguments
@@ -31,10 +31,10 @@ Never fix just where the error appears. Trace back to find the original trigger.
 
 ```bash
 # After encountering a deep stack error
-> /kaizen:root-cause-tracing
+> /root-cause-tracing
 
 # When debugging file creation in wrong location
-> /kaizen:root-cause-tracing
+> /root-cause-tracing
 ```
 
 ### Example Trace

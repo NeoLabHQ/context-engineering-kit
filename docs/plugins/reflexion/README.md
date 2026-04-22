@@ -83,9 +83,9 @@ The plugin includes optional hooks that automatically trigger reflection when yo
 
 ## Commands
 
-- [/reflexion:reflect](./reflect.md) - Self-Refinement. Reflect on previous response and output, based on Self-refinement framework for iterative improvement with complexity triage and verification
-- [/reflexion:critique](./critique.md) - Multi-Perspective Critique. Memorize insights from reflections and updates CLAUDE.md file with this knowledge. Curates insights from reflections and critiques into CLAUDE.md using Agentic Context Engineering
-- [/reflexion:memorize](./memorize.md) - Memorize insights from reflections and updates CLAUDE.md file with this knowledge. Curates insights from reflections and critiques into CLAUDE.md using Agentic Context Engineering
+- [/reflect](./reflect.md) - Self-Refinement. Reflect on previous response and output, based on Self-refinement framework for iterative improvement with complexity triage and verification
+- [/critique](./critique.md) - Multi-Perspective Critique. Comprehensive multi-perspective review using specialized judges with debate and consensus building
+- [/memorize](./memorize.md) - Memory Updates. Curates insights from reflections and critiques into CLAUDE.md using Agentic Context Engineering
 
 ## Theoretical Foundation
 
