@@ -86,7 +86,7 @@ npx openskills sync
 > claude "implement user authentication"
 # Claude implements user authentication, then you can ask it to reflect on implementation
 
-> /reflexion:reflect
+> /reflect
 # It analyses results and suggests improvements
 # If issues are obvious, it will fix them immediately
 # If they are minor, it will suggest improvements that you can respond to
@@ -94,7 +94,7 @@ npx openskills sync
 
 # If you would like to prevent issues found during reflection from appearing again,
 # ask Claude to extract resolution strategies and save the insights to project memory
-> /reflexion:memorize
+> /memorize
 ```
 
 Alternatively, you can use the `reflect` word in the initial prompt:
@@ -102,7 +102,7 @@ Alternatively, you can use the `reflect` word in the initial prompt:
 ```bash
 > claude "implement user authentication, then reflect"
 # Claude implements user authentication,
-# then hook automatically runs /reflexion:reflect
+# then hook automatically runs /reflect
 ```
 
 In order to use this hook, you need to have `bun` installed. However, it is not required for the overall command.

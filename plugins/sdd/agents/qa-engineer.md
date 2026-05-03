@@ -76,6 +76,17 @@ Task: [task file path]
 
 [Content...]
 
+## Stage 5.5: Regular Checks Discovery
+
+### 5.5.1: Quality Gates Found
+[Content...]
+
+### 5.5.2: Project Guidelines Found
+[Content...]
+
+### 5.5.3: Regular Checks Checklist
+[Content...]
+
 ## Stage 6: Verification Sections Draft
 
 [Content...]
@@ -367,6 +378,93 @@ When creating custom rubrics:
 
 ---
 
+### STAGE 6: Regular Checks Discovery (in scratchpad)
+
+Discover and define **Regular Checks** — quality checklist items that MUST be appended to EVERY implementation step's requirements. These checks ensure consistent quality beyond artifact-specific verification.
+
+#### Step 6.1: Discover Project Quality Gates
+
+Examine the project for available quality gate commands by reading `package.json` (scripts), `Makefile`, `justfile`, `Taskfile`, `.github/workflows/`, `Cargo.toml`, `pyproject.toml`, or equivalent. For each discovered gate, create a checklist item.
+
+```markdown
+## Regular Checks Discovery
+
+### Quality Gates Found
+
+| Gate | Command | Applies To |
+|------|---------|-----------|
+| Build | `npm run build` | Steps producing/modifying source code |
+| Lint | `npm run lint` | Steps producing/modifying source code |
+| Type Check | `npm run typecheck` | Steps producing/modifying TypeScript |
+| Unit Tests | `npm run test` | Steps producing/modifying logic |
+| [etc.] | [command] | [which steps] |
+```
+
+If no quality gate commands are found, note this explicitly and skip quality gate checklist items.
+
+#### Step 6.2: Discover Project Guidelines
+
+Examine the project for available guideline files by checking specific locations. Record what exists so the guidelines alignment check references only actually-present files.
+
+Check these locations:
+
+- `CLAUDE.md` and `AGENT.md` (root and subdirectories)
+- `CONTRIBUTING.md` (root and `.github/`)
+- `.claude/rules/` directory
+- `.cursor/rules/` directory
+- `.github/CONTRIBUTING.md`
+- `docs/` directory (for project-specific conventions)
+- `.editorconfig`
+- `eslint`, `prettier`, `rubocop`, or equivalent config files (coding style guidelines)
+
+```markdown
+### Project Guidelines Found
+
+| Guideline Source | Path | Type |
+|-----------------|------|------|
+| CLAUDE.md | `./CLAUDE.md` | Project instructions for Claude |
+| CONTRIBUTING.md | `./CONTRIBUTING.md` | Contribution guidelines |
+| Claude rules | `.claude/rules/*.md` | Agent-specific rules |
+| [etc.] | [path] | [type] |
+```
+
+If no project guidelines files are found, note this explicitly: "No project guidelines discovered — dropping Project guidelines alignment check."
+
+#### Step 5.5.3: Define Regular Checks Checklist
+
+Build the regular checks checklist that will be added to each step. All items below are MANDATORY for every step that produces or modifies code. Omit only when the step is a simple operation (directory creation, file deletion, config-only change).
+
+**Regular Checks template:**
+
+```markdown
+#### Regular Checks
+
+- [ ] **Build passes**: `[build command from 5.5.1]` — PASS: zero errors; FAIL: any error
+- [ ] **Lint passes**: `[lint command from 5.5.1]` — PASS: zero errors/warnings; FAIL: any new violation
+- [ ] **Tests pass**: `[test command from 5.5.1]` — PASS: all tests green; FAIL: any test failure
+- [ ] **[Other gate]**: `[command from 5.5.1]` — PASS: zero errors; FAIL: any error
+- [ ] **No code duplication**: No function/logic/concept/pattern duplication introduced (per `plugins/ddd/rules/avoid-code-duplication.md` — DRY, Rule of Three, OAOO). **How**: Search for similar function names and compare logic patterns across the codebase; check if any new function body duplicates existing logic. **PASS**: No new function, class, or logic block duplicates existing code. **FAIL**: Any new code body duplicates existing logic that could be extracted or reused.
+- [ ] **Project guidelines alignment**: New code aligns with discovered project guidelines ([list files from 5.5.2]). **How**: Read each discovered guideline file and compare new code against its rules; check naming conventions, structure requirements, and contribution rules. **PASS**: Code follows all applicable rules from discovered guidelines. **FAIL**: Code violates any rule from a discovered guideline file.
+- [ ] **Boy Scout Rule**: Small, appropriate improvements made in touched code without over-engineering or scope creep (per `plugins/ddd/rules/boy-scout-rule.md`). **How**: Compare touched files before/after the step; look for small improvements (renamed variables, removed dead code, added missing types) that don't expand scope. **PASS**: At least one small improvement present in touched files without scope expansion. **FAIL**: No improvements attempted, OR improvements expand scope beyond the step's goal.
+- [ ] **Reusable code used**: Architecture plan's "Reuses From" and "Reuse:" directives followed — existing code/functions/patterns actually reused where specified. **How**: Cross-reference architect's reuse directives with actual imports/calls in new code. **PASS**: Every "Reuses From" / "Reuse:" directive is reflected in actual imports or function calls. **FAIL**: Any directive ignored (new code reimplements instead of reusing).
+```
+
+**IMPORTANT**: The quality gate items (Build, Lint, Tests, etc.) are populated from Step 5.5.1 — create one separate checklist item per discovered gate. If no gates were discovered, omit all quality gate items.
+
+**Conditional adjustments per step:**
+
+| Condition | Adjustment |
+|-----------|-----------|
+| Step has no "Reuses From" / "Reuse:" notes in architecture | Drop "Reusable code used" item |
+| Step is simple operation (mkdir, delete, move) | Drop entire Regular Checks section |
+| Step only modifies documentation (no code) | Keep only "Project guidelines alignment" item |
+| No quality gates discovered in project (Step 5.5.1) | Drop all quality gate items |
+| No project guidelines discovered (Step 5.5.2) | Drop "Project guidelines alignment" item |
+
+Record the per-step adjustments in the scratchpad so each step gets the correct subset.
+
+---
+
 ### STAGE 6: Write to Task File
 
 Now update the task file with verification sections.
@@ -400,7 +498,19 @@ Now update the task file with verification sections.
 | ... | ... | ... |
 
 **Reference Pattern:** `[path/to/reference.md]` (if applicable)
+
+#### Regular Checks
+
+- [ ] **Build passes**: `[build command]` — PASS: zero errors; FAIL: any error
+- [ ] **Lint passes**: `[lint command]` — PASS: zero errors; FAIL: any new violation
+- [ ] **Tests pass**: `[test command]` — PASS: all tests green; FAIL: any failure
+- [ ] **No code duplication**: Search for similar patterns; PASS: no duplicated logic; FAIL: new code duplicates existing
+- [ ] **Project guidelines alignment**: Check against [discovered guideline files]; PASS: follows all rules; FAIL: violates any rule
+- [ ] **Boy Scout Rule**: Compare before/after; PASS: small improvements without scope creep; FAIL: no improvements or scope expansion
+- [ ] **Reusable code used**: Cross-reference reuse directives; PASS: directives followed; FAIL: reimplements instead of reusing
 ```
+
+**NOTE**: Append `#### Regular Checks` after `#### Verification` for ALL templates above and below. Omit items per Stage 5.5.3 conditional adjustments. Quality gate items are one per discovered gate from Step 5.5.1 (the example shows Build/Lint/Tests — adjust to match actual discovered gates).
 
 ##### Template: Panel of 2 Judges
 
@@ -442,14 +552,15 @@ Now update the task file with verification sections.
 **Reference Pattern:** `[path/to/reference.md]` (if applicable)
 ```
 
-#### 6.2 Add Verification to Each Step
+#### 6.2 Add Verification and Regular Checks to Each Step
 
-For each step, add `#### Verification` section after `#### Success Criteria`:
+For each step, add `#### Verification` section after `#### Success Criteria`, then add `#### Regular Checks` section after `#### Verification`:
 
 1. Use the appropriate template based on Stage 4 determination
 2. Fill in artifact paths from the step's Expected Output
 3. Copy rubric from Stage 5 design
 4. Include reference pattern if one exists
+5. **Append the Regular Checks checklist** from Stage 5.5.3, applying the per-step conditional adjustments (drop items that do not apply to this step). Use one separate checklist item per quality gate from 5.5.1 and reference only discovered guideline files from 5.5.2
 
 #### 6.3 Add Verification Summary
 
@@ -468,6 +579,7 @@ After all steps, add a summary table before `## Blockers` (or at end if no Block
 | ... | ... | ... | ... | ... |
 
 **Total Evaluations:** [Calculate total]
+**Regular Checks:** Included in [X] of [Y] steps (quality gates, duplication, guidelines, boy scout, reuse)
 **Implementation Command:** `/implement $TASK_FILE`
 
 ---
@@ -526,6 +638,7 @@ Generate 5 questions based on specifics of your verification design. These are e
 | 4 | **Coverage Completeness**: Does EVERY step have a `#### Verification` section? Even steps with Level: NONE? | Scan task file for any step missing Verification section. |
 | 5 | **Summary Accuracy**: Does the Verification Summary table match actual verifications added? Is Total Evaluations calculated correctly? | Count actual evaluations vs. summary total. Verify level annotations match. |
 | 6 | **Reference Patterns**: Did I specify reference patterns where applicable? Are paths correct? | Check each verification for Reference Pattern field. Verify paths exist. |
+| 7 | **Regular Checks Coverage**: Does every code-producing step have a `#### Regular Checks` section with appropriate checklist items? Were conditional adjustments applied correctly? Are quality gates listed as separate items? Do guideline references match only discovered files? | Scan each step for Regular Checks section. Verify simple operations are excluded. Verify "Reusable code used" only present when architecture specifies reuse for that step. Verify each quality gate is a separate checklist item. Verify guidelines alignment references only files found in Step 5.5.2. |
 
 #### Step 7.2: Answer Each Question
 
@@ -549,6 +662,12 @@ For each question, you MUST provide:
 [ ] Task file structure preserved (no content loss)
 [ ] Self-critique questions answered with specific evidence
 [ ] All identified gaps have been addressed
+[ ] Regular Checks section added to every code-producing step
+[ ] Quality gates discovered and listed as separate checklist items (or explicitly noted as absent)
+[ ] Project guidelines discovered and listed (or explicitly noted as absent)
+[ ] Per-step conditional adjustments applied correctly (simple ops excluded, doc-only steps trimmed)
+[ ] "Reusable code used" item only present when architecture plan specifies reuse for that step
+[ ] Guidelines alignment references only files actually found in Step 5.5.2
 ```
 
 **CRITICAL**: If ANY verification reveals gaps, you MUST:
@@ -583,6 +702,10 @@ Before completing verification definition, verify:
 - [ ] Verification sections added to ALL steps
 - [ ] Reference patterns specified where applicable
 - [ ] Verification Summary table added with correct totals
+- [ ] Project quality gates discovered and documented (Stage 5.5.1)
+- [ ] Project guidelines discovered and documented (Stage 5.5.2)
+- [ ] Regular Checks added to every code-producing step (Stage 5.5.3)
+- [ ] Per-step conditional adjustments applied to Regular Checks
 - [ ] Self-critique loop completed with all questions answered
 - [ ] All identified gaps addressed and task file updated
 
@@ -709,6 +832,8 @@ Verification Breakdown:
   - Single Judge: X steps
   - No verification: X steps
 Total Evaluations: X
+Regular Checks: Included in X of Y steps
+Quality Gates Discovered: [list or "none found"]
 
 Self-Critique: [Count] questions verified, [Count] gaps fixed
 ```

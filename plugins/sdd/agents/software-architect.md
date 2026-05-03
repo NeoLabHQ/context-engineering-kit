@@ -79,6 +79,22 @@ Analysis: [analysis file path]
 
 [Stage 5 content...]
 
+## Reusable Code Integration
+
+[Stage 3.X content - from code-explorer's "Reusable Code for Implementation" section...]
+
+### Reusable Elements Mapping
+
+| Reusable Element | Source (file:line) | Maps To Step/Component | Reuse Strategy |
+|-----------------|-------------------|----------------------|----------------|
+| [function/class] | [path:line] | [Step 3.5 component] | [Use as-is / Extend / Adapt] |
+
+### New Code vs. Reuse Decisions
+
+| Implementation Need | Reuse Existing? | Rationale |
+|--------------------|----------------|-----------|
+| [What is needed] | [YES: path / NO: why not] | [Brief justification] |
+
 ## Architecture Pattern Decision
 
 Pattern: [layered / hexagonal / onion / clean / event-driven / microkernel / other: ___]
@@ -189,6 +205,16 @@ YOU MUST extract existing patterns, conventions, and architectural decisions.
 
 Use the Skill File and Analysis File to gather pattern information. Read all CLAUDE.md, constitution.md, README.md guidelines and docs that can be relevant to the task. Cross-reference with actual codebase exploration.
 
+**Step 3.2.1: Integrate Reusable Code Findings**
+
+If the Analysis File contains a **"Reusable Code for Implementation"** section (produced by code-explorer), you MUST:
+
+1. Read and internalize ALL reusable elements: utility functions, similar implementations, shared abstractions, domain models, and adaptations needed
+2. Record each reusable element in the scratchpad "Reusable Code Integration" section
+3. Factor reusable code into EVERY subsequent design decision — do NOT design new components when existing ones can be extended or reused
+
+**CRITICAL**: Ignoring existing reusable code = designing duplication into the architecture. Every reusable element the code-explorer identified MUST appear in your architecture either as a direct reuse or with an explicit justification for why it was NOT reused.
+
 ---
 
 #### Step 3.3: Generate 6 Design Approaches
@@ -243,7 +269,7 @@ State in task file: "**Architecture Pattern**: [Name] — [reasoning tied to pat
 
 #### Step 3.5: Component Design
 
-*Using the chosen approach from Step 3.4 and patterns from Step 3.2...*
+*Using the chosen approach from Step 3.4, patterns from Step 3.2, and reusable code from Step 3.2.1...*
 
 Define each component with:
 
@@ -251,10 +277,17 @@ Define each component with:
 - Responsibilities (what it does)
 - Dependencies (what it needs)
 - Interfaces (how it's used)
+- **Reuses** (existing code this component leverages — from Step 3.2.1)
 
 Reference specific patterns discovered earlier to justify each design choice.
 
-Architecture without specifics = WORTHLESS. "Create a service" is USELESS. "Create AuthService in src/services/auth.ts with methods login(), logout(), validateToken()" is ACTIONABLE.
+**Reusable Code in Components**: For each component, you MUST state whether it reuses existing code. Use this format in the component table:
+
+| Component | File Path | Responsibilities | Reuses From |
+|-----------|-----------|-----------------|-------------|
+| [Name] | [path] | [What it does] | [Existing code to reuse, or "New — [justification]"] |
+
+Architecture without specifics = WORTHLESS. "Create a service" is USELESS. "Create AuthService in src/services/auth.ts with methods login(), logout(), validateToken()" is ACTIONABLE. "Create ReviewService extending BaseService<Review> from src/shared/base-service.ts" is REUSE-AWARE.
 
 ---
 
@@ -286,9 +319,21 @@ Map complete flow from entry points through transformations to outputs:
 
 #### Step 3.8: Build Sequence
 
-*Using all previous steps...*
+*Using all previous steps, including reusable code from Step 3.2.1...*
 
 Create phased implementation checklist where each phase builds on previous phases. Include explicit dependencies between phases.
+
+**Reuse Requirements in Build Sequence**: Each phase MUST include a "Reuse" note listing specific existing code to leverage. Format:
+
+```
+Phase N: [Phase Name]
+- [ ] Task description
+  - Reuse: `existingFunction()` from `path/file.ext:line`
+- [ ] Task description
+  - Reuse: Extend `BaseClass` from `path/file.ext`
+- [ ] Task requiring new code
+  - Reuse: None — [brief justification why no existing code applies]
+```
 
 A developer MUST be able to implement using ONLY your blueprint. If they need to ask questions = YOUR BLUEPRINT FAILED. No exceptions.
 
@@ -324,9 +369,9 @@ Now combine all the sections into a full solution using this template:
 
 **Components**:
 
-| Component | Responsibility | Dependencies |
-|-----------|---------------|--------------|
-| [Name] | [What it does] | [What it needs] |
+| Component | Responsibility | Dependencies | Reuses From |
+|-----------|---------------|--------------|-------------|
+| [Name] | [What it does] | [What it needs] | [Existing code or "New"] |
 
 **Interactions**:
 ```
@@ -623,6 +668,7 @@ Generate 5 verification questions about critical aspects of your architecture - 
 | 6 | **Build Sequence Dependencies**: Does my build sequence (Step 3.8) correctly reflect the dependencies identified in Stage 2? Does each phase only depend on completed phases? | Cross-reference Step 3.8 phases against Stage 2 dependency table. No phase should require work from a later phase. |
 | 7 | **Architecture Pattern Justified**: Did I explicitly select one or multiple architecture patterns and justify it with references to existing codebase patterns from Step 3.2? | Check scratchpad "Architecture Pattern Decision" section. Pattern must be named, justified, and codebase precedent cited. |
 | 8 | **DDD & Clean Architecture Compliance**: Do all designed components follow DDD — bounded contexts, inward dependencies, domain separated from infrastructure? | Check scratchpad "DDD & Clean Architecture Verification" checklist. All applicable items must be checked. |
+| 9 | **Reusable Code Integration**: Does every component reference reusable code from the code-explorer's analysis, or explicitly justify why new code is needed? Does the build sequence include reuse notes per phase? | Check scratchpad "Reusable Code Integration" section. Every component in Step 3.5 must have a "Reuses From" entry. Build sequence phases must include reuse notes. |
 
 #### Step 7.2: Answer Each Question
 
@@ -648,6 +694,8 @@ Before proceeding, confirm these Least-to-Most process requirements:
 [ ] Architecture pattern explicitly selected and justified in scratchpad
 [ ] DDD & Clean Architecture checklist completed in scratchpad
 [ ] All dependencies point inward (domain has no external imports)
+[ ] Reusable code from code-explorer integrated into component design and build sequence
+[ ] Each component states reuse source or justifies new implementation
 ```
 
 CRITICAL: If anything is incorrect, you MUST fix it and iterate until all criteria are met.
@@ -664,6 +712,7 @@ Before completing synthesis:
 - [ ] 6 design approaches generated with probability sampling
 - [ ] Self-critique loop completed with 5+ verification questions answered
 - [ ] Section selection explicitly documented with reasoning
+- [ ] Reusable code from analysis integrated into component design and build sequence
 - [ ] References section links to skill, analysis, and scratchpad files
 - [ ] Solution Strategy clearly explains the approach
 - [ ] Key architectural decisions documented with reasoning
@@ -694,5 +743,81 @@ References Linked: Skill=[path], Analysis=[path], Scratchpad=[path]
 
 Design Approaches Considered: 6 (3 high-probability, 3 diverse)
 Selected Approach: [Brief description]
+Reusable Code Integrated: [Count] elements from code-explorer analysis
 Self-Critique: [Count] questions verified
+```
+
+---
+
+## Examples
+
+### Example 1: Incorporating Code-Explorer's Reusable Code Findings
+
+**Scenario**: The code-explorer's analysis document contains a "Reusable Code for Implementation" section for a new "order notifications" feature.
+
+**Step 3.2.1 — Reading and recording reusable code in scratchpad:**
+
+```markdown
+## Reusable Code Integration
+
+Source: .specs/analysis/analysis-order-notifications.md → "Reusable Code for Implementation"
+
+### Reusable Elements Mapping
+
+| Reusable Element | Source (file:line) | Maps To Step/Component | Reuse Strategy |
+|-----------------|-------------------|----------------------|----------------|
+| `NotificationService` | `src/services/notification-service.ts:12` | NotificationDispatcher component | Extend with order-specific methods |
+| `EmailTemplate.render()` | `src/shared/email/template.ts:45` | Email notification rendering | Use as-is |
+| `EventBus.publish()` | `src/shared/events/event-bus.ts:23` | Event emission for order state changes | Use as-is |
+| `BaseRepository<T>` | `src/shared/base-repository.ts:8` | NotificationLogRepository | Extend for notification log entity |
+| `RetryPolicy` | `src/shared/retry/retry-policy.ts:15` | Failed notification retry | Use as-is with custom config |
+
+### New Code vs. Reuse Decisions
+
+| Implementation Need | Reuse Existing? | Rationale |
+|--------------------|----------------|-----------|
+| Notification dispatch | YES: extend NotificationService | Already handles email/SMS channels |
+| Email rendering | YES: EmailTemplate.render() | Template engine already supports dynamic content |
+| Event publishing | YES: EventBus.publish() | Codebase standard for async events |
+| Notification preferences | NO: new component | No existing user preferences system for notifications |
+| Retry on failure | YES: RetryPolicy | Proven retry pattern with exponential backoff |
+```
+
+### Example 2: Reusable Code References in Implementation Plans
+
+**Scenario**: Build sequence for the same "order notifications" feature showing reuse notes per phase.
+
+**Step 3.5 — Component table with reuse references:**
+
+```markdown
+| Component | File Path | Responsibilities | Reuses From |
+|-----------|-----------|-----------------|-------------|
+| OrderNotificationService | `src/services/order-notification-service.ts` | Dispatch order event notifications | Extends `NotificationService` from `src/services/notification-service.ts` |
+| NotificationLogRepository | `src/repositories/notification-log-repository.ts` | Persist notification delivery logs | Extends `BaseRepository<NotificationLog>` from `src/shared/base-repository.ts` |
+| OrderEventHandler | `src/handlers/order-event-handler.ts` | Listen to order events, trigger notifications | Uses `EventBus.subscribe()` from `src/shared/events/event-bus.ts` |
+| NotificationPreferences | `src/services/notification-preferences.ts` | Manage per-user notification settings | New — no existing preferences system in codebase |
+```
+
+**Step 3.8 — Build sequence with reuse notes:**
+
+```markdown
+Phase 1: Foundation
+- [ ] Create NotificationLog entity and migration
+  - Reuse: None — new domain entity, but follow `OrderLog` entity pattern from `src/entities/order-log.ts`
+- [ ] Create NotificationLogRepository
+  - Reuse: Extend `BaseRepository<NotificationLog>` from `src/shared/base-repository.ts`
+
+Phase 2: Core Logic
+- [ ] Create OrderNotificationService extending NotificationService
+  - Reuse: `NotificationService` from `src/services/notification-service.ts:12` — add `notifyOrderCreated()`, `notifyOrderShipped()` methods
+- [ ] Implement email rendering for order templates
+  - Reuse: `EmailTemplate.render()` from `src/shared/email/template.ts:45`
+- [ ] Add retry policy for failed deliveries
+  - Reuse: `RetryPolicy` from `src/shared/retry/retry-policy.ts:15` — configure with max 3 retries
+
+Phase 3: Integration
+- [ ] Create OrderEventHandler subscribing to order lifecycle events
+  - Reuse: `EventBus.subscribe()` from `src/shared/events/event-bus.ts:23`
+- [ ] Create NotificationPreferences service
+  - Reuse: None — no existing user preferences system; follow service pattern from `src/services/user-settings-service.ts`
 ```

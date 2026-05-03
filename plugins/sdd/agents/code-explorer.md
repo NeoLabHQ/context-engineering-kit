@@ -86,6 +86,10 @@ Created: [date]
 
 [Stage 3 findings with THOUGHT/ACTION/OBSERVATION entries...]
 
+## Reusable Code & Patterns
+
+[Stage 3.4 findings - existing code that can be reused for this task...]
+
 ## Architecture Analysis
 
 [Stage 4 analysis...]
@@ -243,6 +247,93 @@ OBSERVATION:
 | **Configuration** | Config files, manifests, settings | Glob for config patterns |
 | **Tests** | Existing test files needing updates | Glob for test patterns |
 | **Documentation** | READMEs and docs needing updates | Glob for *.md |
+
+#### 3.4: Reusable Code Discovery
+
+**THOUGHT**: Let me think step by step about what already exists that can be reused:
+
+1. Utility functions and helpers that solve parts of this task
+2. Similar implementations that can be adapted or extended
+3. Shared patterns and abstractions already established in the codebase
+4. Domain concepts already modeled (types, validators, transformers)
+5. Configuration patterns, error handling, and cross-cutting logic
+
+**Search Strategy:**
+
+| What to Find | How to Search | Why It Matters |
+|--------------|---------------|----------------|
+| **Utility functions** | Grep for common operation names (validate, transform, format, parse, convert) in utils/helpers dirs | Avoids reimplementing solved problems |
+| **Similar features** | Grep for analogous domain terms; find parallel implementations | Provides proven patterns to follow |
+| **Shared abstractions** | Search for base classes, interfaces, generics, mixins | Enables consistent extension points |
+| **Domain models** | Search for types, DTOs, entities related to the task domain | Prevents duplicate type definitions |
+| **Error handling** | Grep for error classes, result types, exception patterns | Ensures consistent error strategy |
+| **Validation logic** | Search for validators, schemas, guards related to the domain | Reuses proven validation rules |
+| **Configuration** | Glob for config patterns matching the feature area | Follows established config conventions |
+
+**Example Reasoning Chain:**
+
+```
+THOUGHT: The task requires user input validation for a new form. Let me check if validation utilities already exist before planning new ones.
+
+ACTION: Grep pattern="validate|validator|schema" path=/src/utils
+OBSERVATION: Found /src/utils/validators.ts with validateEmail(), validatePhone(), validateRequired()
+
+ACTION: Grep pattern="validate|ValidationSchema" path=/src/shared
+OBSERVATION: Found /src/shared/validation/schema-builder.ts - a generic schema builder used by 5 other forms
+
+THOUGHT: Two reusable assets found:
+1. Individual validators in utils/validators.ts - can reuse validateEmail(), validateRequired()
+2. SchemaBuilder pattern in shared/validation/ - should use this to compose validators consistently
+No need to create new validation infrastructure.
+
+ACTION: Read file=/src/shared/validation/schema-builder.ts
+OBSERVATION: SchemaBuilder.create().field('email', validateEmail).field('name', validateRequired).build()
+
+THOUGHT: This pattern is used across the codebase. Reusing it ensures consistency and avoids duplication. I should document this for the implementation team.
+```
+
+**Required Actions:**
+
+- YOU MUST search for existing utilities and helpers before assuming new code is needed
+- YOU MUST identify similar feature implementations that establish patterns to follow
+- YOU MUST check for shared abstractions (base classes, interfaces) that should be extended
+- YOU MUST document all reusable findings with exact file paths and function/class names
+
+**Log reusable findings in scratchpad:**
+
+```markdown
+## Reusable Code & Patterns
+
+### Utility Functions
+| Function | Location | Reuse For |
+|----------|----------|-----------|
+| `validateEmail()` | `src/utils/validators.ts:23` | Input validation |
+| `formatCurrency()` | `src/utils/formatters.ts:45` | Price display |
+
+### Similar Implementations
+| Feature | Location | What to Reuse |
+|---------|----------|---------------|
+| User profile form | `src/features/profile/` | Form structure, validation pattern |
+| Order creation flow | `src/features/orders/create.ts` | Multi-step submit pattern |
+
+### Shared Abstractions
+| Abstraction | Location | How to Extend |
+|-------------|----------|---------------|
+| `BaseRepository<T>` | `src/shared/base-repository.ts` | Extend for new entity |
+| `ValidationSchema` | `src/shared/validation/schema-builder.ts` | Compose with existing validators |
+
+### Domain Models Already Defined
+| Model/Type | Location | Relevance |
+|------------|----------|-----------|
+| `UserDTO` | `src/types/user.ts:12` | Already models user data |
+| `Address` | `src/types/common.ts:34` | Reuse for address fields |
+
+### Adaptations Needed
+| Reusable Code | Adaptation Required |
+|---------------|---------------------|
+| `BaseRepository<T>` | Add soft-delete support for new entity |
+| `validatePhone()` | Extend to support international formats |
+```
 
 ---
 
@@ -465,6 +556,36 @@ Reference implementations in the codebase to follow as patterns:
 
 ---
 
+## Reusable Code for Implementation
+
+Existing code that SHOULD be reused to avoid duplication:
+
+### Utility Functions & Helpers
+
+| Function/Method | Location | Reuse For |
+|-----------------|----------|-----------|
+| `functionName()` | `path/file.ext:L42` | [How to reuse] |
+
+### Similar Implementations to Follow
+
+| Feature | Location | Pattern to Reuse |
+|---------|----------|------------------|
+| [Feature name] | `path/to/feature/` | [What pattern to follow] |
+
+### Shared Abstractions to Extend
+
+| Abstraction | Location | How to Extend |
+|-------------|----------|---------------|
+| `ClassName` | `path/file.ext` | [Extension approach] |
+
+### Adaptations Needed
+
+| Existing Code | Location | Adaptation Required |
+|---------------|----------|---------------------|
+| [Code element] | `path/file.ext` | [What needs changing] |
+
+---
+
 ## Test Coverage
 
 ### Existing Tests to Update
@@ -508,6 +629,7 @@ Before implementation, developer should read:
 | All affected files identified | ✅/⚠️ | [Brief note] |
 | Integration points mapped | ✅/⚠️ | [Brief note] |
 | Similar patterns found | ✅/⚠️ | [Count] patterns |
+| Reusable code identified | ✅/⚠️ | [Count] reusable elements |
 | Test coverage analyzed | ✅/⚠️ | [Brief note] |
 | Risks assessed | ✅/⚠️ | [Brief note] |
 
@@ -538,7 +660,7 @@ YOU MUST provide a comprehensive analysis that enables developers to modify or e
 
 Structure your response for maximum clarity and usefulness. ALWAYS include specific file paths and line numbers.
 
-#### Step 6.1: Generate 5 Verification Questions
+#### Step 6.1: Generate 6 Verification Questions
 
 YOU MUST write these out explicitly based on your specific analysis:. These are example verification questions
 
@@ -549,6 +671,7 @@ YOU MUST write these out explicitly based on your specific analysis:. These are 
 | 3 | **Pattern Identification**: Have I correctly identified and named the design patterns used, and are there patterns I may have missed or misidentified? | Cross-reference against common patterns (Repository, Factory, Strategy, Observer, etc.); verify pattern claims match actual implementation | THOUGHT: "I claimed this is Repository pattern. Let me verify the interface matches Repository characteristics" |
 | 4 | **Dependency Mapping**: Have I captured ALL internal and external dependencies, including transitive dependencies and implicit coupling? | Check imports, injections, configuration references, and runtime dependencies; missing dependencies cause integration failures | ACTION: Grep for all imports in key files to ensure complete dependency list |
 | 5 | **Architecture Understanding**: Does my layer mapping accurately reflect the actual boundaries, or have I imposed assumptions that don't match the code? | Validate that claimed abstractions exist; verify data flow directions; confirm interface contracts | THOUGHT: "I claimed clean layer separation. Let me check if any layer bypasses another" |
+| 6 | **Reusable Code Discovery**: Have I searched for existing utilities, similar implementations, and shared abstractions that can be reused instead of building from scratch? | Verify utils/helpers dirs were searched, similar features identified, base classes/interfaces found, domain types checked | THOUGHT: "Did I check for existing validators, formatters, base classes?" ACTION: Grep for utility patterns in shared/utils/common dirs |
 
 #### Step 6.2: Answer Each Question
 
@@ -580,6 +703,7 @@ YOU MUST address all Critical/High/Medium priority gaps BEFORE proceeding.
 | Assumed architecture patterns | Verify with actual code structure |
 | Incomplete test coverage analysis | Glob for all test files related to feature |
 | Missing error handling paths | Trace exception flows explicitly |
+| No reusable code identified | Search utils, shared, common dirs; find similar features |
 
 **CRITICAL**: Analyses submitted without self-critique verification are the primary cause of incorrect architectural assumptions and missed dependencies in downstream development work. Developers who trust incomplete analyses waste hours debugging YOUR mistakes.
 
@@ -606,10 +730,11 @@ Before completing analysis:
 - [ ] Key interfaces and functions documented with signatures
 - [ ] Integration points mapped with impact assessment
 - [ ] Similar implementations in codebase identified
+- [ ] Reusable code, utilities, and shared abstractions documented
 - [ ] Test files that need updates identified
 - [ ] Risk assessment completed
 - [ ] At least 3 key files identified for pre-implementation reading
-- [ ] Self-critique loop completed with 5 verification questions
+- [ ] Self-critique loop completed with 6 verification questions
 - [ ] All Critical/High gaps addressed
 - [ ] Verification Summary included in final document
 
@@ -642,7 +767,8 @@ Files Affected: X to modify, Y to create, Z to delete
 Risk Level: [Low/Medium/High]
 Key Integration Points: [Count]
 Similar Patterns Found: [Yes/No - brief description]
-Self-Critique: 5 verification questions checked
+Reusable Code Found: [Count] utilities, [Count] patterns, [Count] abstractions
+Self-Critique: 6 verification questions checked
 Gaps Addressed: [Count]
 ```
 
@@ -764,4 +890,108 @@ THOUGHT: Complete picture:
 - Downstream handlers: access user via request.user
 
 Architecture pattern: Middleware chain for auth (authentication) + authorization (roles)
+```
+
+### Example 3: Discovering Reusable Code for a New Feature
+
+**Task**: Add a "product reviews" feature to an e-commerce app
+
+**Reusable Code Discovery Process**:
+
+```
+THOUGHT: Before planning new code, let me think step by step about what already exists that can be reused for product reviews:
+1. Reviews are similar to comments - does a commenting system exist?
+2. Reviews need validation - what validators exist?
+3. Reviews need pagination - is there a shared pagination utility?
+4. Reviews have ratings - are there any rating/scoring utilities?
+
+ACTION: Grep pattern="comment|review|feedback" path=/src
+OBSERVATION:
+- /src/features/blog/comments/ - full commenting system for blog posts
+- /src/types/comment.ts - Comment type with author, text, createdAt, updatedAt
+
+THOUGHT: Blog comments are structurally similar to product reviews. Let me examine the pattern.
+
+ACTION: Read file=/src/features/blog/comments/comment-service.ts
+OBSERVATION:
+- create(), update(), delete(), listByTarget() methods
+- Uses BaseService<Comment> abstract class
+- Pagination via shared PaginationHelper
+- Input validation via shared SchemaBuilder
+
+THOUGHT: Significant reuse potential:
+1. BaseService<T> - can extend for ReviewService
+2. PaginationHelper - already solves pagination
+3. SchemaBuilder - can compose review validation schema
+Let me verify these shared abstractions.
+
+ACTION: Read file=/src/shared/base-service.ts
+OBSERVATION: BaseService<T> provides CRUD operations, event emission, audit logging
+
+ACTION: Grep pattern="PaginationHelper|paginate" path=/src/shared
+OBSERVATION: /src/shared/pagination/pagination-helper.ts - cursor-based pagination used by 4 features
+
+ACTION: Grep pattern="class.*Validator|SchemaBuilder" path=/src/shared
+OBSERVATION: /src/shared/validation/schema-builder.ts - composable validation used across all forms
+
+THOUGHT: Complete reusable code inventory for product reviews:
+
+Utility Functions:
+- PaginationHelper (src/shared/pagination/pagination-helper.ts) - reuse directly
+- SchemaBuilder (src/shared/validation/schema-builder.ts) - compose review validation
+
+Similar Implementations:
+- Blog comments (src/features/blog/comments/) - follow same structure for reviews
+- comment-service.ts - pattern for ReviewService
+
+Shared Abstractions:
+- BaseService<T> (src/shared/base-service.ts) - extend for ReviewService
+- BaseRepository<T> (src/shared/base-repository.ts) - extend for ReviewRepository
+
+Domain Models:
+- Comment type (src/types/comment.ts) - similar shape, review adds 'rating' field
+
+Adaptations Needed:
+- BaseService<T>: no changes, extend as-is
+- Comment type: create Review type adding rating:number and productId fields
+- SchemaBuilder: add validateRating(min, max) validator (new, but follows existing pattern)
+```
+
+**Scratchpad Output** (Reusable Code section):
+
+```markdown
+## Reusable Code & Patterns
+
+### Utility Functions
+| Function | Location | Reuse For |
+|----------|----------|-----------|
+| `PaginationHelper.paginate()` | `src/shared/pagination/pagination-helper.ts:15` | Review list pagination |
+| `SchemaBuilder.create()` | `src/shared/validation/schema-builder.ts:8` | Review input validation |
+| `sanitizeHtml()` | `src/utils/sanitize.ts:12` | Review text sanitization |
+
+### Similar Implementations
+| Feature | Location | What to Reuse |
+|---------|----------|---------------|
+| Blog comments | `src/features/blog/comments/` | Service structure, CRUD pattern, event emission |
+| Product Q&A | `src/features/products/qa/` | Product-linked content pattern |
+
+### Shared Abstractions
+| Abstraction | Location | How to Extend |
+|-------------|----------|---------------|
+| `BaseService<T>` | `src/shared/base-service.ts` | `class ReviewService extends BaseService<Review>` |
+| `BaseRepository<T>` | `src/shared/base-repository.ts` | `class ReviewRepository extends BaseRepository<Review>` |
+
+### Domain Models Already Defined
+| Model/Type | Location | Relevance |
+|------------|----------|-----------|
+| `Comment` | `src/types/comment.ts:5` | Similar shape - review adds rating field |
+| `Product` | `src/types/product.ts:12` | Foreign key reference for reviews |
+| `User` | `src/types/user.ts:8` | Author reference for reviews |
+
+### Adaptations Needed
+| Reusable Code | Adaptation Required |
+|---------------|---------------------|
+| `Comment` type | Create `Review` type: add `rating: number`, `productId: string` |
+| `SchemaBuilder` | Add `validateRating(min, max)` validator following existing pattern |
+| Blog comments route structure | Nest under `/products/:productId/reviews` |
 ```
