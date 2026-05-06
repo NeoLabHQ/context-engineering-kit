@@ -16,7 +16,7 @@ Run scenarios without the prompt (RED - watch agent behavior), write prompt addr
 **Core principle:** If you didn't watch an agent fail without the prompt, you don't know what the prompt needs to fix.
 
 **REQUIRED BACKGROUND:**
-- You MUST understand `tdd:test-driven-development` - defines RED-GREEN-REFACTOR cycle
+- You MUST understand `test-driven-development` - defines RED-GREEN-REFACTOR cycle
 - You SHOULD understand `prompt-engineering` skill - provides prompt optimization techniques
 
 **Related skill:** See `test-skill` for testing discipline-enforcing skills specifically. This command covers ALL prompts.
