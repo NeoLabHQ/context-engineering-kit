@@ -83,7 +83,7 @@ npx skills add NeoLabHQ/context-engineering-kit/do-and-judge
 
 Git 工作树管理命令。
 
-### 🚀 [CI Integration](https://cek.neolab.finance/plugins/ci-integration) — CI 集成
+### 🚀 [CI Integration](https://cek.neolab.finance/guides/ci-integration) — CI 集成
 
 GitHub Action 集成。
 
@@ -92,24 +92,24 @@ GitHub Action 集成。
 ### SDD 插件
 
 ```bash
-# 创建架构文档
-/sdd create
+# 创建任务
+/add-task
 
-# 更新现有文档
-/sdd update
+# 规划任务
+/plan-task
 
-# 审查文档
-/sdd review
+# 实现任务
+/implement-task
 ```
 
 ### Reflect 插件
 
 ```bash
-# 评估代理结果
-/reflect evaluate
+# 反思实现
+/reflect
 
-# 改进建议
-/reflect improve
+# 保存到项目记忆
+/memorise
 ```
 
 ### Do and Judge 插件
@@ -131,7 +131,6 @@ plugins:
 
 settings:
   quality_threshold: 8
-  max_iterations: 3
 ```
 
 ## 开发
