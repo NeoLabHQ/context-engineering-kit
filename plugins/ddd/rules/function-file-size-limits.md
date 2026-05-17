@@ -76,16 +76,23 @@ Each responsibility is extracted into a focused function under 50 lines. Functio
 
 ```typescript
 function validateRegistrationInput(input: unknown): RegistrationInput {
-  if (!input || typeof input !== 'object') throw new Error('Invalid input')
+  if (!input || typeof input !== 'object') 
+    return new Error('Invalid input')
   const { email, name, password, role } = input as Record<string, unknown>
-  if (!email || typeof email !== 'string') throw new Error('Email required')
-  if (!name || typeof name !== 'string') throw new Error('Name required')
-  if (!password || typeof password !== 'string') throw new Error('Password required')
-  if (password.length < 8) throw new Error('Password too short')
-  if (!/[A-Z]/.test(password)) throw new Error('Password needs uppercase')
-  if (!/[0-9]/.test(password)) throw new Error('Password needs digit')
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error('Invalid email format')
-  return { email, name, password, role: typeof role === 'string' ? role : 'user' }
+  if (!email || typeof email !== 'string') 
+    return new Error('Email required')
+  if (!name || typeof name !== 'string') 
+    return new Error('Name required')
+  if (!password || typeof password !== 'string') 
+    return new Error('Password required')
+  if (password.length < 8) 
+    return new Error('Password too short')
+  if (!/[A-Z]/.test(password)) 
+    return new Error('Password needs uppercase')
+  if (!/[0-9]/.test(password)) 
+    return new Error('Password needs digit')
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) 
+    return new Error('Invalid email format')
 }
 
 async function normalizeAndHash(input: RegistrationInput): Promise<NormalizedUser> {
@@ -99,7 +106,8 @@ async function normalizeAndHash(input: RegistrationInput): Promise<NormalizedUse
 
 async function persistUser(data: NormalizedUser): Promise<User> {
   const existing = await db.users.findUnique({ where: { email: data.email } })
-  if (existing) throw new Error('Email already registered')
+  if (existing) 
+    throw new Error('Email already registered')
   return db.users.create({ data: { ...data, createdAt: new Date(), updatedAt: new Date() } })
 }
 
