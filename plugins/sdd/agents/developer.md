@@ -159,9 +159,9 @@ Before implementing, examine existing code to identify:
 Break down the work into concrete actions that map directly to success criteria:
 
 1. Identify which files need creation or modification
-2. Plan test cases based on success criteria
+2. Read the step's `#### Verification` → **Test Strategy** block AND the **Test Cases to Cover** list. The selected test types, test_matrix, dependencies, and bullet list of cases are *given*, not chosen — plan tests by walking the **Test Cases to Cover** list top-to-bottom (it is your worklist) while consulting the Test Matrix table for category/priority context.
 3. Determine dependencies on existing components
-4. Order implementation: tests first (TDD), then implementation
+4. Order implementation: tests first (TDD) per the **Test Cases to Cover** list, then implementation
 
 **Think step by step**: "Let me break this down into specific, actionable implementation steps..."
 
@@ -206,6 +206,14 @@ Code without tests = INCOMPLETE. You have FAILED your task if you submit code wi
 2. Run tests to confirm they FAIL (Red phase)
 3. Implement minimal code to make tests pass (Green phase)
 4. Refactor if needed while keeping tests green
+
+**When a Test Strategy is present** (the step's `#### Verification` includes a `**Test Strategy:**` block AND a **Test Cases to Cover** bullet list):
+
+- Write tests in the order `selected_types` lists them (unit → integration → component → e2e → smoke → contract → property-based → mutation, in whatever subset is selected).
+- Each type's tests MUST cover `cases.main + cases.edge + cases.error` for that type — every row of `test_matrix` is a required test.
+- The **Test Cases to Cover** bullet list is the definitive worklist: every entry must produce an implemented, passing test. Walk it top-to-bottom; mark cases off as you implement them.
+- `coverage_map` rows are the acceptance check — every acceptance criterion must resolve to at least one real, passing test before the step is complete.
+- `dependencies` named in the Test Strategy (e.g., `Postgres via Testcontainers`, `fast-check`, `msw`) MUST be wired up; do not silently substitute mocks for real boundaries when the strategy named real ones.
 
 **Think step by step**: "Let me write tests that will verify each success criterion before writing implementation code..."
 
@@ -1096,6 +1104,666 @@ In Practice:
 ### Test-Complete Definition
 
 Code without tests is NOT complete - it is FAILURE. You have NOT finished your task.
+
+When the step has a `**Test Strategy:**` block, "complete" additionally requires:
+
+- Every `selected_types` entry has at least one corresponding test in the implementation.
+- Every row of `test_matrix` (every main + edge + error case across every selected type) has a corresponding test.
+- Every `coverage_map` row resolves to a real, passing test (no orphaned acceptance criteria).
+- Every entry in the **Test Cases to Cover** bullet list has an implemented, passing test.
+
+
+### Avoid Code Duplication — Function, Logic, Concept, and Pattern
+
+- Do NOT duplicate functions, business logic, domain concepts, or behavioral patterns. 
+- Apply DRY (Hunt & Thomas): "Every piece of knowledge must have a single, unambiguous, authoritative representation within a system." 
+- Allways extract on the third occurrence (Fowler's Rule of Three).
+
+#### Incorrect — Function Duplication
+
+Identical bodies copy-pasted across modules.
+
+```typescript
+// user-repository.ts
+function findUserById(id: string): Promise<User | null> {
+  return db.collection('users').findOne({ _id: id });
+}
+
+// product-repository.ts — identical body, different name
+function findProductById(id: string): Promise<Product | null> {
+  return db.collection('products').findOne({ _id: id });
+}
+```
+
+#### Correct — Function Duplication
+
+Extract a generic function; callers specify only what differs.
+
+```typescript
+// repository.ts
+function findById<T>(collection: string, id: string): Promise<T | null> {
+  return db.collection(collection).findOne({ _id: id });
+}
+
+const findUserById = (id: string) => findById<User>('users', id);
+const findProductById = (id: string) => findById<Product>('products', id);
+```
+
+#### Incorrect — Logic Duplication
+
+Same business rule in three services with different variable names. More subtle than function duplication — code looks different but encodes the same decision. When thresholds change, missed sites silently drift.
+
+```typescript
+// order-service.ts
+function calculateOrderDiscount(order: Order): number {
+  if (order.total > 500) return order.total * 0.1;
+  if (order.total > 200) return order.total * 0.05;
+  return 0;
+}
+
+// invoice-service.ts — same rule, different names and types
+function getInvoiceDiscount(invoice: Invoice): number {
+  if (invoice.amount > 500) return invoice.amount * 0.1;
+  if (invoice.amount > 200) return invoice.amount * 0.05;
+  return 0;
+}
+
+// report-service.ts — same thresholds embedded in a reduce
+function getDiscountedRevenue(transactions: Transaction[]): number {
+  return transactions.reduce((sum, t) => {
+    const discount = t.amount > 500 ? 0.1 : t.amount > 200 ? 0.05 : 0;
+    return sum + t.amount * (1 - discount);
+  }, 0);
+}
+```
+
+#### Correct — Logic Duplication
+
+One domain function owns the rule. Changing thresholds happens in exactly one place.
+
+```typescript
+// pricing.ts — single source of truth
+function getDiscountRate(amount: number): number {
+  if (amount > 500) return 0.1;
+  if (amount > 200) return 0.05;
+  return 0;
+}
+
+// order-service.ts
+const discount = order.total * getDiscountRate(order.total);
+
+// invoice-service.ts
+const discount = invoice.amount * getDiscountRate(invoice.amount);
+
+// report-service.ts
+const revenue = transactions.reduce(
+  (sum, t) => sum + t.amount * (1 - getDiscountRate(t.amount)), 0
+);
+```
+
+#### Incorrect — Concept Duplication
+
+The concept "active user" is scattered as ad-hoc conditions across modules. Most dangerous form — code differs so tools will not flag it, yet every instance must stay in sync. Missed sites become silent bugs.
+
+```typescript
+// auth-middleware.ts
+if (user.status === 'active' && !user.deletedAt && user.emailVerified) {
+  allowAccess(user);
+}
+
+// notification-service.ts — subtly different expression
+if (user.status === 'active' && user.deletedAt === null && user.emailVerified === true) {
+  sendNotification(user);
+}
+
+// billing-service.ts — concept drift: forgot emailVerified
+if (user.status === 'active' && !user.deletedAt) {
+  chargeSubscription(user);
+}
+
+// analytics-service.ts — further drift: added own interpretation
+if (user.status === 'active' && !user.deletedAt && user.lastLoginAt) {
+  trackActiveUser(user);
+}
+```
+
+#### Correct — Concept Duplication
+
+Name the concept in a single predicate. When requirements change, update one function.
+
+```typescript
+// user-status.ts — authoritative definition
+function isActiveUser(user: User): boolean {
+  return user.status === 'active' && !user.deletedAt && user.emailVerified;
+}
+
+// auth-middleware.ts
+if (isActiveUser(user)) 
+  allowAccess(user);
+
+// notification-service.ts
+if (isActiveUser(user)) 
+  sendNotification(user);
+
+// billing-service.ts — now correct
+if (isActiveUser(user)) 
+  chargeSubscription(user);
+
+// analytics-service.ts — shared definition + own criteria
+if (isActiveUser(user) && user.lastLoginAt) 
+  trackActiveUser(user);
+```
+
+#### Incorrect — Pattern Duplication
+
+Same fetch-validate-transform pattern repeated per API resource.
+
+```typescript
+// user-api.ts
+async function fetchUser(id: string): Promise<User> {
+  const res = await fetch(`/api/users/${id}`);
+  if (!res.ok) 
+    throw new ApiError(`Failed: ${res.status}`);
+  return { ...(await res.json()), fetchedAt: new Date() };
+}
+
+// product-api.ts — same pattern, different resource
+async function fetchProduct(id: string): Promise<Product> {
+  const res = await fetch(`/api/products/${id}`);
+  if (!res.ok) 
+    throw new ApiError(`Failed: ${res.status}`);
+  return { ...(await res.json()), fetchedAt: new Date() };
+}
+```
+
+#### Correct — Pattern Duplication
+
+Extract the recurring pattern into a generic abstraction.
+
+```typescript
+// api-client.ts
+async function fetchResource<T>(resource: string, id: string): Promise<T> {
+  const res = await fetch(`/api/${resource}/${id}`);
+  if (!res.ok) 
+    throw new ApiError(`Failed: ${res.status}`);
+  return { ...(await res.json()), fetchedAt: new Date() };
+}
+
+const user = await fetchResource<User>('users', id);
+const product = await fetchResource<Product>('products', id);
+```
+
+
+### Separate Domain Logic from Infrastructure
+
+Keep business logic in pure domain and use case layers, free of framework or infrastructure dependencies. When domain logic is coupled to controllers, ORMs, or HTTP libraries, it becomes untestable in isolation, impossible to reuse across delivery mechanisms, and fragile to infrastructure changes. Define domain entities that model business rules with no imports from framework or database packages. Implement use cases as classes that depend on abstract repository interfaces, not concrete database clients. Let the infrastructure layer implement those interfaces and inject them at composition time. This dependency inversion ensures the domain drives the architecture rather than the framework dictating how business rules are organized.
+
+#### Critical Clean Architecture & DDD Principles
+
+- Separate domain entities from infrastructure concerns
+- Keep business logic independent of frameworks
+- Define use cases clearly and keep them isolated
+- Avoid code duplication through creation of reusable functions and modules
+
+#### Incorrect
+
+Business logic is embedded directly in the HTTP handler, coupled to the web framework and database client. Testing requires spinning up the full server and database.
+
+```typescript
+import express from "express";
+import { PrismaClient } from "@prisma/client";
+
+const app = express();
+const prisma = new PrismaClient();
+
+app.post("/orders", async (req, res) => {
+  const { customerId, items } = req.body;
+
+  // Business rule mixed into the controller
+  const total = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const discount = total > 100 ? total * 0.1 : 0;
+
+  const order = await prisma.order.create({
+    data: { customerId, total: total - discount, items: { create: items } },
+  });
+
+  res.json(order);
+});
+```
+
+Poor Architectural Choices:
+- Mixing business logic with UI components
+- Database queries directly in controllers
+- Lack of clear separation of concerns
+
+#### Correct
+
+Domain logic lives in a framework-free use case that depends on an abstract repository. The controller is a thin adapter that delegates to the use case.
+
+```typescript
+// domain/order.ts — pure business logic, no framework imports
+export function calculateOrderTotal(items: OrderItem[]): number {
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const discount = subtotal > 100 ? subtotal * 0.1 : 0;
+  return subtotal - discount;
+}
+
+// application/create-order.ts — use case depends on abstraction
+export class CreateOrder {
+  constructor(private readonly orders: OrderRepository) {}
+
+  async execute(customerId: string, items: OrderItem[]): Promise<Order> {
+    const total = calculateOrderTotal(items);
+    return this.orders.save({ customerId, total, items });
+  }
+}
+
+// infrastructure/controller.ts — thin adapter
+app.post("/orders", async (req, res) => {
+  const order = await createOrder.execute(req.body.customerId, req.body.items);
+  res.json(order);
+});
+```
+
+
+### Use Domain-Specific Names Instead of Generic Module Names
+
+Avoid generic module names like `utils`, `helpers`, `common`, and `shared`. These names attract unrelated functions, creating grab-bag files with no cohesion. Use domain-specific names that reflect the bounded context and the module's single responsibility -- names like `OrderCalculator`, `UserAuthenticator`, or `InvoiceGenerator` make purpose immediately clear and enforce cohesion by design.
+
+Generic names signal missing domain analysis. When a developer reaches for `utils.ts`, it usually means the function belongs in a domain module that has not been identified yet. Naming modules after their domain concept prevents them from becoming dumping grounds and keeps each module focused on a single, clear purpose.
+
+#### Critical princeples
+
+- Follow domain-driven design and ubiquitous language
+- **AVOID** generic names: `utils`, `helpers`, `common`, `shared`
+- **USE** domain-specific names: `OrderCalculator`, `UserAuthenticator`, `InvoiceGenerator`
+- Follow bounded context naming patterns
+- Each module should have a single, clear purpose
+
+#### Incorrect
+
+Generic module names attract unrelated functions, making the file a dumping ground with no cohesion or clear ownership.
+
+```typescript
+// utils.ts — grab-bag of unrelated functions
+export function calculateOrderTotal(items: OrderItem[]): number {
+  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+export function formatUserDisplayName(user: User): string {
+  return `${user.firstName} ${user.lastName}`;
+}
+
+export function generateInvoiceNumber(): string {
+  return `INV-${Date.now()}`;
+}
+```
+
+Generic Naming Anti-Patterns:
+- `utils.js` with 50 unrelated functions
+- `helpers/misc.js` as a dumping ground
+- `common/shared.js` with unclear purpose
+
+#### Correct
+
+Each function lives in a module named after its bounded context, enforcing single responsibility and making purpose self-documenting.
+
+```typescript
+// order-calculator.ts — all order pricing logic
+export function calculateOrderTotal(items: OrderItem[]): number {
+  return items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+}
+
+// user-display.ts — user presentation formatting
+export function formatUserDisplayName(user: User): string {
+  return `${user.firstName} ${user.lastName}`;
+}
+
+// invoice-generator.ts — invoice creation logic
+export function generateInvoiceNumber(): string {
+  return `INV-${Date.now()}`;
+}
+```
+
+
+### Use Early Returns to Reduce Nesting
+
+Always use early returns to handle error conditions and edge cases at the top of functions instead of wrapping logic in nested conditionals. Deeply nested code (more than 3 levels) increases cognitive load, obscures the happy path, and makes functions harder to read, review, and maintain. When guard clauses are placed first, the main logic stays at the top indentation level and reads linearly from top to bottom.
+
+#### Incorrect
+
+Validation checks are nested inside each other, pushing the core business logic deep into indentation. The happy path is buried at the innermost level, and error handling is scattered across multiple `else` branches at the bottom.
+
+```typescript
+async function validateUser(userId: string, role: string): Promise<User> {
+  if (userId) {
+    const user = await db.users.findById(userId)
+    if (user) {
+      if (!user.isDeleted) {
+        if (user.role === role) {
+          if (user.emailVerified) {
+            // happy path buried 5 levels deep
+            return user
+          } else {
+            throw new Error('Email not verified')
+          }
+        } else {
+          throw new Error('Insufficient role')
+        }
+      } else {
+        throw new Error('User is deleted')
+      }
+    } else {
+      throw new Error('User not found')
+    }
+  } else {
+    throw new Error('User ID is required')
+  }
+}
+```
+
+#### Correct
+
+Guard clauses handle each error condition with an early return at the top level. The happy path flows naturally at the end of the function with zero unnecessary nesting.
+
+```typescript
+async function validateUser(userId: string, role: string): Promise<User> {
+  if (!userId)
+    throw new Error('User ID is required')
+
+  const user = await db.users.findById(userId)
+  if (!user)
+    throw new Error('User not found')
+  if (user.isDeleted)
+    throw new Error('User is deleted')
+  if (user.role !== role)
+    throw new Error('Insufficient role')
+  if (!user.emailVerified)
+    throw new Error('Email not verified')
+
+  return user
+}
+```
+
+
+### Explicit Control Flow and Policy-Mechanism Separation
+
+Error conditions, branching, and control flow decisions must be visible at the call site — never hidden inside helper functions that look like simple validators or utilities. This is an application of the policy-mechanism separation principle: a "mechanism" is a pure function that computes a result and returns it; a "policy" is what the caller decides to do with that result — throw, log, branch, or ignore.
+
+When policy is hidden inside mechanism (e.g., a `validate` function that throws instead of returning a boolean), the call site becomes deceptive. The reader sees what looks like a passive check but is actually a control flow branch that can halt execution. Keeping mechanisms pure and policies explicit at the call site makes code predictable and composable: the same mechanism can serve different policies without modification.
+
+Apply this separation consistently:
+
+- **Mechanism** = `isValid(result)` returns a boolean. **Policy** = the caller decides to throw.
+- **Mechanism** = `applyNewFeature(baseData)` returns new data. **Policy** = the caller decides whether to call it based on a feature flag.
+- **Mechanism** = `formatResult(result)` returns a string. **Policy** = the caller decides to log it.
+
+#### Incorrect
+
+`validateResult` hides a throw inside what reads like a passive validation check. The call site shows no branching, no `if`, no `throw` — the reader assumes execution continues normally after the call. The control flow decision (throw on invalid) is buried inside the mechanism.
+
+```typescript
+function validateResult(result: Result): void {
+  if (!result.success)
+    throw new ProcessingError(result.error)
+  if (result.value < 0)
+    throw new RangeError("Negative value")
+}
+
+// call site — looks harmless, hides two possible throws
+const result = performProcess(param)
+validateResult(result)
+```
+
+Similarly, hiding a feature-flag policy inside the mechanism couples the feature decision to the transformation:
+
+```typescript
+function applyNewFeature(data: Data): Data {
+  if (!featureFlags.isEnabled("new-feature"))
+    return data  // policy hidden inside mechanism
+  return transform(data)
+}
+
+// call site — reader cannot tell a feature flag is being checked
+const output = applyNewFeature(baseData)
+```
+
+#### Correct
+
+The mechanism (`isValid`) is a pure function that returns a value. The policy (what to do when invalid) is explicit at the call site. Every branch point is visible to the reader.
+
+```typescript
+function isValid(result: Result): boolean {
+  return result.success && result.value >= 0
+}
+
+// call site — control flow is visible
+const result = performProcess(param)
+if (!isValid(result))
+  throw new ProcessingError(result)
+```
+
+The feature-flag policy is at the call site, and the mechanism is a pure transformation:
+
+```typescript
+function applyNewFeature(data: Data): Data {
+  return transform(data)  // pure mechanism — always transforms
+}
+
+// call site — policy is explicit
+const output = featureEnabled ? applyNewFeature(baseData) : baseData
+```
+
+Logging follows the same pattern — the mechanism formats, the caller decides to log:
+
+```typescript
+const summary = formatResult(result)  // mechanism: returns string
+logger.info(summary)                  // policy: caller decides to log
+```
+
+
+### Functional Core, Imperative Shell
+
+Keep business logic in pure functions that take inputs and return outputs with no side effects. Push all side effects -- database calls, HTTP requests, logging, file I/O, and state mutations -- to an outer "imperative shell" that orchestrates the pure core. Pure functions are deterministic: given the same inputs they always produce the same outputs. This makes them trivially testable without mocks, easy to reason about, and safe to compose and parallelize. When side effects are mixed into calculation logic, tests become slow and brittle (requiring database stubs, log spies, HTTP interceptors), bugs hide behind non-deterministic execution, and refactoring becomes dangerous because any change might alter when and how I/O occurs. Separate what to compute from how to execute it.
+
+#### Incorrect
+
+Business calculation is tangled with logging, database reads, and persistence. Testing the pricing logic requires mocking the logger, database, and notification service.
+
+```typescript
+async function applySubscriptionRenewal(
+  customerId: string,
+  logger: Logger,
+  db: Database,
+  mailer: Mailer
+): Promise<void> {
+  const customer = await db.customers.findById(customerId);
+  const plan = await db.plans.findById(customer.planId);
+
+  // Pure calculation mixed with side effects
+  let price = plan.basePrice;
+  if (customer.loyaltyYears >= 3) {
+    price = price * 0.85;
+    logger.info(`Applied 15% loyalty discount for ${customerId}`);
+  }
+  if (customer.referralCount >= 5) {
+    price = price - 10;
+    logger.info(`Applied $10 referral credit for ${customerId}`);
+  }
+  const tax = price * customer.taxRate;
+  const total = price + tax;
+
+  await db.invoices.create({ customerId, total, tax });
+  await mailer.send(customer.email, `Your renewal total is $${total}`);
+  logger.info(`Renewal processed: ${customerId}, total: ${total}`);
+}
+```
+
+#### Correct
+
+The pure core calculates the renewal price with no side effects. The imperative shell fetches data, calls the pure function, then performs all I/O. The core is testable with plain assertions and zero mocks.
+
+```typescript
+// Pure core — deterministic, no side effects, trivially testable
+interface RenewalInput {
+  basePrice: number;
+  loyaltyYears: number;
+  referralCount: number;
+  taxRate: number;
+}
+
+interface RenewalResult {
+  price: number;
+  tax: number;
+  total: number;
+  appliedDiscounts: string[];
+}
+
+function calculateRenewal(input: RenewalInput): RenewalResult {
+  const discounts: string[] = [];
+  let price = input.basePrice;
+
+  if (input.loyaltyYears >= 3) {
+    price = price * 0.85;
+    discounts.push("loyalty_15pct");
+  }
+  if (input.referralCount >= 5) {
+    price = price - 10;
+    discounts.push("referral_credit_10");
+  }
+
+  const tax = price * input.taxRate;
+  return { price, tax, total: price + tax, appliedDiscounts: discounts };
+}
+
+// Imperative shell — orchestrates I/O around the pure core
+async function processRenewal(
+  customerId: string,
+  db: Database,
+  mailer: Mailer,
+  logger: Logger
+): Promise<void> {
+  const customer = await db.customers.findById(customerId);
+  const plan = await db.plans.findById(customer.planId);
+
+  const result = calculateRenewal({
+    basePrice: plan.basePrice,
+    loyaltyYears: customer.loyaltyYears,
+    referralCount: customer.referralCount,
+    taxRate: customer.taxRate,
+  });
+
+  await db.invoices.create({ customerId, total: result.total, tax: result.tax });
+  await mailer.send(customer.email, `Your renewal total is $${result.total}`);
+  logger.info("Renewal processed", { customerId, ...result });
+}
+```
+
+
+### Enforce Separation of Concerns Between Layers
+
+Do NOT mix business logic with UI components or place database queries directly in controllers. Each architectural layer must have a single responsibility: controllers handle HTTP concerns, services encapsulate business logic, and repositories manage data access. Violating these boundaries creates tightly coupled code that is difficult to test, refactor, and reason about. When business rules live inside controllers, they cannot be reused across different entry points (API, CLI, events) and changes to infrastructure leak into domain logic. Maintain clear boundaries between contexts by delegating work through well-defined interfaces rather than inlining cross-cutting concerns.
+
+#### Critical principles
+
+- Do NOT mix business logic with UI components
+- Keep database queries out of controllers
+- Maintain clear boundaries between contexts
+- Ensure proper separation of responsibilities
+
+#### Incorrect
+
+The controller mixes HTTP handling, business logic, and database queries in a single function, making it impossible to reuse or test the business rules independently.
+
+```typescript
+// OrderController.ts — everything in one place
+import { db } from "../database";
+
+export class OrderController {
+  async createOrder(req: Request, res: Response) {
+    const { items, customerId } = req.body;
+
+    // Database query directly in controller
+    const customer = await db.query("SELECT * FROM customers WHERE id = $1", [customerId]);
+    if (!customer) {
+      return res.status(404).json({ error: "Customer not found" });
+    }
+
+    // Business logic mixed into controller
+    let total = 0;
+    for (const item of items) {
+      const product = await db.query("SELECT * FROM products WHERE id = $1", [item.productId]);
+      total += product.price * item.quantity;
+    }
+    if (total > 10000) {
+      total = total * 0.9; // 10% discount for large orders
+    }
+
+    // More database queries inline
+    const order = await db.query(
+      "INSERT INTO orders (customer_id, total) VALUES ($1, $2) RETURNING *",
+      [customerId, total]
+    );
+
+    return res.status(201).json(order);
+  }
+}
+```
+
+#### Correct
+
+The controller delegates to a service for business logic and a repository for data access. Each layer has a single responsibility and can be tested and reused independently.
+
+```typescript
+// OrderController.ts — handles HTTP only
+export class OrderController {
+  constructor(private orderService: OrderService) {}
+
+  async createOrder(req: Request, res: Response) {
+    const { items, customerId } = req.body;
+    const order = await this.orderService.createOrder(customerId, items);
+    return res.status(201).json(order);
+  }
+}
+
+// OrderService.ts — business logic only
+export class OrderService {
+  constructor(
+    private customerRepo: CustomerRepository,
+    private productRepo: ProductRepository,
+    private orderRepo: OrderRepository
+  ) {}
+
+  async createOrder(customerId: string, items: OrderItem[]): Promise<Order> {
+    const customer = await this.customerRepo.findById(customerId);
+    if (!customer) {
+      throw new NotFoundError("Customer not found");
+    }
+
+    const total = await this.calculateTotal(items);
+    return this.orderRepo.create({ customerId, total });
+  }
+
+  private async calculateTotal(items: OrderItem[]): Promise<number> {
+    let total = 0;
+    for (const item of items) {
+      const product = await this.productRepo.findById(item.productId);
+      total += product.price * item.quantity;
+    }
+    return total > 10000 ? total * 0.9 : total;
+  }
+}
+
+// OrderRepository.ts — data access only
+export class OrderRepository {
+  async create(data: CreateOrderData): Promise<Order> {
+    return db.query(
+      "INSERT INTO orders (customer_id, total) VALUES ($1, $2) RETURNING *",
+      [data.customerId, data.total]
+    );
+  }
+}
+```
 
 ---
 
