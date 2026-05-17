@@ -79,8 +79,9 @@ TDD methodology with anti-pattern detection and testing best practices.
 * TDD workflow guidance
 * Common anti-patterns awareness
 * Testing subagent skills
+* On-demand testing-strategy reference manual (`design-testing-strategy`) distilling 15 industry sources into deterministic decision gates and an enforced matrix schema
 
-**When to use:** When implementing new features with test-first approach.
+**When to use:** When implementing new features with test-first approach, or when a qa-engineer, developer, code-reviewer, or judge agent needs to design or review a fit-for-purpose test strategy.
 
 [Full Documentation](tdd/)
 

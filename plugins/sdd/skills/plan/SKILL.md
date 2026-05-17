@@ -1028,18 +1028,18 @@ Launch judge:
   thresholds, and a verification summary table.
 
   ### Rubric
-  1. Verification Level Appropriateness (weight: 0.30)
+  1. Verification Level Appropriateness (weight: 0.25)
      - Do verification levels match artifact criticality?
      - HIGH criticality → Panel, MEDIUM → Single/Per-Item, LOW/NONE → None?
      - 1=Mismatched levels, 2=Mostly appropriate, 3=Acceptable, 5=Precisely calibrated
 
-  2. Rubric Quality (weight: 0.30)
+  2. Rubric Quality (weight: 0.20)
      - Are criteria specific to the artifact type (not generic)?
      - Do weights sum to 1.0?
      - Are descriptions clear and measurable?
      - 1=Generic/broken rubrics, 2=Adequate, 3=Acceptable, 5=Excellent custom rubrics
 
-  3. Threshold Appropriateness (weight: 0.20)
+  3. Threshold Appropriateness (weight: 0.15)
      - Are thresholds reasonable (typically 4.0/5.0)?
      - Higher for critical, lower for experimental?
      - 1=Wrong thresholds, 2=Standard applied, 3=Acceptable, 5=Context-appropriate
@@ -1048,6 +1048,14 @@ Launch judge:
      - Does every step have a Verification section?
      - Is the Verification Summary table present?
      - 1=Missing verifications, 2=Most covered, 3=Acceptable, 5=100% coverage
+
+  5. Test Strategy Coverage (weight: 0.20)
+     - Does every applicable step (test_strategy.applies = true) have a `**Test Strategy:**` block (YAML + Test Matrix table + Test Cases to Cover bullet list)?
+     - Does each `coverage_map` cover every acceptance criterion (no orphans)?
+     - Do `selected_types[*]` cite Decision Gates from the design-testing-strategy skill (Gate 1-7)?
+     - Does the **Test Cases to Cover** list appear under every applicable step and use the format `- [type] description (AC-N)`?
+     - Are gate decisions traceable (rejected_types and deliberately_skipped enumerated with concrete reasoning)?
+     - 1=Missing/empty Test Strategy blocks, 2=Present but coverage_map orphans or no Test Cases to Cover list, 3=All blocks present, 5=Complete with cited gates, full BVA boundaries, and matched bullet list per step
   ```
 
 CRITICAL: use prompt exactly as is, do not add anything else. Including output of implementation agent!!!

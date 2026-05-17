@@ -57,6 +57,14 @@ If you implemented a new feature but have not written tests, you can use the `wr
 ## Skills
 
 - [test-driven-development](./test-driven-development.md) - Test-Driven Development (TDD) skill. Comprehensive TDD methodology and anti-pattern detection guide that ensures rigorous test-first development.
+- [design-testing-strategy](./design-testing-strategy.md) - Use when designing, planning, or reviewing a testing strategy for a feature, change, or artifact. Reference manual loaded on demand by qa-engineer, developer, code-reviewer, and judge agents that distills 15 industry sources (Test Pyramid, Testing Trophy, Google Test Sizes, ISTQB, ISO/IEC/IEEE 29119, Beck's TDD, Pact CDC, Testcontainers, Property-Based, Mutation, Risk-Based) into 7 deterministic decision gates, an enforced YAML matrix schema, and three end-to-end worked examples.
+
+| Aspect | Value |
+|--------|-------|
+| **Triggers** | qa-engineer / developer / code-reviewer / sadd:judge designing tests |
+| **Loaded** | On demand only (not on every prompt) |
+| **Output** | `test_strategy` YAML matrix + `Test Cases to Cover` markdown list |
+| **Key sections** | Decision Gates, Test Type Reference, Case Design Techniques, Dependency Decision, Strategic Skip Heuristics, Test Matrix Schema, Case Listing Schema, Worked Examples |
 
 ## Foundation
 

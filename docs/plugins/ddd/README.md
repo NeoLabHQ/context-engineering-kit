@@ -11,7 +11,7 @@ Focused on:
 
 ## Overview
 
-The DDD plugin implements battle-tested software architecture principles that have proven essential for building maintainable, scalable systems. All principles encoded as rules that include correct and incorrect code examples and added to agent context, during code writing. To add rules to your agent, simply enable plugin
+The DDD plugin implements battle-tested software architecture principles that have proven essential for building maintainable, scalable systems. It provides commands to configure AI-assisted development with established best practices, and rules that guide code generation toward high-quality patterns.
 
 The plugin is based on foundational works including Eric Evans' "Domain-Driven Design" (2003), Robert C. Martin's "Clean Architecture" (2017), and the SOLID principles that have become industry standards for object-oriented design.
 
@@ -23,26 +23,20 @@ These principles address the core challenge of software development: **managing 
 # Install the plugin
 /plugin install ddd@NeoLabHQ/context-engineering-kit
 
+# Set up code formatting standards in CLAUDE.md
+/ddd:setup-code-formating
+
 # Rules activate automatically when writing or reviewing code
 # Alternatively, you can ask Claude to use DDD directly
 > claude "Use DDD rules to implement user authentication"
 ```
 
-## Code Formatting
-
-To enable code formatting rules, you can use the following command:
-
-```bash
-/ddd:setup-code-formating
-```
-
 [Usage Examples](./usage-examples.md)
 
-## Commands
-
-### setup-code-formating
+## setup-code-formating command
 
 Establishes consistent code formatting rules and style guidelines by updating your project's CLAUDE.md file with enforced standards.
+
 See [setup-code-formating.md](./setup-code-formating.md) for detailed command documentation.
 
 ## Rules

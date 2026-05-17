@@ -101,7 +101,7 @@ The SDD plugin uses specialized agents for different phases of development:
 | `software-architect` | Architecture design, component design, implementation planning | `/sdd:plan` (Phase 3) |
 | `tech-lead` | Task decomposition, dependency mapping, risk analysis | `/sdd:plan` (Phase 4) |
 | `team-lead` | Step parallelization, agent assignment, execution planning | `/sdd:plan` (Phase 5) |
-| `qa-engineer` | Verification rubrics, quality gates, LLM-as-Judge definitions | `/sdd:plan` (Phase 6) |
+| `qa-engineer` | Verification rubrics, quality gates, per-step Test Strategy (Decision Gates + Test Matrix + Test Cases to Cover) via the `design-testing-strategy` skill, LLM-as-Judge definitions | `/sdd:plan` (Phase 6) |
 | `developer` | Code implementation, TDD execution, quality review, verification | `/sdd:implement` |
 | `tech-writer` | Technical documentation, API guides, architecture updates, and lessons learned | `/sdd:implement` |
 

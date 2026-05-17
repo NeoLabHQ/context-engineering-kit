@@ -297,6 +297,8 @@ CRITICAL: Tests are NOT separate tasks. Every implementation task MUST include t
 - YOU MUST create integration test harnesses early
 - Each task MUST include writing tests as final step before marking complete
 
+**Delegation note**: Test-type selection (unit / integration / component / e2e / smoke / contract / property-based / mutation), the per-step `test_matrix`, dependency choices (Testcontainers vs. mock vs. fake), and explicit deliberate skips are NOT decided here — they are produced by the qa-engineer (Phase 6) via the `design-testing-strategy` skill and inserted into each step's `#### Verification` block as a `**Test Strategy:**` YAML body, a Test Matrix table, and a **Test Cases to Cover** bullet list. Your job at this stage is to ensure each step has *something testable* (a clear artifact, observable behavior, success criteria) — not to enumerate test types.
+
 #### Risk-First Sequencing
 
 - Tackle unknowns and technical spikes early

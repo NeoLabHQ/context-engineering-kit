@@ -331,6 +331,7 @@ Commands and skills for test-driven development with anti-pattern detection.
 **Skills**
 
 - **test-driven-development** - Introduces TDD methodology, best practices, and skills for testing using subagents
+- **design-testing-strategy** - On-demand reference manual that distills 15 industry sources (Test Pyramid, Testing Trophy, Google Test Sizes, ISTQB, ISO/IEC/IEEE 29119, Pact CDC, Testcontainers, Property-Based, Mutation, Risk-Based) into 7 deterministic decision gates and an enforced YAML matrix schema for designing fit-for-purpose test strategies
 
 ### [Subagent-Driven Development](https://cek.neolab.finance/plugins/sadd)
 
