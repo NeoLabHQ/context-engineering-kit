@@ -330,7 +330,9 @@ Commands and skills for test-driven development with anti-pattern detection.
 
 **Skills**
 
-- **test-driven-development** - Introduces TDD methodology, best practices, and skills for testing using subagents
+- [test-driven-development](https://cek.neolab.finance/plugins/tdd/test-driven-development) - Introduces TDD methodology, best practices, and skills for testing using subagents
+- [design-testing-strategy](https://cek.neolab.finance/plugins/tdd/design-testing-strategy) - Manual to designe plan for a best way to cover a given artifact with tests, while minimizing amount of work and maximising coverage.
+
 
 ### [Subagent-Driven Development](https://cek.neolab.finance/plugins/sadd)
 

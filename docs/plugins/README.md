@@ -79,6 +79,7 @@ TDD methodology with anti-pattern detection and testing best practices.
 * TDD workflow guidance
 * Common anti-patterns awareness
 * Testing subagent skills
+* Testing-strategy generation manual 
 
 **When to use:** When implementing new features with test-first approach.
 

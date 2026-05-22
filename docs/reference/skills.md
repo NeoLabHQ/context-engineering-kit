@@ -9,6 +9,8 @@ Complete alphabetical index of all skills available across Context Engineering K
 Testing-first development methodology with Red-Green-Refactor cycle. [More info](../plugins/tdd/README.md).
 
 - `test-driven-development` - Introduces TDD methodology, best practices, and skills for testing using subagents.
+- `design-testing-strategy` - Manual for agents that need to decide what best way to cover a given artifact with tests, while minimizing amount of work.
+
 
 ### Subagent-Driven Development (SADD)
 

@@ -36,6 +36,7 @@ touch "$REPO_ROOT/.specs/tasks/draft/.gitkeep"
 touch "$REPO_ROOT/.specs/tasks/todo/.gitkeep"
 touch "$REPO_ROOT/.specs/tasks/in-progress/.gitkeep"
 touch "$REPO_ROOT/.specs/tasks/done/.gitkeep"
+touch "$REPO_ROOT/.specs/tasks/reports/.gitkeep"
 
 # Create scratchpad directory (no .gitkeep - folder is gitignored)
 mkdir -p "$REPO_ROOT/.specs/scratchpad"

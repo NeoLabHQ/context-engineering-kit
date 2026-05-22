@@ -57,6 +57,8 @@ If you implemented a new feature but have not written tests, you can use the `wr
 ## Skills
 
 - [test-driven-development](./test-driven-development.md) - Test-Driven Development (TDD) skill. Comprehensive TDD methodology and anti-pattern detection guide that ensures rigorous test-first development.
+- [design-testing-strategy](./design-testing-strategy.md) - Manual for agents that need to decide what best way to cover a given artifact with tests, while minimizing amount of work.
+
 
 ## Foundation
 

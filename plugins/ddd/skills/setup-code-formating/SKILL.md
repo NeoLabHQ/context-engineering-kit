@@ -6,7 +6,9 @@ argument-hint: None required - creates standard formatting configuration
 
 # Setup Architecture Memory
 
-Create or update CLAUDE.md in with following content, <critical>write it strictly as it is<critical>, do not summaraise or introduce and new additional information:
+- Check what exists CLAUDE.md, GEMINI.md, AGENTS.md
+
+Create or update CLAUDE.md/GEMINI.md/AGENTS.md in with following content, <critical>write it strictly as it is<critical>, do not summaraise or introduce and new additional information:
 
 ```markdown
 ## Code Style Rules
