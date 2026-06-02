@@ -8,7 +8,7 @@ Context Engineering Kit is focused on:
 
 - **Quality over quantity** - Each plugin should meaningfully improve agent output, just generating as much commands as possible, do not acceptable.
 - **Minimal token footprint** - Use efficient and predictable approaches for loading information into context. Specifically:
-  - **Commands over skills** - Commands load on-demand, skills descrition are by default loaded into context and maybe not loaded by agent when needed. So use skills only when it clearly more suitable for the use case.
+  - **Commands over skills** - Commands load on-demand, skills descriptions are by default loaded into context and maybe not loaded by agent when needed. So use skills only when it clearly more suitable for the use case.
   - **Specialized agents** - Use specialized agents with broad context, when they can be used instead of skill or command. It allow to orcestrator agent more predictable and stable, and decrease chances of context pollution and hallucinations for specialized agents.
   - **Setup-commands** - Use setup commands to update CLAUDE.md file when some short context should be loadeed each time per project for agent. This insure that model really see important information, instead of chance, when using skills.
 

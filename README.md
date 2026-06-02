@@ -235,7 +235,7 @@ To view all available plugins:
 
 ## Stay ahead
 
-Star Context Engineering Kit on GitHub to support it's development and get notified about new features and updates.
+Star Context Engineering Kit on GitHub to support its development and get notified about new features and updates.
 
 <img src="docs/assets/context-engineering-kit-like.gif" alt="Star Context Engineering Kit on GitHub" />
 
