@@ -33,7 +33,7 @@ The marketplace is based on prompts our company's developers have used daily for
 
 Updates from key releases:
 
-- **v3.1.0:** Improved [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) code quality generation by embedding DDD/SOLID rules in the developer agent and adding a dedicated code-reviewer agent that applies functional and OOP best-practices rules together with Muda waste analysis to reduce code complexity and duplication.
+- **v3.1.0:** Improved [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) generated code quality by embedding DDD/SOLID rules in the developer agent and adding a dedicated code-reviewer agent that applies functional and OOP best-practices rules together with Muda waste analysis to reduce code complexity and duplication.
 - **v3.0.0:** Added support for AMP and Hermes agents. [Tech Stack plugin](https://cek.neolab.finance/plugins/tech-stack) now automatically injects typescript best practices when agent reads or writes TypeScript files.
 - **v2.2.0:** [Subagent-Driven Development plugin](https://cek.neolab.finance/plugins/sadd) now works as a distilled version of [SDD plugin](https://cek.neolab.finance/plugins/sdd) using meta-judge and judge sub-agents for specification generation on the fly and in parallel to implementation. [DDD plugin](https://cek.neolab.finance/plugins/ddd) now includes Clean Architecture, DDD, SOLID, Functional Programming, and other pattern examples as rules that are automatically added to the context during code writing.
 - **v2.1.0:** [Spec-Driven Development plugin](https://cek.neolab.finance/plugins/sdd) agents include high-level code quality guidelines from [DDD plugin](https://cek.neolab.finance/plugins/ddd).
