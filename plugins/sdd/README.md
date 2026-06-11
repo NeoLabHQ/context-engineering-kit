@@ -97,11 +97,12 @@ The SDD plugin uses specialized agents for different phases of development:
 |-------|-------------|---------|
 | `researcher` | Technology research, dependency analysis, best practices | `/plan-task` (Phase 2a) |
 | `code-explorer` | Codebase analysis, pattern identification, architecture mapping | `/plan-task` (Phase 2b) |
+| `code-reviewer` | Review implementation against the specification and evaluate code quality using Muda waste analysis and DDD rules | `/plan-task` (Phase 2b) |
 | `business-analyst` | Requirements discovery, stakeholder analysis, specification writing | `/plan-task` (Phase 2c) |
 | `software-architect` | Architecture design, component design, implementation planning | `/plan-task` (Phase 3) |
 | `tech-lead` | Task decomposition, dependency mapping, risk analysis | `/plan-task` (Phase 4) |
 | `team-lead` | Step parallelization, agent assignment, execution planning | `/plan-task` (Phase 5) |
-| `qa-engineer` | Verification rubrics, quality gates, per-step Test Strategy, LLM-as-Judge definitions | `/plan-task` (Phase 6) |
+| `qa-engineer` | Verification rubrics, quality gates, LLM-as-Judge definitions | `/plan-task` (Phase 6) |
 | `developer` | Code implementation, TDD execution, quality review, verification | `/implement-task` |
 | `tech-writer` | Technical documentation, API guides, architecture updates, and lessons learned | `/implement-task` |
 

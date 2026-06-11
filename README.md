@@ -337,6 +337,7 @@ Commands and skills for test-driven development with anti-pattern detection.
 
 - [test-driven-development](https://neolab.gitbook.io/cek/plugins/tdd/test-driven-development) - Introduces TDD methodology, best practices, and skills for testing using subagents
 - [design-testing-strategy](https://neolab.gitbook.io/cek/plugins/tdd/design-testing-strategy) - Manual guide to design a plan for the best way to cover a given artifact with tests while minimizing effort and maximizing coverage.
+- [test-coverage](https://neolab.gitbook.io/cek/plugins/tdd/test-coverage) - Manual for choosing, applying, different types of coverage analysis (structural, mutation, requirements, API/integration) on an existing test suite.
 
 
 ### [Subagent-Driven Development](https://neolab.gitbook.io/cek/plugins/sadd)

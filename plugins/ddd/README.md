@@ -11,7 +11,7 @@ Focused on:
 
 ## Overview
 
-The DDD plugin implements battle-tested software architecture principles that have proven essential for building maintainable, scalable systems. All principles encoded as rules that include correct and incorrect code examples and added to agent context, during code writing. To add rules to your agent, simply enable plugin
+The DDD plugin implements battle-tested software architecture principles that have proven essential for building maintainable, scalable systems. All principles encoded as rules that include correct and incorrect code examples and added to agent context, during code writing. To add rules to your agent, simply enable plugin.
 
 The plugin is based on foundational works including Eric Evans' "Domain-Driven Design" (2003), Robert C. Martin's "Clean Architecture" (2017), and the SOLID principles that have become industry standards for object-oriented design.
 

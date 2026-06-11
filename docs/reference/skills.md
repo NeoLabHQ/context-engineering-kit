@@ -10,6 +10,7 @@ Testing-first development methodology with Red-Green-Refactor cycle. [More info]
 
 - `test-driven-development` - Introduces TDD methodology, best practices, and skills for testing using subagents.
 - `design-testing-strategy` - Manual for agents that need to decide what best way to cover a given artifact with tests, while minimizing amount of work.
+- `test-coverage` - Manual for choosing, applying, different types of coverage analysis (structural, mutation, requirements, API/integration) on an existing test suite.
 
 
 ### Subagent-Driven Development (SADD)
