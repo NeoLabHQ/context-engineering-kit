@@ -45,9 +45,9 @@ The plugin supports multiple execution strategies based on task characteristics,
 
 ## New in v2.2 Release
 
-Plugin was significantly improved with new agents based on [LLM-as-a-Judge](https://arxiv.org/abs/2306.05685) and [LLM-as-a-Meta-Judge](https://arxiv.org/pdf/2407.19594) papers. Now it work as generalized, simplified and distiled version of [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd) plugin. SADD plugin commands uses `meta-judge` agent in parallel with implementation, in order to generate `in-memory` specification and `judge` agent used to critically evaluate the implementation artifacts based on the specification.
+Plugin was significantly improved with new agents based on [LLM-as-a-Judge](https://arxiv.org/abs/2306.05685) and [LLM-as-a-Meta-Judge](https://arxiv.org/pdf/2407.19594) papers. Now it work as generalized, simplified and distiled version of [Spec-Driven Development](https://neolab.gitbook.io/cek/plugins/sdd) plugin. SADD plugin commands uses `meta-judge` agent in parallel with implementation, in order to generate `in-memory` specification and `judge` agent used to critically evaluate the implementation artifacts based on the specification.
 
-Both judges are general purpose, so they are good as at evaluating code implementation same way as documentation, research and simple questions. As a result you should get high quality results with minimal time spend. But if you want insure aligment of code generation with your overral vision, better to use [Spec-Driven Development](https://cek.neolab.finance/plugins/sdd) plugin.
+Both judges are general purpose, so they are good as at evaluating code implementation same way as documentation, research and simple questions. As a result you should get high quality results with minimal time spend. But if you want insure aligment of code generation with your overral vision, better to use [Spec-Driven Development](https://neolab.gitbook.io/cek/plugins/sdd) plugin.
 
 ## Commands Overview
 
