@@ -7,84 +7,73 @@ icon: rocket
 
 # Getting Started
 
-## Prerequisites
+### Step 1: Install Marketplace and Plugins
 
-Before you begin, ensure you have:
+#### Claude Code
 
-**Claude Code installed** - The official CLI tool from Anthropic
-
-* If not installed, visit [Claude Code documentation](https://docs.anthropic.com/claude/docs/claude-code) for installation instructions
-
-## Quick Start
-
-### Step 1: Add the Marketplace
-
-First, launch Claude Code:
-
-```bash
-claude
-```
-
-Then add the Context Engineering Kit marketplace to make all plugins available:
+Open Claude Code and add the Context Engineering Kit marketplace
 
 ```bash
 /plugin marketplace add NeoLabHQ/context-engineering-kit
 ```
 
-**What happens:**
+This makes all plugins available for installation, but does not load any agents or skills into your context.
 
-* The marketplace metadata is downloaded and cached locally
-* All available plugins become visible in your plugin list
-* No plugins are installed yet - this only makes them available
-* No agents, commands, or skills are loaded - your context remains clean
-
-**Verify it worked:**
-
-```bash
-/plugin
-```
-
-You should see a list of available plugins from the marketplace, including reflexion, review, git, sdd, and others.
-
-### Step 2: Install Your First Plugin
-
-We recommend starting with the **Reflexion plugin** - it introduces feedback and refinement loops commands.
+Install any plugin — for example, reflexion:
 
 ```bash
 /plugin install reflexion@NeoLabHQ/context-engineering-kit
 ```
 
-**What happens:**
+Each installed plugin loads only its specific agents, commands, and skills into Claude's context.
 
-* The Reflexion plugin is installed in your Claude Code environment
-* Three new commands become available: `/reflexion:reflect`, `/reflexion:memorize`, `/reflexion:critique`
-* Plugin-specific skills and agents are loaded into Claude's context in future sessions
+#### Cursor, Antigravity, Codex, OpenCode and others
 
-### Step 3: Use Your First Command
-
-Now let's see Reflexion in action. Restart Claude Code and ask Claude to help with something:
-
-```txt
-Suggest how to improve the error handling in this project
-```
-
-Claude will provide an initial response. Now, use Reflexion to ask it to reiterate on output:
+Run the [vercel-labs/skills](https://github.com/vercel-labs/skills) command in your terminal:
 
 ```bash
-/reflexion:reflect
+npx skills add NeoLabHQ/context-engineering-kit
 ```
+You can pick which skills and agents to install.
 
-**What happens:** Claude reviews its previous response using self-refinement techniques, identifies areas for improvement, and generates an enhanced version with deeper analysis.
+<details>
+<summary>Alternative installation methods</summary>
 
-**Expected result:** Claude will analyze its previous response critically, identify specific improvements (e.g., "I should have considered error propagation patterns"), and provide an enhanced response with more detail and better recommendations.
-
-**Try the memorize command:**
+You can use [OpenSkills](https://github.com/numman-ali/openskills) to install skills by running the following commands:
 
 ```bash
-/reflexion:memorize
+npx openskills install NeoLabHQ/context-engineering-kit
+npx openskills sync
 ```
 
-**What happens:** Claude identifies key learnings from the interaction, updates your project's `CLAUDE.md` file with curated insights, and builds a knowledge base that future Claude sessions can leverage.
+</details>
+
+### Step 2: Use Plugin
+
+```bash
+> claude "implement user authentication"
+# Claude implements user authentication, then you can ask it to reflect on implementation
+
+> /reflect
+# It analyses results and suggests improvements
+# If issues are obvious, it will fix them immediately
+# If they are minor, it will suggest improvements that you can respond to
+> fix the issues
+
+# If you would like to prevent issues found during reflection from appearing again,
+# ask Claude to extract resolution strategies and save the insights to project memory
+> /memorize
+```
+
+Alternatively, you can use the `reflect` word in the initial prompt:
+
+```bash
+> claude "implement user authentication, then reflect"
+# Claude implements user authentication,
+# then hook automatically runs /reflect
+```
+
+In order to use this hook, you need to have `bun` installed. However, it is not required for the overall command.
 
 ## What's Next?
 
@@ -128,6 +117,7 @@ Explore the [full plugin catalog](plugins/) to find tools that match your workfl
 * [**Review**](plugins/review/) - Multi-agent code and PR review with specialized reviewers (security, bugs, quality, tests)
 * [**Git**](plugins/git/) - Streamlined Git workflows, commit creation, PR management
 * [**Spec-Driven Development**](plugins/sdd/) - Complete 6-stage workflow from specification to documentation
+* [**Subagent-Driven Development**](plugins/sadd/) - Multi-agent task orchestration with quality gates between tasks
 * [**Test-Driven Development**](plugins/tdd/) - TDD best practices and anti-pattern detection
 * [**Kaizen**](plugins/kaizen/) - Root cause analysis using Five Whys, Fishbone diagrams, PDCA cycles
 

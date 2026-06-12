@@ -8,19 +8,19 @@ This directory contains comprehensive documentation for all 13 plugins in the Co
 
 ## Quick Navigation
 
-* [Reflexion](reflexion/) - Self-refinement and iterative improvement
-* [Review](review/) - Multi-agent code quality analysis
-* [Git](git/) - Streamlined Git operations
-* [Test-Driven Development](tdd/) - TDD methodology and best practices
-* [Subagent-Driven Development](sadd/) - Task delegation with quality gates
-* [Domain-Driven Development](ddd/) - Code quality and architecture patterns
-* [Spec-Driven Development](sdd/) - Spec-Driven workflow
-* [First Principles Framework](fpf/) - Structured reasoning with ADI cycle
-* [Kaizen](kaizen/) - Continuous improvement and root cause analysis
-* [Customaize Agent](customaize-agent/) - Create and refine Claude Code extensions
-* [Docs](docs/) - Documentation management
-* [Tech Stack](tech-stack/) - Language and framework best practices
-* [MCP](mcp/) - Model Context Protocol integration
+- [Reflexion](reflexion/) - Introduces feedback and refinement loops to improve output quality.
+- [Spec-Driven Development](sdd/) - Introduces commands for specification-driven development, based on Continuous Learning + LLM-as-Judge + Agent Swarm. Achieves **development as compilation** through reliable code generation.
+- [Review](review/) - Introduces code and PR review commands and skills using multiple specialized agents with impact/confidence filtering.
+- [Git](git/) - Introduces commands for commit and PR creation.
+- [Test-Driven Development](tdd/) - Introduces commands for test-driven development and common anti-patterns, plus skills for testing using subagents.
+- [Subagent-Driven Development](sadd/) - Introduces skills for subagent-driven development, which dispatches a fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
+- [Domain-Driven Development](ddd/) - Introduces commands to update CLAUDE.md with best practices for domain-driven development, focused on code quality, and includes Clean Architecture, SOLID principles, and other design patterns.
+- [FPF - First Principles Framework](fpf/) - Introduces structured reasoning using ADI cycle (Abduction-Deduction-Induction) with knowledge layer progression. Uses workflow command pattern with fpf-agent for hypothesis generation, verification, and auditable decision-making.
+- [Kaizen](kaizen/) - Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root causes of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.
+- [Customaize Agent](customaize-agent/) - Commands and skills for writing and refining commands, hooks, and skills for Claude Code. Includes Anthropic Best Practices and [Agent Persuasion Principles](https://arxiv.org/abs/2508.00614) that can be useful for sub-agent workflows.
+- [Docs](docs/) - Commands for analyzing projects, writing and refining documentation.
+- [Tech Stack](tech-stack/) - Rules for language-specific best practices, automatically applied when working on matching file types.
+- [MCP](mcp/) - Commands for setting up well-known MCP server integrations when needed and updating the CLAUDE.md file with requirements to use MCP servers in the current project.
 
 ## Installation
 
