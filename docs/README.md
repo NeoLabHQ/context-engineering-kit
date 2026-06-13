@@ -35,100 +35,42 @@ Start here to get up and running quickly:
 
 ### Agent Reliability Engineering
 
-The three plugins in this marketplace are designed to improve how accurately and consistently the agent follows provided instructions and to reduce hallucinations and bias toward incorrect solutions. They are not competitors but rather complementary to each other, because they allow you to balance reliability vs. token cost. Here is a high-level comparison of different agent usage approaches and the probability of receiving results that are fully accurate and include zero hallucinations, based on task complexity:
+The three plugins in this marketplace are designed to improve how accurately and consistently the agent follows provided instructions and to reduce hallucinations and bias toward incorrect solutions. They are not competitors but rather complementary to each other, because they allow you to balance reliability vs. token cost. Below is a high-level comparison of agent usage approaches, ordered by increasing reliability. For each approach, reliability is the probability of receiving fully accurate results with zero hallucinations on small tasks (1-3 changed files) and large tasks (20+ changed files):
 
-<table>
-<thead>
-<tr>
-<th rowspan="2">Approach</th>
-<th colspan="4">Probability of receiving fully accurate results for the following number of changed files (p)</th>
-<th rowspan="2">Tokens Overhead</th>
-<th rowspan="2">What does this mean in practice</th>
-</tr>
-<tr>
-<th>1-3</th>
-<th>4-10</th>
-<th>10-20</th>
-<th>20+</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>One-shot prompt</td>
-<td>60%-80%</td>
-<td>30%-50%</td>
-<td>5%-30%</td>
-<td>1%-20%</td>
-<td>0</td>
-<td>Accuracy depends on model, but with context growth LLM quality degrades exponentially</td>
-</tr>
-<tr>
-<td><a href="https://neolab.gitbook.io/cek/plugins/reflexion/reflect">/reflect</a></td>
-<td>68%-91%</td>
-<td>49%-71%</td>
-<td>13%-41%</td>
-<td>1%-30%</td>
-<td>1k-3k</td>
-<td>Agent finds and fixes missed requirements on its own</td>
-</tr>
-<tr>
-<td><a href="https://neolab.gitbook.io/cek/plugins/reflexion/reflect">/reflect</a> + <a href="https://neolab.gitbook.io/cek/plugins/reflexion/memorize">/memorize</a></td>
-<td>79%-87%</td>
-<td>60%-79%</td>
-<td>34%-42%</td>
-<td>5%-30%</td>
-<td>2k-5k</td>
-<td>Agent extracts repeatable mistakes and avoids them during new tasks</td>
-</tr>
-<tr>
-<td><a href="https://neolab.gitbook.io/cek/plugins/sadd/do-and-judge">/do-and-judge</a></td>
-<td>90%</td>
-<td>83%</td>
-<td>60%</td>
-<td>30%</td>
-<td>1.5x-3x</td>
-<td>Mitigates context rot, bias, hallucinations and missed requirements using Judge sub-agent</td>
-</tr>
-<tr>
-<td><a href="https://neolab.gitbook.io/cek/plugins/sadd/do-in-steps">/do-in-steps</a></td>
-<td>92%</td>
-<td>90%</td>
-<td>71%</td>
-<td>50%</td>
-<td>3x-5x</td>
-<td>Resolves all issues similar to /do-and-judge, but separately per file group</td>
-</tr>
-<tr>
-<td><a href="https://neolab.gitbook.io/cek/plugins/sdd">/plan-task + /implement-task</a></td>
-<td>94%</td>
-<td>93%</td>
-<td>85%</td>
-<td>70%</td>
-<td>5x-20x</td>
-<td>Performs the /do-in-steps flow, but the specification mitigates issues caused by inconsistent architecture and codebase size</td>
-</tr>
-<tr>
-<td><a href="https://neolab.gitbook.io/cek/plugins/sdd/brainstorm">/brainstorm</a> + <a href="https://neolab.gitbook.io/cek/plugins/sdd/plan-task">/plan-task</a> + <a href="https://neolab.gitbook.io/cek/plugins/sdd/implement-task">/implement-task</a></td>
-<td>95%</td>
-<td>95%</td>
-<td>90%</td>
-<td>80%</td>
-<td>5x-20x</td>
-<td>Brainstorming decreases the number of incorrect decisions and missed requirements</td>
-</tr>
-<tr>
-<td><a href="https://neolab.gitbook.io/cek/plugins/sdd/plan-task">/plan-task</a> + human review + <a href="https://neolab.gitbook.io/cek/plugins/sdd/implement-task">/implement-task</a></td>
-<td>99%</td>
-<td>99%</td>
-<td>99%</td>
-<td>95%</td>
-<td>5x-35x</td>
-<td>Human review mitigates misunderstanding of requirements by LLM</td>
-</tr>
-</tbody>
-</table>
+1. **One-shot prompt**
+   - Reliability: 60%-80% on small tasks, 1%-20% on large tasks
+   - Token overhead: 0
+   - In practice: accuracy depends on the model, but as context grows, LLM quality degrades exponentially.
+2. **[/reflect](plugins/reflexion/reflect)**
+   - Reliability: 68%-91% on small tasks, 1%-30% on large tasks
+   - Token overhead: 1k-3k tokens
+   - In practice: the agent finds and fixes missed requirements on its own.
+3. **[/reflect](plugins/reflexion/reflect) + [/memorize](plugins/reflexion/memorize)**
+   - Reliability: 79%-87% on small tasks, 5%-30% on large tasks
+   - Token overhead: 2k-5k tokens
+   - In practice: the agent extracts repeatable mistakes and avoids them during new tasks.
+4. **[/do-and-judge](plugins/sadd/do-and-judge)**
+   - Reliability: 90% on small tasks, 30% on large tasks
+   - Token overhead: 1.5x-3x
+   - In practice: mitigates context rot, bias, hallucinations, and missed requirements using a Judge sub-agent.
+5. **[/do-in-steps](plugins/sadd/do-in-steps)**
+   - Reliability: 92% on small tasks, 50% on large tasks
+   - Token overhead: 3x-5x
+   - In practice: resolves all issues similar to /do-and-judge, but separately per file group.
+6. **[/plan-task + /implement-task](plugins/sdd)**
+   - Reliability: 94% on small tasks, 70% on large tasks
+   - Token overhead: 5x-20x
+   - In practice: performs the /do-in-steps flow, but the specification mitigates issues caused by inconsistent architecture and codebase size.
+7. **[/brainstorm](plugins/sdd/brainstorm) + [/plan-task](plugins/sdd/plan-task) + [/implement-task](plugins/sdd/implement-task)**
+   - Reliability: 95% on small tasks, 80% on large tasks
+   - Token overhead: 5x-20x
+   - In practice: brainstorming decreases the number of incorrect decisions and missed requirements.
+8. **[/plan-task](plugins/sdd/plan-task) + human review + [/implement-task](plugins/sdd/implement-task)**
+   - Reliability: 99% on small tasks, 95% on large tasks
+   - Token overhead: 5x-35x
+   - In practice: human review mitigates misunderstanding of requirements by the LLM.
 
-> Reliability metrics are based on more than year of real development usage on production projects.
+> Reliability metrics are based on more than a year of real development usage on production projects.
 
 
 ## Explore Plugins
