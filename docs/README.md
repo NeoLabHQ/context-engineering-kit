@@ -30,7 +30,7 @@ Start here to get up and running quickly:
 
 * [Getting Started](getting-started.md) - Installation, setup, and your first plugin
 * [User Guide](guides) - Common workflows and usage patterns
-* [Core Concepts](concepts) - Understanding context engineering principles
+* [Core Concepts](concepts.md) - Understanding context engineering principles
 * [Plugins List](plugins/) - Comprehensive list of all available plugins
 
 ### Agent Reliability Engineering
