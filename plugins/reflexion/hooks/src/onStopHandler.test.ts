@@ -20,7 +20,7 @@ const createUserPromptSession = (prompt: string, timestamp: string = new Date().
     transcript_path: '/tmp/transcript.jsonl',
     hook_event_name: 'UserPromptSubmit',
     prompt,
-  } as any,
+  } as import('./session').UserPromptSubmitPayload,
 })
 
 const createStopSession = (timestamp: string = new Date().toISOString()): SessionData => ({
@@ -163,7 +163,7 @@ describe('onStopHandler', () => {
         {
           timestamp: new Date().toISOString(),
           hookType: 'SessionStart',
-          payload: {} as any,
+          payload: {} as import('./session').SessionStartPayload,
         },
       ]
 
