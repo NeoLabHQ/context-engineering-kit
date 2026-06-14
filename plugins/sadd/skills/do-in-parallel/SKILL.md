@@ -417,6 +417,7 @@ Work through each step explicitly before implementing.
 - Do NOT modify other files unless explicitly required
 - Follow existing patterns in the target
 - {Any additional constraints from context}
+- Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
 </constraints>
 
 <output>

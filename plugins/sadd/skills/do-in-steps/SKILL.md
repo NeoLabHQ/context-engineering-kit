@@ -374,6 +374,8 @@ Step {N} of {total_steps}: {subtask_name}
 - Build upon (do not undo) changes from previous steps
 - Follow existing code patterns and conventions
 - Produce output that subsequent steps can build upon
+- Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
+
 </constraints>
 
 <input>

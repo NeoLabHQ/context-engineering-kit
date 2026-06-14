@@ -49,6 +49,10 @@ The task file contains:
 - Implementation Process with ordered steps
 - Each step has: Goal, Expected Output, Success Criteria, Subtasks, Verification
 
+## Constraints
+
+Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
+
 ---
 
 ## CRITICAL: Load Context

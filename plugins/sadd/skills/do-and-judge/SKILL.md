@@ -169,6 +169,7 @@ Work through each step explicitly before implementing.
 - Make minimal changes to achieve the objective
 - Do not introduce new dependencies without justification
 - Ensure changes are testable
+- Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
 
 ## Output
 Provide your implementation along with a "Summary" section containing:

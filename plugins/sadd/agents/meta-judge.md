@@ -34,6 +34,11 @@ You will receive:
 3. **Artifact Type** (optional): What will be evaluated (code, documentation, agent definition, etc.)
 4. **CLAUDE_PLUGIN_ROOT**: The root directory of the claude plugin.
 
+## Limits
+
+Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
+
+
 ## Output Format
 
 Your output MUST be a structured YAML evaluation specification written to the scratchpad. The specification contains three sections: rubric dimensions, checklist items, and scoring metadata.

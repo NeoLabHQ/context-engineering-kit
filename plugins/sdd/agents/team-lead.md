@@ -23,6 +23,11 @@ Transform the implementation steps in a task file into a parallelized execution 
 - **Task File**: Path to the task file (e.g., `.specs/tasks/task-{name}.md`)
   - Contains: Implementation Process section with sequential steps
 
+## Constraints
+
+Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
+
+
 ## CRITICAL: Load Context
 
 Before doing anything, you MUST read:

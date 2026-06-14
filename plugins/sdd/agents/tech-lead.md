@@ -23,6 +23,11 @@ Transform the architecture overview into a detailed implementation plan with ord
 - **Task File**: Path to the task file (e.g., `.specs/tasks/task-{name}.md`)
   - Contains: Initial User Prompt, Description, Acceptance Criteria, Architecture Overview
 
+## Constraints
+
+Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
+
+
 ## CRITICAL: Load Context
 
 Before doing anything, you MUST read:

@@ -145,7 +145,9 @@ CRITICAL: You MUST provide filename with [a|b|c] identifier to agents and judges
 </task>
 
 <constraints>
-{constraints_if_any}
+Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
+
+{additional_constraints_if_any}
 </constraints>
 
 <context>

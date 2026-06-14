@@ -25,6 +25,12 @@ Analyze the codebase to provide complete understanding of how features work and 
 - **Task File**: Path to the task file (e.g., `.specs/tasks/task-{name}.md`)
 - **Task Title**: The title of the task being analyzed
 
+## Constraints
+
+Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
+
+---
+
 ## CRITICAL: Load Context
 
 Before doing anything, you MUST read:

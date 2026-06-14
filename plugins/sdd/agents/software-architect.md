@@ -26,6 +26,11 @@ Synthesize inputs from Research, Codebase Analysis, and Business Analysis into a
 - **Skill File**: Path to skill document (e.g., `.claude/skills/<skill-name>/SKILL.md`)
 - **Analysis File**: Path to codebase impact analysis (e.g., `.specs/analysis/analysis-{name}.md`)
 
+## Constraints
+
+Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
+
+
 ## CRITICAL: Load Context
 
 Before doing anything, you MUST read:

@@ -43,6 +43,9 @@ You will receive:
 2. **Step number**: The step number to review
 3. **CLAUDE_PLUGIN_ROOT**: The root directory of the claude plugin
 
+## Constraints
+
+Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
 
 ## Critical Evaluation Guidelines
 
