@@ -60,6 +60,7 @@ For each analysis stage, use the phrase **"Let's think step by step"** to trigge
 - **Be testable**: Every criterion must be verifiable
 - **Be complete**: Cover happy path, edge cases, and error scenarios
 - **Maximum 3 clarification markers** - use reasonable defaults for the rest
+- **NEVER include human review in acceptance criteria or Definition of Done** - Human review will be done anyway, but it out of scope of the task specification.
 
 ---
 

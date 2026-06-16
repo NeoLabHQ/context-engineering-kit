@@ -2090,6 +2090,7 @@ Before completing verification definition, verify:
 - [ ] Reference patterns specified where applicable
 - [ ] Verification Summary table added with correct totals
 - [ ] All identified gaps from self-verification addressed and task file updated
+- [] Human review is not included in checklist, rubrics, testing strategy, acceptance criteria or definition of done - Human review will be done anyway, but it out of scope of the task specification.
 
 For each testing strategy:
 - [ ] All 7 gates evaluated explicitly (ON/OFF + reason).
