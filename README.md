@@ -318,6 +318,7 @@ Commands and skills for streamlined Git operations including commits, pull reque
 **Skills**
 
 - [git-notes](https://neolab.gitbook.io/cek/plugins/git/git-notes) - Skill for using git notes to add metadata to commits without changing history.
+- [resolve-fixed-pr-comments](https://neolab.gitbook.io/cek/plugins/git/resolve-fixed-pr-comments) - Verify what PR review comments have been addressed and resolve that are genuinely fixed or no longer relevant.
 
 ### [Test-Driven Development](https://neolab.gitbook.io/cek/plugins/tdd)
 

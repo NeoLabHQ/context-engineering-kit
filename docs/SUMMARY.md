@@ -50,6 +50,8 @@
     * [load-issues](plugins/git/load-issues.md)
     * [git-notes](plugins/git/git-notes.md)
     * [git-worktrees](plugins/git/git-worktrees.md)
+    * [load-pr-comments](plugins/git/load-pr-comments.md)
+    * [resolve-fixed-pr-comments](plugins/git/resolve-fixed-pr-comments.md)
   * [Kaizen](plugins/kaizen/README.md)
     * [analyse-problem](plugins/kaizen/analyse-problem.md)
     * [kaizen](plugins/kaizen/kaizen.md)

@@ -48,6 +48,7 @@ Most commands require GitHub CLI (`gh`) for full functionality including creatin
 - [/load-issues](./load-issues.md) - Load all open issues from GitHub and save them as markdown files.
 - [/attach-review-to-pr](./attach-review-to-pr.md) - Add line-specific review comments to pull requests using GitHub CLI API.
 - [/load-pr-comments](./load-pr-comments.md) - Load open/unresolved PR review comments and group them as tasks in .specs/comments/*.md for parallel agents to fix.
+- [resolve-fixed-pr-comments](./resolve-fixed-pr-comments.md) - Verify what PR review comments have been addressed (committed/pushed OR uncommitted local changes) and resolve the threads that are genuinely fixed or no longer relevant.
 - [/worktrees](./git-worktrees.md) - Create, compare, and merge git worktrees for parallel development with automatic dependency installation
 
 ## Skills
