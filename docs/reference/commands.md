@@ -28,6 +28,7 @@ Commands for Git operations including commits, pull requests, and worktree manag
 - `/create-pr` - Create pull requests using GitHub CLI with proper templates and formatting.
 - `/analyze-issue` - Analyze a GitHub issue and create a detailed technical specification.
 - `/load-issues` - Load all open issues from GitHub and save them as markdown files.
+- `/load-pr-comments` - Load open/unresolved PR review comments and group them as tasks in .specs/comments/*.md for parallel agents to fix.
 
 ### Spec-Driven Development (SDD)
 

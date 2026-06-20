@@ -1,4 +1,4 @@
-# /git:commit - Conventional Commits
+# /commit - Conventional Commits
 
 Create well-formatted commits with conventional commit messages and emoji.
 
@@ -6,7 +6,7 @@ Create well-formatted commits with conventional commit messages and emoji.
 - Output - Git commit with conventional format
 
 ```bash
-/git:commit [flags]
+/commit [flags]
 ```
 
 ## Arguments
@@ -41,14 +41,14 @@ Optional flags like `--no-verify` to skip pre-commit checks.
 ```bash
 # Basic commit after making changes
 > git add .
-> /git:commit
+> /commit
 
 # Skip pre-commit hooks
-> /git:commit --no-verify
+> /commit --no-verify
 
 # After code review
 > /review-local-changes
-> /git:commit
+> /commit
 ```
 
 ## Best Practices

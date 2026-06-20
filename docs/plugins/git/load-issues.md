@@ -24,10 +24,10 @@ None required - loads all open issues automatically.
 
 ```bash
 # Load all issues for sprint planning
-> /git:load-issues
+> /load-issues
 
 # Then analyze specific issues
-> /git:analyze-issue 123
+> /analyze-issue 123
 ```
 
 ## Best Practices

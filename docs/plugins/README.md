@@ -164,6 +164,7 @@ Streamlined Git operations with conventional commits, pull request management, a
 * Conventional commits with emoji
 * Pull request creation
 * Issue analysis and loading
+* PR review comments loaded and grouped as tasks, for parallel agents to fix.
 * Git worktrees for parallel branch development
 * Git notes for commit metadata annotations
 

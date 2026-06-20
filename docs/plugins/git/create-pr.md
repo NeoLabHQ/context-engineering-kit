@@ -6,7 +6,7 @@ Create pull requests using GitHub CLI with proper templates and formatting.
 - Output - GitHub pull request with template
 
 ```bash
-/git:create-pr
+/create-pr
 ```
 
 ## Arguments
@@ -25,17 +25,17 @@ None required - interactive guide for PR creation.
 
 ```bash
 # Create PR for current branch
-> /git:create-pr
+> /create-pr
 
 # After completing feature
-> /git:commit
-> /git:create-pr
+> /commit
+> /create-pr
 
 # Full workflow
-> /git:analyze-issue 123
+> /analyze-issue 123
 > claude "implement feature"
-> /git:commit
-> /git:create-pr
+> /commit
+> /create-pr
 ```
 
 ## Best Practices

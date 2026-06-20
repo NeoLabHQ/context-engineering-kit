@@ -1,4 +1,4 @@
-# /git:analyze-issue - Issue Analysis
+# /analyze-issue - Issue Analysis
 
 Analyze a GitHub issue and create a detailed technical specification.
 
@@ -6,7 +6,7 @@ Analyze a GitHub issue and create a detailed technical specification.
 - Output - Technical specification with requirements
 
 ```bash
-/git:analyze-issue <issue-number>
+/analyze-issue <issue-number>
 ```
 
 ## Arguments
@@ -25,16 +25,16 @@ Issue number (e.g., 42) - required.
 
 ```bash
 # Analyze issue before starting work
-> /git:analyze-issue 123
+> /analyze-issue 123
 
 # Use with SDD workflow
-> /git:analyze-issue 123
+> /analyze-issue 123
 > /sdd:01-specify
 
 # Plan sprint work
-> /git:load-issues
-> /git:analyze-issue 45
-> /git:analyze-issue 67
+> /load-issues
+> /analyze-issue 45
+> /analyze-issue 67
 ```
 
 ## Best Practices
