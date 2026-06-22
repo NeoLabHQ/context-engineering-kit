@@ -1,6 +1,6 @@
 ---
 name: write-tests
-description: Systematically add test coverage for all local code changes using specialized review and development agents. Add tests for uncommitted changes (including untracked files), or if everything is commited, then will cover latest commit.
+description: Add missing test coverage for your local code changes by generating new test files (covers uncommitted and untracked changes, or the latest commit if everything is committed). Use when you want tests written, not a review.
 argument-hint: what tests or modules to focus on
 ---
 

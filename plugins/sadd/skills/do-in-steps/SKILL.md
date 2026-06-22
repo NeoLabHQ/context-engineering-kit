@@ -1,6 +1,6 @@
 ---
 name: do-in-steps
-description: Execute complex tasks through sequential sub-agent orchestration with intelligent model selection, meta-judge → LLM-as-a-judge verification
+description: Execute one complex task as ordered, dependent steps run sequentially, passing context from each step to the next, with per-step LLM-as-a-judge verification. Use when later steps depend on the results of earlier ones.
 argument-hint: Task description (e.g., "Refactor UserService class and update all consumers")
 ---
 
