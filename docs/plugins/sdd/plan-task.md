@@ -18,7 +18,7 @@ Refine a draft task specification into a fully planned, implementation-ready tas
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum retry cycles per phase before moving on |
 | `--included-stages` | `--included-stages s1,s2,...` | All stages | Comma-separated list of stages to include |
 | `--skip` | `--skip s1,s2,...` | None | Comma-separated list of stages to exclude |
-| `--fast` | flag | N/A | Alias for `--target-quality 3.0 --max-iterations 1 --included-stages business analysis,decomposition,verifications` |
+| `--fast` | flag | N/A | Alias for `--target-quality 3.0 --max-iterations 1 --included-stages business analysis,decomposition`. Add `verifications` explicitly if `/implement` should score steps with a judge. |
 | `--one-shot` | flag | N/A | Alias for `--included-stages business analysis,decomposition --skip-judges` |
 | `--human-in-the-loop` | `--human-in-the-loop p1,p2,...` | None | Phases after which to pause for human review |
 | `--skip-judges` | flag | `false` | Skip all judge validation checks |
@@ -133,7 +133,7 @@ Each sub-phase is validated by a judge agent. All three must pass before proceed
 
 ### Phase 6: Define Verifications
 
-`qa-engineer` agent (opus) adds LLM-as-Judge verification sections with custom rubrics, thresholds, and verification levels (None, Single Judge, Panel of 2, or Per-Item) for each implementation step.
+`qa-engineer` agent (opus) writes LLM-as-Judge verification specs with custom rubrics, thresholds, and verification levels (None, Single Judge, Panel of 2, or Per-Item) for each implementation step. The specs go into a sidecar file next to the task — `<task-basename>.verification.md`, one `### Step N` section each — and the task file gets a one-line `**Verification:**` pointer per step plus the `## Verification Summary` table.
 
 ### Phase 7: Promote Task
 
