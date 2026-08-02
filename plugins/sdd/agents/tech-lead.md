@@ -300,6 +300,30 @@ Each step costs at least one impl + one verification agent pair, and steps infla
 - YOU MUST size each step so it does enough verification-worthy work that the judge's run produces more value than its cost. If the verification would have nothing meaningful to check, the step is too small — merge it.
 - YOU SHOULD prefer one well-scoped step with multiple subtasks over two thin steps that each carry the full agent-pair overhead.
 
+##### Step Count Upper Bound
+
+The "no step larger than Large" rule bounds step **size** only. Nothing bounds step **count**, so a
+large task decomposes into an arbitrarily long list — a real migration touching ~40 files produced
+**19 steps**, and each one carried an agent pair plus a verification spec. Apply an upper bound too:
+
+| Task effort | Target steps | Hard ceiling |
+|-------------|--------------|--------------|
+| S / M | 3-5 | 6 |
+| L | 5-8 | 10 |
+| XL | 8-12 | 14 |
+
+- YOU MUST report the step count against this band in the Implementation Summary, and justify in one
+  sentence any count above the target.
+- If the count exceeds the **hard ceiling**, YOU MUST merge steps that belong to the same slice
+  before emitting. Steps that touch the same module, share the same test suites, and have no
+  external consumer between them are one step with more subtasks — not several.
+- Watch for the tell-tale symptom of over-splitting: **ordering invariants that exist only because
+  of the split** ("repoint the import in step 4 before step 6 deletes the module"). Every such
+  invariant is a constraint you created and must now defend. Merging the two steps deletes the
+  invariant for free.
+- A count above the ceiling is as much a defect as a step above Large. Both are reported, not
+  silently emitted.
+
 #### Vertical Slicing
 
 Each task should deliver a complete, testable slice of functionality from UI to database. Avoid horizontal layers (all models, then all controllers, then all views). Enable early integration and validation.
@@ -500,7 +524,7 @@ Phase 5: Polish
 | 1 | [Brief goal] | [Key output] | [S/M/L] |
 | 2 | [Brief goal] | [Key output] | [S/M/L] |
 
-**Total Steps**: N
+**Total Steps**: N — target band for [S/M/L/XL] is [X-Y], ceiling [Z]. [If above target: one-sentence justification.]
 **Critical Path**: Steps [X, Y, Z] are blocking
 **Parallel Opportunities**: Steps [A, B] can run concurrently
 
@@ -543,6 +567,7 @@ Generate 8 questions based on specifics of your task breakdown. These are exampl
 | 4 | **TDD Integration**: Does every implementation step include test writing in its Definition of Done or subtasks? Have I placed test infrastructure as foundational tasks? | Scan all steps for test-related subtasks. Tests must not be afterthoughts. |
 | 5 | **Risk Identification**: Have I identified ALL high-complexity steps? For each, have I either decomposed further OR created preceding spike tasks? | Review Risks & Blockers Summary. All high-impact items need mitigations. |
 | 6 | **Step Sizing (Upper Bound)**: Is every step completable in 1-2 days? Are there any steps too large that should be broken down? | Review Implementation Summary effort column. No step should be >Large. |
+| 6a | **Step Count (Upper Bound)**: Is the total step count within the band for this task's effort, and below the hard ceiling? Are there ordering invariants that exist only because a slice was split? | Compare Total Steps against the Step Count Upper Bound table. Merge same-slice steps until within the ceiling. |
 | 7 | **No Trivial Standalone Steps**: Does every step do more than a single trivial action (install/delete/copy/move/create-dir)? Are all trivial actions folded into the step that consumes them (or kept separate only under the documented shared-prerequisite exception)? | Scan every step. Flag any whose entire scope is a mechanical action. |
 | 8 | **Verification-Worthy Granularity**: Does every step do enough work to justify its verification agent's cost? Would the judge have something meaningful to check, or is the step too thin? | Review each step's Success Criteria and Subtasks. Thin steps must be merged. |
 
@@ -564,6 +589,8 @@ For each question, you MUST provide:
 [ ] Success criteria are specific and testable (not vague)
 [ ] Subtasks use simple format: - [ ] Description with file path
 [ ] No step estimated larger than "Large"
+[ ] Total step count within the band for this task's effort, below the hard ceiling
+[ ] No ordering invariant exists solely because a single slice was split across steps
 [ ] No step is "Too Small / Trivial" (no standalone install/delete/copy/move/create-dir)
 [ ] Every step does enough work to justify its verification agent's cost
 [ ] Phases organized: Setup → Foundational → User Stories → Polish
@@ -656,6 +683,8 @@ Before completing decomposition:
 - [ ] All steps have Goal, Output, Success Criteria, Subtasks, Blockers, Risks
 - [ ] Steps are ordered by dependency (no step depends on a later step)
 - [ ] No step estimated larger than "Large"
+- [ ] Total step count within the band for this task's effort, below the hard ceiling
+- [ ] No ordering invariant exists solely because a single slice was split across steps
 - [ ] No step is "Too Small / Trivial" — trivial actions folded into consuming steps
 - [ ] Every step does enough work to justify its verification agent's cost
 - [ ] Subtasks use simple format: - [ ] Description with file path

@@ -64,7 +64,7 @@ Real-world scenarios demonstrating the effective use of the Spec-Driven Developm
 /implement-task @.specs/tasks/todo/fix-null-pointer-user-service.bug.md --skip-judges
 ```
 
-The `--fast` flag sets `--target-quality 3.0 --max-iterations 1 --included-stages "business analysis,decomposition,verifications"`, skipping research, codebase analysis, architecture synthesis, and parallelization.
+The `--fast` flag sets `--target-quality 3.0 --max-iterations 1 --included-stages "business analysis,decomposition"`, skipping research, codebase analysis, architecture synthesis, parallelization, and verifications. Append `,verifications` to the stage list when `/implement` should score each step with a judge.
 
 ---
 

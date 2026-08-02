@@ -106,7 +106,7 @@ Reads the task file once and parses the `## Implementation Process` section:
 
 - Lists all steps with dependencies
 - Identifies parallel execution opportunities (`Parallel with:` annotations)
-- Classifies verification needs from `#### Verification` sections
+- Classifies verification needs from the resolved verification spec — the `<task-basename>.verification.md` sidecar, falling back to inline `#### Verification` sections in task files written by an older `qa-engineer`
 
 ### Phase 2: Execute Implementation Steps
 

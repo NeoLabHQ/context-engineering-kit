@@ -74,7 +74,7 @@ When `--continue` is used:
 1. **Step Resolution:**
    - Parse the task file for `[DONE]` markers on step titles
    - Identify the last incompleted step
-   - Launch the `sdd:code-reviewer` agent to verify the last INCOMPLETE step's artifacts (using the step's `#### Verification` specification embedded in the task file)
+   - Launch the `sdd:code-reviewer` agent to verify the last INCOMPLETE step's artifacts (using the step's verification spec, resolved per the appendix: the sidecar's `### Step N`, or an inline `#### Verification` section in older task files)
    - If `combined_score >= threshold` (or `>= 3.0` with only Low-priority issues): Mark step as done and resume from the next step
    - Otherwise: Re-implement the step using the reviewer's issues as feedback and iterate until PASS
 
@@ -117,7 +117,7 @@ When `--refine` is used, it detects changes to **project files** (not the task f
    - For each changed file, determine which step created/modified it:
      - Check step's "Expected Output" section for file paths
      - Check step's subtasks for file references
-     - Check step's artifacts in `#### Verification` section
+     - Check step's artifacts in its resolved verification spec
    - Build a mapping: `{changed_file → step_number}`
 
 3. **Determine Affected Steps:**
@@ -541,7 +541,7 @@ Parse all flags from `$ARGUMENTS` and initialize configuration.
    - For each step, extract the files it creates/modifies from:
      - "Expected Output" sections
      - Subtask descriptions mentioning file paths
-     - `#### Verification` artifact paths
+     - verification spec artifact paths
    - Build mapping: `STEP_FILE_MAP = {step_number → [file_paths]}`
 
 3. **Map Changed Files to Steps:**
@@ -587,7 +587,7 @@ Parse the `## Implementation Process` section:
 
 - List all steps with dependencies
 - Identify which steps have `Parallel with:` annotations
-- Classify each step's verification needs from `#### Verification` sections:
+- Classify each step's verification needs from the resolved verification spec (sidecar `### Step N`, or inline `#### Verification`):
 
 | Verification Level | Code-Reviewer Dispatch | Threshold |
 |-----------------------------------|-------------|------------------------|-----------|
@@ -615,7 +615,7 @@ Create TodoWrite with all implementation steps, marking verification requirement
 
 ## Phase 2: Execute Implementation Steps
 
-For each step in dependency order, select the dispatch pattern by reading the step's `#### Verification` Level:
+For each step in dependency order, select the dispatch pattern by reading the step's verification Level — available directly from the task file's one-line `**Verification:**` pointer, or from the resolved spec:
 
 | Verification Level | Pattern |
 |--------------------|---------|
@@ -818,7 +818,7 @@ Inputs:
 
 **6. Determine Threshold and Apply Gate:**
 
-- Check if step is marked as critical in task file (in `#### Verification` section or step metadata)
+- Check if step is marked as critical in its verification spec (Level `Panel of 2 Judges`) or step metadata
 - If critical: use `THRESHOLD_FOR_CRITICAL_COMPONENTS`
 - If standard: use `THRESHOLD_FOR_STANDARD_COMPONENTS`
 
@@ -1282,7 +1282,7 @@ After all steps complete and DoD verification passes:
 │  Phase 1: Load Task                                           │
 │  ┌─────────────────────────────────────────────────────────┐  │
 │  │ Read $TASK_PATH → Parse steps                           │  │
-│  │ → Extract #### Verification specs → Create TodoWrite    │  │
+│  │ → Resolve verification spec → Create TodoWrite          │  │
 │  └─────────────────────────────────────────────────────────┘  │
 │                           │                                   │
 │                           ▼                                   │
@@ -1401,7 +1401,7 @@ Phase 1: Loading task...
 Task: "Add form validation service"
 Steps identified: 4 steps
 
-Verification plan (from #### Verification sections):
+Verification plan (from the resolved verification spec):
 - Step 1: No verification (directory creation)
 - Step 2: Panel of 2 evaluations (ValidationService)
 - Step 3: Per-item evaluations (3 validators)
@@ -1777,9 +1777,33 @@ Before completing implementation:
 
 This appendix documents how verification is specified in task files. During Phase 2 (Execute Steps), you will reference these specifications to understand how to verify each artifact.
 
-### How Task Files Define Verification
+### Where the Verification Spec Lives
 
-Task files define verification requirements in `#### Verification` sections within each implementation step. These sections specify:
+`sdd:qa-engineer` writes the verification spec to a **sidecar file** beside the task file: same
+directory and basename, extension replaced by `.verification.md`. For
+`.specs/tasks/in-progress/add-auth.feature.md` the sidecar is
+`.specs/tasks/in-progress/add-auth.verification.md`. It holds a shared preamble (Regular Checks,
+Project Guidelines Alignment) plus one `### Step N` section per step. The task file carries only a
+one-line `**Verification:**` pointer per step and the `## Verification Summary` table.
+
+**Resolution rule — apply this once, before Phase 2:**
+
+| Condition | Where to read each step's spec |
+|-----------|-------------------------------|
+| Sidecar `<task-basename>.verification.md` exists | Its `### Step N` section, plus the shared preamble |
+| Sidecar absent, task file has inline `#### Verification` sections | Those inline sections (task file written by an older `qa-engineer`) |
+| Neither exists | No verification specified — treat every step as level `None` and say so in the summary |
+
+Both layouts are supported; the sidecar wins when both are present. Everywhere below that refers to
+a step's `#### Verification` section means "the step's verification spec, resolved by this rule".
+
+**When dispatching `sdd:code-reviewer`, pass the resolved location explicitly** — the sidecar path
+and the `### Step N` heading, or the task file path for the inline layout — so the reviewer loads one
+step's spec and not the whole file.
+
+### How Verification Is Defined
+
+The verification spec defines, per step:
 
 ### Required Elements
 
@@ -1860,7 +1884,7 @@ When the `sdd:code-reviewer` evaluates artifacts, it uses this 5-point scale for
 **During Phase 2 (Execute Steps):**
 
 1. After a `sdd:developer` agent completes implementation
-2. Read the step's `#### Verification` subsection
+2. Read the step's verification spec (sidecar `### Step N`, or inline `#### Verification` in older task files)
 3. Extract: Level, Artifact paths, Threshold
 5. Launch the appropriate count of `sdd:code-reviewer` agent(s) based on Level
 6. Pass exactly the 4 inputs to each reviewer (artifact, step number, specification path, CLAUDE_PLUGIN_ROOT) — **NEVER a threshold**

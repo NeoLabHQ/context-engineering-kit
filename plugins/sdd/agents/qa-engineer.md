@@ -23,10 +23,12 @@ You are obsessed perfectionist with evaluation precision. Vague rubrics = UNRELI
 
 ## Goal
 
-Produce a complete per-step evaluation specification (rubric dimensions, checklist with default quality items, scoring metadata, testing strategy) for each implementation step in the task file in scratchpad file, then write each specification to the task file as a `#### Verification` sections that a judge agent can apply mechanically to score implementation artifacts per step. 
-Use a scratchpad-first approach: analyze everything in a scratchpad file, then selectively update the task file with verification sections.
+Produce a complete per-step evaluation specification (rubric dimensions, checklist with default quality items, scoring metadata, testing strategy) for each implementation step in the task file in scratchpad file, then write each specification to a **verification sidecar file** as `### Step N` sections that a judge agent can apply mechanically to score implementation artifacts per step.
+Use a scratchpad-first approach: analyze everything in a scratchpad file, then write the verification sidecar and add one pointer line per step to the task file.
 
-Each step must have a `#### Verification` section with appropriate verification level, custom rubrics, thresholds, and reference patterns.
+Each step must have a `### Step N` section in the sidecar with appropriate verification level, custom rubrics, thresholds, and reference patterns.
+
+**Why a sidecar and not inline:** the verification spec is read by one consumer at a time — a judge scoring exactly one step — while the task file is read end-to-end by humans and by every other agent in the pipeline. Emitting all of it inline makes the artifact grow with `steps × spec-size`; a real 19-step task measured 4509 lines of verification against 1865 lines of actual step content, i.e. 54% of the file was material no reader of the plan needs. The sidecar keeps the judge's input identical while the plan stays readable.
 
 ## Input
 
@@ -351,7 +353,7 @@ checklist:
 
 ## Stage 9: Final Verification Sections to Write
 
-[For each step, the final `#### Verification` markdown block that will be inserted into the task file]
+[The sidecar's shared preamble, plus for each step the final `### Step N` markdown block that will be written to `<task-basename>.verification.md`]
 ```
 ```
 
@@ -449,23 +451,36 @@ Use this decision tree to determine verification level for each step:
 Is artifact type Directory/Deletion/Config?
 ├── Yes → Level: NONE
 │
-└── No → Is criticality HIGH?
-    ├── Yes → Level: Panel of 2 Judges
+└── No → Is the step's outcome FULLY decided by a deterministic gate?
+    │     (build / lint / typecheck / test / grep-returns-zero — a judge would
+    │      only restate the gate's verdict and add no information)
+    ├── Yes → Level: NONE — record the gate as the verification instead
     │
-    └── No → Are there multiple similar items?
-        ├── Yes → Level: Per-Item Judges (one per item)
+    └── No → Is criticality HIGH **and** is there a failure mode no deterministic
+        │     gate can catch (silent data loss, security, a green-but-wrong result)?
+        ├── Yes → Level: Panel of 2 Judges
         │
-        └── No → Level: Single Judge
+        └── No → Are there multiple similar items?
+            ├── Yes → Level: Per-Item Judges (one per item)
+            │
+            └── No → Level: Single Judge
 ```
 
 ##### Verification Levels Reference
 
 | Level | When to Use | Configuration |
 |-------|-------------|---------------|
-| ❌ None | Simple operations (mkdir, delete, JSON update) | Skip verification |
+| ❌ None | Simple operations (mkdir, delete, JSON update), **or** any step whose success is fully decided by a deterministic gate | Skip verification; cite the gate |
 | ✅ Single Judge | Non-critical single artifacts | 1 evaluation, threshold 4.0/5.0 |
-| ✅ Panel (2) | Critical single artifacts | 2 evaluations, median voting, threshold 4.0/5.0 |
+| ✅ Panel (2) | Critical single artifacts with a failure mode a gate cannot catch | 2 evaluations, median voting, threshold 4.0/5.0 |
 | ✅ Per-Item | Multiple similar items | 1 evaluation per item, parallel, threshold 4.0/5.0 |
+
+**`NONE` is a real answer, not an escape hatch.** A judge run costs a full agent invocation and
+~190 lines of spec. If the step is "add a third `tsc` invocation to the typecheck script" and CI
+failing is the whole test, `NONE` plus the named gate is the correct and cheaper specification.
+Conversely, do not downgrade a step to `NONE` because it *has* a gate — only when the gate is
+**sufficient**. The distinguishing question is: could this step pass every gate and still be wrong?
+If yes, a judge is warranted.
 
 
 ```markdown
@@ -1805,41 +1820,32 @@ After self-verification is complete for every step, assemble the final per-step 
 
 ---
 
-### STAGE 9: Write to Task File
+### STAGE 9: Write the Verification Sidecar
 
-Now update the task file with the verification sections produced in Stages 3-8.
+The verification spec goes into a **sidecar file next to the task file**, not inline into it.
 
-#### 9.1 Verification Section Templates
+#### 9.0 Sidecar File and Shared Preamble
 
-##### Template: No Verification
+**Path:** same directory and basename as the task file, with the extension replaced by
+`.verification.md`. For `.specs/tasks/todo/add-auth.feature.md` the sidecar is
+`.specs/tasks/todo/add-auth.verification.md`.
 
-```markdown
-#### Verification
-
-**Rationale:** [Why verification is unnecessary - e.g., "Simple file operation. Success is binary."]
-**Level:** NOT NEEDED
-
-```
-
-##### Template: Single Judge
+Open the sidecar with a **shared preamble** holding everything that is identical across steps.
+Two blocks are always identical and MUST NOT be repeated per step — in the measured 19-step task
+they cost 342 and 260 duplicated lines respectively:
 
 ```markdown
-#### Verification
+# Verification Spec: [Task Title]
 
-**Level:** ✅ Single Judge
-**Artifact:** `[path/to/artifact.md]`
-**Threshold:** 4.0/5.0
+**Task file:** `[path/to/task.feature.md]`
+**Steps covered:** [N]
 
+> One `### Step N` section per implementation step. A judge reads the preamble plus the single
+> section for the step it is scoring, and nothing else.
 
-**Checklist:**
+## Shared: Regular Checks
 
-| ID | Question | Category | Importance |
-|----|----------|----------|------------|
-| [ID] | [Boolean YES/NO question] | hard_rule \| principle | essential \| important \| optional \| pitfall |
-
-**Regular Checks:**
-
-<!-- Remove regular checks that are not applicable to this step: -->
+<!-- Applies to EVERY step unless that step's section lists an exception. -->
 
 - [ ] Build passes: `[discovered build command, e.g., npm run build]`
 - [ ] Lint passes with zero new errors/warnings: `[discovered lint command, e.g., npm run lint]`
@@ -1850,13 +1856,62 @@ Now update the task file with the verification sections produced in Stages 3-8.
 - [ ] Every `test_matrix` row (main + edge + error) has a corresponding test
 - [ ] Every entry in the **Test Cases to Cover** list has an implemented test
 
+## Shared: Project Guidelines Alignment
+
+<!-- Emit this dimension ONCE here, with full score definitions. Each step's rubric references it
+     by name and weight only. Omit this section entirely if no guideline files were discovered. -->
+
+**Guideline files discovered:** `[CLAUDE.md, CONTRIBUTING.md, .claude/rules/, ...]`
+
+[Short description paragraph — what this dimension means and covers.]
+
+[Classification / instruction paragraph — how the judge should classify the artifact.]
+
+Score Definitions
+
+- 1: [Condition]
+- 2: [Condition (DEFAULT — must justify higher)]
+- 3: [Condition (RARE — requires evidence)]
+- 4: [Condition (IDEAL — requires evidence that it is impossible to do better)]
+- 5: [Condition (OVERLY PERFECT — done much more than what is required)]
+```
+
+#### 9.1 Per-Step Section Templates
+
+##### Template: No Verification
+
+```markdown
+### Step N
+
+**Rationale:** [Why verification is unnecessary - e.g., "Simple file operation. Success is binary."]
+**Level:** NOT NEEDED
+
+```
+
+##### Template: Single Judge
+
+```markdown
+### Step N
+
+**Level:** ✅ Single Judge
+**Artifact:** `[path/to/artifact.md]`
+**Threshold:** 4.0/5.0
+
+**Regular Checks:** shared set applies. [Exceptions, e.g. "no test command — docs-only step" — or "no exceptions".]
+
+**Checklist:**
+
+| ID | Question | Category | Importance |
+|----|----------|----------|------------|
+| [ID] | [Boolean YES/NO question] | hard_rule \| principle | essential \| important \| optional \| pitfall |
+
 **Rubric:**
 
 | Criterion | Weight | 
 |-----------|--------|
 | [Criterion 1] | 0.XX | |
 | [Criterion 2] | 0.XX | |
-| Project Guidelines Alignment | 0.XX | |
+| Project Guidelines Alignment | 0.XX | see **Shared: Project Guidelines Alignment** |
 | ... | ... | ... |
 
 **Rubric Score Definitions:**
@@ -1918,7 +1973,7 @@ Score Definitions
 ##### Template: Panel of 2 Judges
 
 ```markdown
-#### Verification
+### Step N
 
 **Level:** ✅✅ CRITICAL — Panel of 2 Judges with Aggregated Voting
 **Artifact:** `[path/to/artifact.md]`
@@ -1930,7 +1985,7 @@ Score Definitions
 ##### Template: Per-Item Judges
 
 ```markdown
-#### Verification
+### Step N
 
 **Level:** Per-[Item Type] Judges ([N] separate evaluations in parallel)
 **Artifacts:** `[path/to/items/{item1,item2,...}.md]`
@@ -1939,9 +1994,9 @@ Score Definitions
 <!-- The rest of the template is the same as the Single Judge template, but for each item -->
 ```
 
-#### 9.2 Add Verification to Each Step
+#### 9.2 Write One Section per Step
 
-For each step, add BOTH a `#### Verification` section AND all sections inside it. The specification (task file) uses **structured markdown** — NOT YAML — for the rubric, checklist, and test strategy. The scratchpad keeps the YAML form as the machine-readable source of truth; this stage transforms it into the human-readable markdown that the developer and judges will read in the task file.
+For each step, add a `### Step N` section to the **sidecar file**. The sidecar uses **structured markdown** — NOT YAML — for the rubric, checklist, and test strategy. The scratchpad keeps the YAML form as the machine-readable source of truth; this stage transforms it into the human-readable markdown that the judges will read.
 
 1. Use the appropriate template based on Stage 1's verification level determination
 2. Fill in artifact paths from the step's Expected Output
@@ -1952,7 +2007,7 @@ For each step, add BOTH a `#### Verification` section AND all sections inside it
   - Step-specific hard rules and TICK items
   - Applicable default checklist items — apply per-step conditional adjustments
   Do NOT emit the checklist as a YAML block in the spec file.
-5. Include the Project Guidelines Alignment rubric dimension (if guidelines were discovered in Stage 1), with full score definitions, alongside the other rubric dimensions
+5. Reference the Project Guidelines Alignment dimension by **name and weight only**, in the rubric table. Its description and score definitions live once in **Shared: Project Guidelines Alignment**. NEVER restate them per step — that duplication was 342 lines in a measured 19-step task.
 6. Include reference pattern if one exists
 7. Render the **Test Strategy** as a **structured markdown section** (NOT as a YAML block in the spec file). Order is load-bearing: 
   a. prose metadata as `**Applies:**`, `**Artifact:**`, `**Criticality:**`; 
@@ -1960,11 +2015,23 @@ For each step, add BOTH a `#### Verification` section AND all sections inside it
   c. the **`Test Cases to Cover`** bullet list (format `- [type] description (AC-N)` per Stage 5's Case Listing Schema).
   **Omit the rest of the test strategy block from the spec file**.
 8. Verify rubric weights sum to 1.0
-9. Render the regular checks section as a human-readable markdown checkbox list mirroring the default checklist items included in step (4). Substitute the actual discovered build/lint/test commands from Stage 1 (e.g., `just build`, `cargo clippy`, `pnpm test`). Omit any line whose corresponding items was dropped by Stage 3's conditional adjustments. The Regular Checks section is the human-facing CI-gate view; the structured markdown inside Verification is the human-readable specification, and the scratchpad's YAML remains the machine-readable source of truth.
+9. Do NOT re-emit the regular checks list. Write the single line `**Regular Checks:** shared set applies.` plus this step's exceptions, if any. The full list lives once in **Shared: Regular Checks**, with the actual discovered build/lint/test commands from Stage 1 substituted there. A step that drops an item via Stage 3's conditional adjustments names only the dropped item as an exception.
+
+#### 9.2a Add the Pointer to the Task File
+
+The task file gets **one line per step** and nothing more. Insert it where the `#### Verification` section used to go:
+
+```markdown
+**Verification:** ✅ Single Judge · threshold 4.0/5.0 · see `[task-basename].verification.md` → `### Step N`
+```
+
+Use the step's actual level and threshold so a reader of the plan sees the verification posture without opening the sidecar. For `NOT NEEDED` steps write `**Verification:** ❌ none — [one-clause rationale]` and no pointer.
+
+Do NOT copy rubrics, checklists, score definitions or test matrices into the task file.
 
 #### 9.3 Add Verification Summary
 
-After all steps, add a summary table before `## Blockers` (or at end if no Blockers):
+After all steps, add a summary table to the **task file** before `## Blockers` (or at end if no Blockers). This table stays in the task file — it is the plan-level view of verification posture and is small:
 
 ```markdown
 ---
@@ -1978,6 +2045,7 @@ After all steps, add a summary table before `## Blockers` (or at end if no Block
 | 2b | ✅ Per-Item | N | 4.0/5.0 | [Brief description] |
 | ... | ... | ... | ... | ... |
 
+**Verification Spec:** `[task-basename].verification.md` (one `### Step N` section per step)
 **Total Evaluations:** [Calculate total]
 **Default Checklist Items:** Included in [X] of [Y] steps (build/lint/tests/duplication/boy-scout/reuse — per per-step adjustments)
 **Project Guidelines Alignment Dimension:** Included in [X] of [Y] step rubrics (omitted only if no guideline files were discovered)
@@ -2039,7 +2107,12 @@ Always specify a reference pattern when one exists. Judges use these to calibrat
 
 ## Output Format
 
-Your output for each step MUST be a structured-markdown evaluation specification embedded inside a `#### Verification` section in the task file. The specification contains: rubric dimensions (as `####` markdown sections), checklist items (as a markdown table), test strategy (as structured markdown with tables), and scoring metadata. The scratchpad continues to use YAML for these same artifacts as the machine-readable source of truth; Stage 9 transforms scratchpad YAML into spec-file markdown.
+Your output is **two files**:
+
+1. **The verification sidecar** — `<task-basename>.verification.md` next to the task file. A shared preamble (Regular Checks, Project Guidelines Alignment) plus one `### Step N` section per step. Each section is a structured-markdown evaluation specification containing: rubric dimensions (as `####` markdown sections), checklist items (as a markdown table), test strategy (as structured markdown with tables), and scoring metadata.
+2. **The task file** — gains exactly one `**Verification:**` pointer line per step, plus the `## Verification Summary` table. Nothing else.
+
+The scratchpad continues to use YAML for these same artifacts as the machine-readable source of truth; Stage 9 transforms scratchpad YAML into sidecar markdown.
 
 
 ---
@@ -2052,12 +2125,13 @@ Your output for each step MUST be a structured-markdown evaluation specification
 - ALWAYS define explicit score bins (1-5) for every rubric dimension.
 - NEVER include criteria that reward length, formatting, or style over substance.
 - ALWAYS ask for clarification when a step's success criteria are ambiguous.
-- Every step MUST have a `#### Verification` section in the task file (even if level is NONE).
+- Every step MUST have a `### Step N` section in the sidecar file (even if level is NONE) and a one-line `**Verification:**` pointer in the task file.
 - Rubric weights MUST sum to 1.0 within each step's rubric.
 - Default checklist items MUST be included by default and dropped only via the per-step conditional adjustments.
-- Project Guidelines Alignment dimension MUST be included in every step's rubric when guideline files were discovered in Stage 1.
+- Project Guidelines Alignment dimension MUST be included in every step's rubric when guideline files were discovered in Stage 1 — by **reference**, with its definition written once in the sidecar preamble.
+- NEVER duplicate the Regular Checks list or the Project Guidelines Alignment score definitions into a per-step section. Both are shared-preamble content; repeating them cost 602 lines in a measured 19-step task.
 - Do NOT modify content before the first step or after Implementation Process (except adding Verification Summary before Blockers).
-- Do NOT change step content, only add Verification sections.
+- Do NOT change step content, only add the one-line Verification pointer.
 - Per-Item count MUST match actual number of items in the step.
 - Use proper tools (Read, Write) for file operations.
 - Pass criteria as separate, clearly named items with definitions, not buried in prose.
@@ -2081,12 +2155,14 @@ Before completing verification definition, verify:
 - [ ] Test Strategy designed per applicable step with Decision Gates 0-6 walked (Stage 5)
 - [ ] Strategy Inputs (Criticality / Artifact surface / Dependencies in scope / Project test frameworks) captured per applicable step in Stage 5
 - [ ] Custom rubric assembled per step (Stage 6)
-- [ ] Project Guidelines Alignment dimension included in every applicable rubric (Stage 6.6)
-- [ ] Test Strategy block (YAML + Test Matrix table + Test Cases to Cover bullet list) emitted in every Verification section where `test_strategy.applies = true`
+- [ ] Project Guidelines Alignment dimension included in every applicable rubric (Stage 6.6), defined ONCE in the sidecar preamble and referenced by name and weight per step
+- [ ] Test Strategy block (YAML + Test Matrix table + Test Cases to Cover bullet list) emitted in every sidecar step section where `test_strategy.applies = true`
 - [ ] RRD cycle applied per step (Stage 7)
 - [ ] Self-verification completed per step with 6 questions answered (Stage 8)
 - [ ] Rubric weights sum to exactly 1.0 for each step's rubric
-- [ ] Verification sections added to ALL steps in the task file
+- [ ] Sidecar file written with a shared preamble and one `### Step N` section per step
+- [ ] Regular Checks list appears exactly ONCE in the sidecar, not once per step
+- [ ] Task file has exactly one `**Verification:**` pointer line per step and no copied rubrics or checklists
 - [ ] Reference patterns specified where applicable
 - [ ] Verification Summary table added with correct totals
 - [ ] All identified gaps from self-verification addressed and task file updated

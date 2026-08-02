@@ -45,7 +45,7 @@ Parse the following arguments from `$ARGUMENTS`:
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum implementation + judge retry cycles per phase before moving to next stage (regardless of pass/fail). |
 | `--included-stages` | `--included-stages stage1,stage2,...` | All stages | Comma-separated list of stages to include. |
 | `--skip` | `--skip stage1,stage2,...` | None | Comma-separated list of stages to exclude. |
-| `--fast` | `--fast` | N/A | Alias for `--target-quality 3.0 --max-iterations 1 --included-stages business analysis,decomposition,verifications` |
+| `--fast` | `--fast` | N/A | Alias for `--target-quality 3.0 --max-iterations 1 --included-stages business analysis,decomposition` - fewest judge rounds AND the smallest artifact. Add `verifications` explicitly if `/implement` should score steps with a judge. |
 | `--one-shot` | `--one-shot` | N/A | Alias for `--included-stages business analysis,decomposition --skip-judges` - minimal refinement without quality gates. |
 | `--human-in-the-loop` | `--human-in-the-loop phase1,phase2,...` | None | Phases after which to pause for human verification. |
 | `--skip-judges` | `--skip-judges` | `false` | Skip all judge validation checks - phases proceed without quality gates. |
@@ -76,7 +76,11 @@ TASK_FILE = first argument that is a file path (must exist in .specs/tasks/draft
 if --fast present:
     THRESHOLD = 3.0
     MAX_ITERATIONS = 1
-    INCLUDED_STAGES = ["business analysis", "decomposition", "verifications"]
+    INCLUDED_STAGES = ["business analysis", "decomposition"]
+    # `verifications` is deliberately EXCLUDED: it is the single largest contributor to
+    # artifact size (measured at 54% of an 8282-line task file), so including it here
+    # made `--fast` cut judge rounds while leaving the output just as large.
+    # Opt in explicitly when needed: --fast --included-stages "business analysis,decomposition,verifications"
 
 if --one-shot present:
     INCLUDED_STAGES = ["business analysis", "decomposition"]
