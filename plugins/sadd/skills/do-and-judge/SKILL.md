@@ -1,7 +1,7 @@
 ---
 name: do-and-judge
 description: Execute a task with sub-agent implementation and LLM-as-a-judge verification with automatic retry loop
-argument-hint: Task description (e.g., "Refactor the UserService class to use dependency injection")
+argument-hint: Task description [--model opus|sonnet|haiku] [--strict] (e.g., "Refactor the UserService class to use dependency injection")
 ---
 
 # do-and-judge
@@ -9,8 +9,18 @@ argument-hint: Task description (e.g., "Refactor the UserService class to use de
 ## Task
 Execute a single task by dispatching an implementation sub-agent, verifying with an independent judge, and iterating with feedback until passing or max retries exceeded.
 
+## Arguments
+
+| Argument | Format | Default | Description |
+|----------|--------|---------|-------------|
+| `task` | Free-form text | **Required** | Task description to execute |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for the implementation, meta-judge and judge |
+| `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - the task passes ONLY when `score >= 4.0`, otherwise retry until max retries is reached. |
+
+Example: `/do-and-judge Refactor the UserService class to use dependency injection --strict`
+
 ## Context
-This command implements a **single-task execution pattern** with **meta-judge → LLM-as-a-judge verification**. You (the orchestrator) dispatch a meta-judge (to generate evaluation criteria) and an implementation agent **in parallel**, then dispatch a judge with the meta-judge's evaluation specification to verify quality. If verification fails, you launch new implementation agent with judge feedback and iterate until passing (score ≥4) or max retries (2) exceeded.
+This command implements a **single-task execution pattern** with **meta-judge → LLM-as-a-judge verification**. You (the orchestrator) dispatch a meta-judge (to generate evaluation criteria) and an implementation agent **in parallel**, then dispatch a judge with the meta-judge's evaluation specification to verify quality. If verification fails, you launch new implementation agent with judge feedback and iterate until passing (score ≥4, or accepted per the [Iteration Discretion Rule](#iteration-discretion-rule)) or max retries (3) exceeded.
 
 Key benefits:
 
@@ -26,7 +36,7 @@ Key benefits:
 1. Analyze the task and select optimal model
 2. Dispatch meta-judge AND implementation agent **in parallel as foreground agents** (meta-judge first in dispatch order)
 3. Dispatch judge agent with meta-judge's evaluation specification
-4. Parse verdict and iterate if needed (max 2 retries)
+4. Parse verdict and iterate if needed (max 3 retries)
 5. Report final results or escalate
 
 ## RED FLAGS - Never Do These
@@ -52,6 +62,8 @@ Key benefits:
 ## Process
 
 ### Phase 1: Task Analysis and Model Selection
+
+Resolve configuration first: `STRICT_MODE = --strict present || false`. Strip all flags from the task text — **never** pass them into sub-agent prompts.
 
 Analyze the task to select the optimal model:
 
@@ -353,12 +365,12 @@ If score ≥4:
   → Report success with summary
   → Include IMPROVEMENTS as optional enhancements
 
-IF score ≥ 3.0 and all found issues are low priority, then:
-  → VERDICT: PASS
-  → Report success with summary
-  → Include IMPROVEMENTS as optional enhancements
+If 3.0 ≤ score <4 and NOT STRICT_MODE:
+  → Apply the Iteration Discretion Rule below
+    → accepted → VERDICT: PASS (report outstanding issues)
+    → declined → VERDICT: FAIL → go to "Check retry count" below
 
-If score <4:
+Otherwise (score <3.0, or score <4 with STRICT_MODE):
   → VERDICT: FAIL
   → Check retry count
 
@@ -370,6 +382,22 @@ If score <4:
     → Escalate to user (see Error Handling)
     → Do NOT proceed without user decision
 ```
+
+#### Iteration Discretion Rule
+
+Your main task is to COMPLETE the task within target quality. Two failure modes are equally real:
+
+- Burning retries and context on nitpicks so the task never completes on time → **the task is failed**; a developer is waiting on this result and may have dependent work blocked, so implementation effort MUST stay proportionate to the task's size.
+- Reporting a result whose quality is genuinely too poor to be considered complete → **an even worse failure**.
+
+Apply to every judge score:
+
+- **`score < 3.0` → FAIL, unconditionally. No discretion.** Retry with judge feedback until it passes or max retries is reached.
+- **`3.0 <= score < 4.0` → discretion band.** ONLY inside this band MAY you decide that a result below the `4.0` target is acceptable. The fixed `4.0` target puts the effective floor at `3.0`, so no separate bounded-drop guard is needed.
+- Inside the band, when the outstanding issues are ONLY low/medium priority (any High or Critical finding removes discretion entirely) AND none of them breaks a target requirement of the task or causes a meaningful defect (i.e. they are nitpicks), you MUST reason FIRST — before dispatching a retry — about whether another attempt is worth the developer's time and your context.
+- **At most ONE nitpick-driven retry**, and it counts against the retry budget. If it again surfaces only nitpicks, you MUST report PASS (☑️ ACCEPTED) with the outstanding issues listed in the final report. If it returns a score below `3.0`, the unconditional-FAIL rule applies instead.
+- You MUST be critical, NOT lenient. Stopping short of target MUST be an intentional decision grounded in the absence of real, requirement-breaking issues. A genuine blocking issue that prevents completing the task within max retries MUST be escalated as a failure, never papered over.
+- **If `STRICT_MODE` is true, this whole rule is DISABLED**: stop only when `score >= 4.0` or max retries is reached. `--strict` changes nothing else — the `4.0` target, the max-retry limit, the `< 3.0` unconditional FAIL and meta-judge/judge dispatch are unaffected.
 
 ### Phase 5: Retry with Feedback (If Needed)
 
@@ -413,13 +441,17 @@ After task passes verification:
 ## Execution Summary
 
 **Task:** {original task description}
-**Result:** ✅ PASS
+**Result:** ✅ PASS (or ☑️ ACCEPTED below target per the Iteration Discretion Rule)
+**Strict Mode:** {STRICT_MODE}
 
 ### Verification
 | Attempt | Score | Status |
 |---------|-------|--------|
-| 1 | {X.X}/5.0 | {PASS/FAIL} |
-| 2 | {X.X}/5.0 | {PASS/FAIL} | (if retry occurred)
+| 1 | {X.X}/5.0 | {PASS/ACCEPTED/FAIL} |
+| {N} | {X.X}/5.0 | {PASS/ACCEPTED/FAIL} | (one row per retry that occurred, up to 3)
+
+### Outstanding Issues (if accepted below target)
+{Nitpicks left unresolved, with priority — omit this section when score >= 4.0}
 
 ### Files Modified
 - {file1}: {what changed}
@@ -437,7 +469,7 @@ After task passes verification:
 
 ### If Max Retries Exceeded
 
-When task fails verification twice:
+When the task still fails verification after 3 retries:
 
 1. **STOP** - Do not proceed
 2. **Report** - Provide failure analysis:
@@ -1105,7 +1137,7 @@ Phase 6: Final Report
 - **Never skip meta-judge** - Tailored evaluation criteria produce better judgments than generic ones
 - **Reuse meta-judge spec on retries** - The evaluation specification stays constant across retry attempts; only the implementation changes
 - **Parse only headers from judge** - Don't read full reports to avoid context pollution
-- **Trust the threshold** - 4/5.0 is the quality gate
+- **Trust the threshold** - 4/5.0 is the quality gate; below it, the [Iteration Discretion Rule](#iteration-discretion-rule) decides (unless `--strict`)
 - **Include CLAUDE_PLUGIN_ROOT** - Both meta-judge and judge need the resolved plugin root path
 
 ### Iteration
@@ -1114,6 +1146,7 @@ Phase 6: Final Report
 - **Pass feedback verbatim** - Let the implementation agent see exact issues
 - **Same meta-judge spec** - Do NOT re-run meta-judge on retries; the evaluation criteria don't change
 - **Escalate appropriately** - Don't loop forever on fundamental problems
+- **Stay proportionate** - Match iteration effort to task size per the [Iteration Discretion Rule](#iteration-discretion-rule); at most ONE nitpick-driven retry
 
 ### Context Management
 

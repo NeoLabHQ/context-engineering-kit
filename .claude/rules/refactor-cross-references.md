@@ -5,7 +5,7 @@ impact: HIGH
 
 # Update All Cross-References When Refactoring Numbered Sequences
 
-When removing or renumbering a numbered element (gate, step, section, list item), grep the ENTIRE file for ALL derived references to the old range/count — not just the obvious primary block — and update every cross-reference. Adjacent checklists, template comments, and action items often reference the old count and become silently inconsistent.
+When removing or renumbering a numbered element (gate, step, section, list item), **or introducing a numeric bound that tightens an existing one** (a new floor, cap, or threshold), grep the ENTIRE file for ALL derived references to the old range/count — not just the obvious primary block — and update every cross-reference. Adjacent checklists, legends, template comments, and action items often restate the old, looser range and become silently inconsistent.
 
 ## Incorrect
 

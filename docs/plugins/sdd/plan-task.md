@@ -24,6 +24,8 @@ Refine a draft task specification into a fully planned, implementation-ready tas
 | `--skip-judges` | flag | `false` | Skip all judge validation checks |
 | `--refine` | flag | `false` | Detect changes via git diff and re-run only affected stages |
 | `--continue` | `--continue [stage]` | None | Resume from a specific stage (auto-detects if stage not provided) |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for the agents and judges |
+| `--strict` | flag | `false` | Disable iteration discretion — a phase passes ONLY when its score reaches the threshold, otherwise retry until `--max-iterations` |
 
 ## Stage Names
 
@@ -144,8 +146,10 @@ Moves the refined task file from `draft/` to `todo/` and stages all generated ar
 Every phase includes a judge validation step using LLM-as-Judge:
 
 - **PASS** (score >= threshold) — Phase complete; proceed to the next stage.
+- **ACCEPTED** (score below threshold but at or above the floor) — Accepted because of only low/medium priority issues, all target requirements are met.
 - **FAIL** (score < threshold) — Re-run the phase with judge feedback.
 - **MAX_ITERATIONS reached** — Proceed to the next stage automatically (with a warning logged).
+
 
 ## Refine Mode (`--refine`)
 
@@ -190,6 +194,9 @@ You can also pass a requirement change directly: `/plan --refine <requirement ch
 
 # Incremental refinement after editing the spec
 /plan-task .specs/tasks/todo/my-task.feature.md --refine
+
+# Never accept a phase below target quality
+/plan-task .specs/tasks/draft/critical-api.feature.md --strict
 ```
 
 ## Artifacts Generated

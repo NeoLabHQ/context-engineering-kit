@@ -1,7 +1,7 @@
 ---
 name: do-in-steps
 description: Execute one complex task as ordered, dependent steps run sequentially, passing context from each step to the next, with per-step LLM-as-a-judge verification. Use when later steps depend on the results of earlier ones.
-argument-hint: Task description (e.g., "Refactor UserService class and update all consumers")
+argument-hint: Task description [--model opus|sonnet|haiku] [--strict] (e.g., "Refactor UserService class and update all consumers")
 ---
 
 # do-in-steps
@@ -22,6 +22,16 @@ This command implements the **Supervisor/Orchestrator pattern** for sequential t
 - **Parallel speed** - Meta-judge and implementation agent run in parallel per step; meta-judge specification reused across retries within that step
 
 </context>
+
+## Arguments
+
+| Argument | Format | Default | Description |
+|----------|--------|---------|-------------|
+| `task` | Free-form text | **Required** | Task description to decompose and execute |
+| `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#36-iteration-discretion-rule) - a step passes ONLY when `score >= 4.0`, otherwise retry until max retries is reached. |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for the implementation, meta-judge and judge |
+
+Example: `/do-in-steps Refactor UserService class and update all consumers --strict`
 
 **CRITICAL:** You are the orchestrator only - you MUST NOT perform the task yourself. IF you read, write or run bash tools you failed task imidiatly. It is single most critical criteria for you. If you used anyting except sub-agents you will be killed immediatly!!!! Your role is to:
 
@@ -59,6 +69,7 @@ This command implements the **Supervisor/Orchestrator pattern** for sequential t
 - Pass only necessary context summaries, not full file contents
 - Get pass from judge verification before proceeding to next step
 - Iterate with judge feedback if verification fails (max 3 retries)
+- Apply the [Iteration Discretion Rule](#36-iteration-discretion-rule) to every step verdict, unless `--strict` was provided
 
 Any deviation from orchestration (attempting to implement subtasks yourself, reading implementation files, reading full judge reports, or making direct changes) will result in context pollution and ultimate failure, as a result you will be fired!
 
@@ -83,6 +94,8 @@ Where:
 **Note:** Implementation outputs go to their specified locations; only judge verification reports go to `.specs/reports/`
 
 ### Phase 1: Task Analysis and Decomposition
+
+Resolve configuration first: `STRICT_MODE = --strict present || false`. Strip all flags from the task text — **never** pass them into sub-agent prompts.
 
 Analyze the task systematically using Zero-shot Chain-of-Thought reasoning:
 
@@ -257,14 +270,14 @@ Execute subtasks one by one. For each step, dispatch a meta-judge AND implementa
 │   │ Implementer  │──┘   └──────────────┘     └──────────────────────┘       │
 │   │ (Sub-agent)  │                                      │                    │
 │   └──────────────┘                                      ▼                    │
-│          ▲                              ┌─────────────────────────┐          │
-│          │                              │ PASS (≥4.0)?            │          │
-│          │                              │ ├─ YES → Next Step      │          │
-│          │                              │ ├─ ≥3.0 + low → PASS   │          │
-│          │                              │ └─ NO  → Retry?         │          │
-│          │                              │     ├─ <3 → Retry       │          │
-│          │                              │     └─ ≥3 → Escalate    │          │
-│          │                              └─────────────────────────┘          │
+│          ▲                              ┌──────────────────────────────┐     │
+│          │                              │ PASS (≥4.0)?                 │     │
+│          │                              │ ├─ YES → Next Step           │     │
+│          │                              │ ├─ ≥3.0 → Rule 3.6           │     │
+│          │                              │ └─ NO  → Retry?              │     │
+│          │                              │     ├─ <3 retries → Retry    │     │
+│          │                              │     └─ ≥3 retries → Escalate │     │
+│          │                              └──────────────────────────────┘     │
 │          │                                            │                      │
 │          └────────────── feedback ────────────────────┘                      │
 │          (retries reuse same meta-judge spec, no new meta-judge)             │
@@ -643,12 +656,12 @@ For each subtask in sequence:
      → Proceed to next step with accumulated context
      → Include IMPROVEMENTS in context as optional enhancements
 
-   IF score ≥ 3.0 and all found issues are low priority, then:
-     → VERDICT: PASS
-     → Proceed to next step with accumulated context
-     → Include IMPROVEMENTS in context as optional enhancements
+   If 3.0 ≤ score <4.0 and NOT STRICT_MODE:
+     → Apply the Iteration Discretion Rule (3.6)
+       → accepted → VERDICT: PASS (report outstanding issues and proceed)
+       → declined → VERDICT: FAIL → go to "Check retry count" below
 
-   If score <4.0:
+   Otherwise (score <3.0, or score <4.0 with STRICT_MODE):
      → VERDICT: FAIL
      → Check retry count for this step
 
@@ -706,6 +719,22 @@ Let's fix the identified issues step by step.
 CRITICAL: Focus on fixing the specific issues identified. Do not rewrite everything.
 ```
 
+#### 3.6 Iteration Discretion Rule
+
+Your main task is to COMPLETE the task within target quality, and iteration effort MUST stay proportionate to each step's size. Two failure modes are equally real:
+
+- Burning retries and context on nitpicks so the overall task never completes → **the task is failed**.
+- Accepting a step whose quality is genuinely too poor to be considered complete → **an even worse failure**.
+
+Apply to every judge score:
+
+- **`score < 3.0` → FAIL, unconditionally. No discretion.** Retry with judge feedback until the step passes or max retries is reached.
+- **`3.0 <= score < 4.0` → discretion band.** ONLY inside this band MAY you decide that a step below the `4.0` target is acceptable. The fixed `4.0` target puts the effective floor at `3.0`, so no separate bounded-drop guard is needed.
+- Inside the band, when the outstanding issues are ONLY low/medium priority (any High or Critical finding removes discretion entirely) AND none of them breaks a target requirement of the step or causes a meaningful defect (i.e. they are nitpicks), you MUST reason FIRST — before dispatching a retry — about whether another attempt is worth the time and context cost.
+- **At most ONE nitpick-driven retry**, and it counts against the retry budget. If it again surfaces only nitpicks, you MUST mark the step PASS (`ACCEPTED`), carry the outstanding issues forward in the accumulated context, report them in the final summary, and continue with the next step. If it returns a score below `3.0`, the unconditional-FAIL rule applies instead.
+- You MUST be critical, NOT lenient. Stopping short of target MUST be an intentional decision grounded in the absence of real, requirement-breaking issues — later steps build on this one. A genuine blocking issue that prevents completing the step within max retries MUST be escalated as a failure, never papered over.
+- **If `STRICT_MODE` is true, this whole rule is DISABLED**: stop only when `score >= 4.0` or max retries is reached. `--strict` changes nothing else — the `4.0` target, the max-retry limit, the `< 3.0` unconditional FAIL and meta-judge/judge dispatch are unaffected.
+
 ### Phase 4: Final Summary and Report
 
 After all subtasks complete and pass verification, reply with a comprehensive report:
@@ -716,6 +745,7 @@ After all subtasks complete and pass verification, reply with a comprehensive re
 **Overall Task:** {original task description}
 **Total Steps:** {count}
 **Total Agents:** {meta_judges(one per step) + implementation_agents + judge_agents + retry_agents}
+**Strict Mode:** {STRICT_MODE}
 
 ### Step-by-Step Results
 
@@ -724,6 +754,8 @@ After all subtasks complete and pass verification, reply with a comprehensive re
 | 1 | {name} | {model} | {X.X}/5.0 | {0-3} | PASS |
 | 2 | {name} | {model} | {X.X}/5.0 | {0-3} | PASS |
 | ... | ... | ... | ... | ... | ... |
+
+Status is `PASS` (score >= 4.0), `ACCEPTED` (below target per the [Iteration Discretion Rule](#36-iteration-discretion-rule) — list the outstanding nitpicks under Follow-up Recommendations), or `FAILED`.
 
 ### Files Modified (All Steps)
 - {file1}: {what changed, which step}
@@ -756,7 +788,7 @@ One evaluation specification generated per step (in parallel with implementation
 
 ### If Judge Verification Fails (Score <4.0)
 
-The judge-verified iteration loop handles most failures automatically:
+The judge-verified iteration loop handles most failures automatically (a score in `3.0..4.0` is FAIL only after the [Iteration Discretion Rule](#36-iteration-discretion-rule) declines to accept it):
 
 ```
 Judge FAIL (Retry Available):
@@ -1348,6 +1380,7 @@ Total Agents: 20 (5 meta-judges + 5 implementations + 5 retries + 5 judges)
 - **Self-critique first:** Implementation agents verify own work before submission
 - **External judge second:** Independent judge catches blind spots self-critique misses
 - **Iteration loop:** Retry with feedback until passing or max retries
+- **Proportionate iteration:** Apply the [Iteration Discretion Rule](#36-iteration-discretion-rule) — at most ONE nitpick-driven retry, never below `3.0`, disabled by `--strict`
 - **Chain validation:** Judges check integration with previous steps
 - **Escalation:** Don't proceed past failed steps - get user input
 - **Final integration test:** After all steps, verify the complete change works together

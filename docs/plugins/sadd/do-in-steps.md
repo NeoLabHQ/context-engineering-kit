@@ -11,6 +11,14 @@ Execute complex tasks through sequential sub-agent orchestration with intelligen
 
 Three-layer verification: self-critique (internal) + meta-judge evaluation spec (per step) + LLM-as-a-judge (external) with iteration until passing
 
+## Arguments
+
+| Argument | Format | Default | Description |
+|----------|--------|---------|-------------|
+| `task` | Free-form text | **Required** | Task description to decompose and execute |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for the implementation, meta-judge and judge |
+| `--strict` | flag | `false` | Disable iteration discretion — a step passes ONLY at score >= 4.0, otherwise retry until max retries |
+
 ## Pattern: Sequential Orchestration with Meta-Judge and Judge Verification
 
 ```
@@ -66,6 +74,9 @@ Phase 4: Final Summary and Report
 
 # Multi-file refactoring with breaking changes
 /do-in-steps "Rename 'userId' to 'accountId' across the codebase - affects interfaces, implementations, and callers"
+
+# Never accept a step below target quality
+/do-in-steps "Add email notification capability to the order processing system" --strict
 ```
 
 ## When to Use

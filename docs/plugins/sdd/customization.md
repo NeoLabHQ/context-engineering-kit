@@ -10,6 +10,8 @@ In contrast to other plugins in the context-engineering-kit marketplace, this pl
 
 If you want better results or want to finish tasks faster, you can adjust command parameters. For example, adding `--target-quality 4.5 --max-iterations 5` to `/plan` or `/implement` allows the orchestrator agent to iterate more toward "ideal" results. Conversely, setting `--target-quality 3.0 --max-iterations 1` makes agents finish when results minimally meet the criteria, iterating only once to resolve issues. This lets you configure each command to balance quality and speed per task run.
 
+Note that `target-quality` is a target, not a hard stop: by default the orchestrator may accept a phase or step that lands slightly below it when the only outstanding issues are Low/Medium nitpicks that break no requirement (see Iteration Discretion in the `/plan` and `/implement` docs), and it reports those issues in the summary. Add `--strict` when the target is non-negotiable — the orchestrator then stops only at `target-quality` or `max-iterations`, at the cost of extra iterations.
+
 If you just want results as fast as the framework can produce them, use the `--fast` preset in the `/plan` command. It limits the number of steps and decreases both target quality and refinement iterations altogether.
 
 If you know certain steps aren't needed for your task, you can use the `--skip` parameter in the `/plan` command. For example, `--skip research` skips the research phase entirely, and `--skip parallelize` skips task parallelization.

@@ -17,9 +17,11 @@ Execute task implementation steps using automated LLM-as-Judge quality verificat
 | `--target-quality` | `--target-quality X.X` or `X.X,Y.Y` | `4.0` (standard) / `4.5` (critical) | Quality threshold. Single value sets both. Two comma-separated values set standard,critical. |
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum fix→verify cycles per step. Set to `unlimited` for no limit. |
 | `--human-in-the-loop` | `--human-in-the-loop [s1,s2,...]` | None | Steps after which to pause for review. If no steps are specified, the process pauses after every step. |
-| `--skip-judges` | flag | `false` | Skip all judge validation — fast but provides no quality gates |
+| `--skip-reviews` | flag | `false` | Skip all per-step code-reviewer checks — fast but provides no quality gates |
 | `--continue` | flag | None | Resume from the last completed step |
 | `--refine` | flag | `false` | Detect changed project files and re-verify from the earliest affected step |
+| `--strict` | flag | `false` | Disable iteration discretion — a step passes ONLY when its score reaches the threshold, otherwise iterate until `--max-iterations` |
+
 
 ## Context Management
 
@@ -224,7 +226,10 @@ After each specified step passes:
 /implement-task add-validation.feature.md --max-iterations unlimited
 
 # Skip judges for fast execution (no quality gates)
-/implement-task add-validation.feature.md --skip-judges
+/implement-task add-validation.feature.md --skip-reviews
+
+# Never accept a step below target quality
+/implement-task add-validation.feature.md --strict
 
 # Combined: continue with human review
 /implement-task add-validation.feature.md --continue --human-in-the-loop
@@ -245,4 +250,5 @@ After each specified step passes:
 - Use `--refine` after making manual fixes — it re-verifies affected steps without re-implementing everything
 - For critical features, use `--target-quality 4.5` to enforce stricter quality
 - Use `--human-in-the-loop` for high-risk implementations where you want to review each step
-- Use `--skip-judges` only for well-understood tasks where speed matters more than verification
+- Use `--skip-reviews` only for well-understood tasks where speed matters more than verification
+- Use `--strict` when the target quality is non-negotiable and you accept the extra iterations it costs

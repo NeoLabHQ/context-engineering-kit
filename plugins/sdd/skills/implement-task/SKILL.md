@@ -1,7 +1,7 @@
 ---
 name: implement-task
 description: Implement a task with automated LLM-as-Judge verification per step
-argument-hint: Task file [options] (e.g., "add-validation.feature.md --continue --human-in-the-loop")
+argument-hint: Task file [--continue] [--refine] [--target-quality] [--max-iterations] [--lenient-threshold] [--strict]
 ---
 
 # Implement Task with Verification
@@ -34,6 +34,7 @@ Parse the following arguments from `$ARGUMENTS`:
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum fix→verify cycles per step. Default is 3 iterations. Set to `unlimited` for no limit. |
 | `--skip-reviews` | `--skip-reviews` | `false` | Skip all per-step code-reviewer checks - steps proceed without quality gates. |
 | `--lenient-threshold` | `--lenient-threshold X.X` | `3.5` | Lenient threshold (out of 5.0) used for steps with verification level explicitly marked lenient by qa-engineer. |
+| `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - a step is marked PASS ONLY when `combined_score >= threshold`, otherwise iterate until `MAX_ITERATIONS` is reached. |
 
 ### Configuration Resolution
 
@@ -61,6 +62,7 @@ SKIP_REVIEWS = --skip-reviews || false
 LENIENT_THRESHOLD = --lenient-threshold || 3.5
 REFINE_MODE = --refine || false
 CONTINUE_MODE = --continue || false
+STRICT_MODE = --strict || false
 
 # Special handling for --human-in-the-loop without step list
 if --human-in-the-loop present without step numbers:
@@ -75,7 +77,7 @@ When `--continue` is used:
    - Parse the task file for `[DONE]` markers on step titles
    - Identify the last incompleted step
    - Launch the `sdd:code-reviewer` agent to verify the last INCOMPLETE step's artifacts (using the step's `#### Verification` specification embedded in the task file)
-   - If `combined_score >= threshold` (or `>= 3.0` with only Low-priority issues): Mark step as done and resume from the next step
+   - If the step PASSES per the [Iteration Discretion Rule](#iteration-discretion-rule): Mark step as done and resume from the next step
    - Otherwise: Re-implement the step using the reviewer's issues as feedback and iterate until PASS
 
 2. **State Recovery:**
@@ -129,7 +131,7 @@ When `--refine` is used, it detects changes to **project files** (not the task f
 4. **Refine Execution:**
    - For each affected step (in order):
      - Launch the **`sdd:code-reviewer` agent** to verify the step's artifacts (including user's changes), passing the 5 standard inputs
-     - If `combined_score >= threshold` (or `>= 3.0` with only Low-priority issues): Mark step done, proceed to next
+     - If the step PASSES per the [Iteration Discretion Rule](#iteration-discretion-rule): Mark step done, proceed to next
      - Otherwise: Launch the developer agent with user's changes AND the reviewer's issues as feedback, then re-verify
    - User's manual fixes are preserved - the developer agent should build upon them, not overwrite
 
@@ -215,7 +217,7 @@ Human verification checkpoints occur:
    **Step:** {step title}
    **Verification Level:** {None / Single Judge / Panel of 2 Judges / Per-Item Judges}
    **Combined Score:** {combined_score}/5.0 (threshold: {threshold})
-   **Status:** ✅ PASS / 🔄 ITERATING (attempt {n})
+   **Status:** ✅ PASS / ☑️ ACCEPTED / 🔄 ITERATING (attempt {n})
 
    **Artifacts Created/Modified:**
    - {artifact_path_1}
@@ -316,13 +318,14 @@ Orchestrators who "quickly verify" = skip `sdd:code-reviewer` agents = quality c
 - Use `THRESHOLD_FOR_CRITICAL_COMPONENTS` (default 4.5) for steps marked as critical in the task file.
 - Use `LENIENT_THRESHOLD` (default 3.5) only when the step's verification specification explicitly marks it as lenient.
 - The threshold is applied at THIS orchestrator layer against `combined_score` returned by code-reviewer. **NEVER pass any threshold to the code-reviewer agent — or he will try to reach target score and as result become subjective.**
-- A step PASSES if `combined_score >= threshold` OR (`combined_score >= 3.0` AND every issue in code-reviewer's report has priority `Low`).
+- A step PASSES if `combined_score >= threshold`. If `3.0 <= combined_score < threshold`, the step passes ONLY when the [Iteration Discretion Rule](#iteration-discretion-rule) says so — never below its floor of `max(3.0, threshold - 1.0)`. If `combined_score < 3.0`, the step FAILS unconditionally.
 - **Default is 3 iterations** - stop after 3 fix→verify cycles and proceed to next step (with warning)!
 - If `MAX_ITERATIONS` is set to `unlimited`: Iterate until quality threshold is met (no limit)
 - Trigger human-in-the-loop checkpoints ONLY after steps in `HUMAN_IN_THE_LOOP_STEPS` (or all steps if `"*"`)!
 - **If `SKIP_REVIEWS` is true: Skip ALL code-reviewer dispatches - proceed directly to next step after each implementation completes!**
 - **If `CONTINUE_MODE` is true: Skip to `RESUME_FROM_STEP` - do not re-implement already completed steps!**
 - **If `REFINE_MODE` is true: Detect changed project files, map to steps, re-verify from `REFINE_FROM_STEP` - preserve user's fixes!**
+- **If `STRICT_MODE` is true: The [Iteration Discretion Rule](#iteration-discretion-rule) is DISABLED - a step passes ONLY on `combined_score >= threshold`, otherwise iterate until `MAX_ITERATIONS`!**
 
 ### Execution & Evaluation Rules
 
@@ -334,6 +337,23 @@ Relaunch the code-reviewer till you get valid results, if following happens:
 - Combined Score 5.0 is a Hallucination: If the code-reviewer returns a `combined_score` of 5.0/5.0, treat it as a hallucination or lazy evaluation. Reject it and re-run the agent. Perfect scores are practically impossible in this rigorous framework.
 - Reject Missing Scores: If the code-reviewer's report is missing the `combined_score` (or any sub-score: `spec_compliance_score`, `builtin_score`), reject it. This indicates the agent failed to follow the rubric instructions.
 - Reject PASS/FAIL Verdicts in Report: If the code-reviewer's output contains a PASS/FAIL verdict or references a threshold, reject it. The orchestrator owns that decision; the agent must remain threshold-blind.
+
+#### Iteration Discretion Rule
+
+Your main task is to COMPLETE the task within target quality. Two failure modes are equally real:
+
+- Burning iterations and context on nitpicks so the overall task never completes → **the task is failed**.
+- Accepting a result whose quality is genuinely too poor to be considered complete → **an even worse failure**.
+
+Apply to every step's `combined_score`:
+
+- **`combined_score < 3.0` → FAIL, unconditionally. No discretion.** Iterate with reviewer feedback until the step passes or `MAX_ITERATIONS` is reached.
+- **`3.0 <= combined_score < 5.0` → discretion band.** ONLY inside this band MAY you decide that a step below `threshold` is acceptable.
+- **Bounded drop:** NEVER accept a `combined_score` more than `1.0` below the active `threshold` — the effective floor is `max(3.0, threshold - 1.0)`: `3.5` for `THRESHOLD_FOR_CRITICAL_COMPONENTS` (4.5), `3.0` for `THRESHOLD_FOR_STANDARD_COMPONENTS` (4.0) and `LENIENT_THRESHOLD` (3.5). A `threshold <= 3.0` leaves no discretion band.
+- Inside the band, when the outstanding issues are ONLY `Low`/`Medium` priority (any `High` or `Critical` finding removes discretion entirely) AND none of them breaks a target requirement of the step or causes a meaningful defect (i.e. they are nitpicks), you MUST reason FIRST — before dispatching another iteration — about whether iterating (or marking the step failed) is worth the time and context cost.
+- **At most ONE nitpick-driven iteration**, and it counts against `MAX_ITERATIONS`. If it again surfaces only nitpicks, you MUST mark the step PASS (☑️ ACCEPTED in the summary table), report the outstanding issues in the final report, and continue with the next step. If it returns a `combined_score` below the floor `max(3.0, threshold - 1.0)`, the FAIL path applies instead.
+- You MUST be critical, NOT lenient. Stopping short of target MUST be an intentional decision grounded in the absence of real, requirement-breaking issues. A genuine blocking issue that prevents implementing the step within `MAX_ITERATIONS` MUST be reported as a failure, never papered over.
+- **If `STRICT_MODE` is true, this whole rule is DISABLED**: stop only when `combined_score >= threshold` or `MAX_ITERATIONS` is reached. `--strict` changes nothing else — thresholds, `MAX_ITERATIONS`, the `< 3.0` unconditional FAIL, human-in-the-loop checkpoints, code-reviewer dispatch and `--skip-reviews` are unaffected. With `--skip-reviews` no `combined_score` is produced at all, so both this rule and `--strict` are inert.
 
 ---
 
@@ -486,6 +506,7 @@ Parse all flags from `$ARGUMENTS` and initialize configuration.
 | **Skip Reviews** | {SKIP_REVIEWS} |
 | **Continue Mode** | {CONTINUE_MODE} |
 | **Refine Mode** | {REFINE_MODE} |
+| **Strict Mode** | {STRICT_MODE} |
 ```
 
 ### Step 0.4: Handle Continue Mode
@@ -500,7 +521,7 @@ Parse all flags from `$ARGUMENTS` and initialize configuration.
 2. **Verify Last Completed Step (if any):**
    - If `LAST_COMPLETED_STEP > 0`:
      - Launch the `sdd:code-reviewer` agent to verify the artifacts from that step (passing the 5 inputs documented in Phase 2)
-     - If reviewer's `combined_score >= threshold` (or `>= 3.0` with only Low-priority issues): Set `RESUME_FROM_STEP = LAST_COMPLETED_STEP + 1`
+     - If the step PASSES per the [Iteration Discretion Rule](#iteration-discretion-rule): Set `RESUME_FROM_STEP = LAST_COMPLETED_STEP + 1`
      - Otherwise: Set `RESUME_FROM_STEP = LAST_COMPLETED_STEP` (re-implement using reviewer feedback)
 
 3. **Skip to Resume Point:**
@@ -659,8 +680,8 @@ all_issues = reviewer.issues  (or merged issues from both reviewers in Panel)
 # PASS rule (orchestrator decides):
 if combined_score >= threshold:
     PASS
-elif combined_score >= 3.0 and every issue.priority == "Low":
-    PASS  (acceptable: minor polish only, no high/medium issues)
+elif 3.0 <= combined_score < threshold and not STRICT_MODE:
+    apply the Iteration Discretion Rule → accepted: PASS | declined: FAIL → retry
 else:
     FAIL → retry
 ```
@@ -824,7 +845,7 @@ Inputs:
 
 - Apply the orchestrator-level PASS rule:
   - PASS if `combined_score >= threshold`
-  - PASS if `combined_score >= 3.0` AND every entry in `all_issues` has `priority == "Low"`
+  - If `3.0 <= combined_score < threshold`: decide via the [Iteration Discretion Rule](#iteration-discretion-rule) using `all_issues` — accepted → PASS, declined → FAIL → retry
   - Otherwise FAIL → retry
 
 **On FAIL: Iterate Until PASS (max `MAX_ITERATIONS`, default 3)**
@@ -855,7 +876,7 @@ Inputs:
 
 **Step:** [Step Title]
 **Combined Score:** [combined_score]/5.0 (threshold: [threshold])
-**Status:** ✅ PASS
+**Status:** ✅ PASS / ☑️ ACCEPTED
 
 **Artifacts Created/Modified:**
 - [artifact_path_1]
@@ -943,7 +964,7 @@ Inputs:
 
 For each item's reviewer report, apply the orchestrator-level threshold (per the [Threshold Application](#threshold-application-orchestrator-level-only) rules — Per-Item uses `THRESHOLD_FOR_STANDARD_COMPONENTS` unless the spec marks the step lenient or critical):
 
-- PASS if `combined_score >= threshold` OR (`combined_score >= 3.0` AND every issue is Low priority)
+- PASS if `combined_score >= threshold`, or if `3.0 <= combined_score < threshold` and the [Iteration Discretion Rule](#iteration-discretion-rule) accepts the item
 - Otherwise FAIL → that specific item needs retry
 
 **6. Report Aggregate:**
@@ -979,7 +1000,7 @@ For each item's reviewer report, apply the orchestrator-level threshold (per the
 
 **Step:** [Step Title]
 **Items Passed:** X/Y
-**Status:** ✅ ALL PASS
+**Status:** ✅ ALL PASS / ☑️ ACCEPTED
 
 **Artifacts Created:**
 - [item_1_path] — combined_score: X.XX
@@ -1164,7 +1185,7 @@ Concatenate `reviewer1.issues` and `reviewer2.issues`, then de-duplicate by (des
 
 - `panel_combined_score = median(reviewer1.combined_score, reviewer2.combined_score)`
 - PASS if `panel_combined_score >= threshold`
-- PASS if `panel_combined_score >= 3.0` AND every entry in the merged issues list has `priority == "Low"`
+- If `3.0 <= panel_combined_score < threshold`: decide via the [Iteration Discretion Rule](#iteration-discretion-rule) using the merged issues list — accepted → PASS, declined → FAIL → retry
 - Otherwise FAIL → retry
 
 ---
@@ -1202,6 +1223,7 @@ After all steps complete and DoD verification passes:
 | **Skip Reviews** | {SKIP_REVIEWS} |
 | **Continue Mode** | {CONTINUE_MODE} |
 | **Refine Mode** | {REFINE_MODE} |
+| **Strict Mode** | {STRICT_MODE} |
 
 ### Steps Completed
 
@@ -1214,6 +1236,7 @@ After all steps complete and DoD verification passes:
 
 **Legend:**
 - ✅ PASS - Score >= threshold for step type
+- ☑️ ACCEPTED - Score in `max(3.0, threshold - 1.0)..threshold` accepted per the [Iteration Discretion Rule](#iteration-discretion-rule) (outstanding nitpicks listed under Recommendations)
 - ⚠️ MAX_ITER - Did not pass but MAX_ITERATIONS reached, proceeded anyway
 - ⏭️ SKIPPED - Step skipped (continue/refine mode)
 
@@ -1222,6 +1245,7 @@ After all steps complete and DoD verification passes:
 - Total steps: X
 - Steps with verification: Y
 - Passed on first try: Z
+- Accepted below target per Iteration Discretion Rule: U (outstanding nitpicks listed under Recommendations)
 - Required iteration: W
 - Total iterations across all steps: V
 - Final pass rate: 100%
@@ -1384,6 +1408,9 @@ After all steps complete and DoD verification passes:
 # Custom lenient threshold for steps marked lenient by qa-engineer
 /implement add-validation.feature.md --lenient-threshold 3.0
 
+# Strict mode: never accept a step below target - iterate until threshold or MAX_ITERATIONS
+/implement add-validation.feature.md --strict
+
 # Combined: continue with human review
 /implement add-validation.feature.md --continue --human-in-the-loop
 ```
@@ -1422,8 +1449,18 @@ Step 2: Launching sdd:developer agent...
   Launching 2 sdd:code-reviewer agents in parallel (Panel of 2)...
   Reviewer 1: combined_score 4.3/5.0
   Reviewer 2: combined_score 4.5/5.0
-  Panel median: 4.4/5.0 (threshold 4.5) — issues all Low priority → PASS ✅
-  Status: ✅ COMPLETE (Reviewer Confirmed)
+  Panel median: 4.4/5.0 (threshold 4.5, floor max(3.0, 4.5-1.0) = 3.5)
+  Reasoning (Iteration Discretion Rule, before dispatching an iteration):
+    - 4.4 is inside 3.0..5.0 and above the 3.5 floor → discretion available
+    - 2 outstanding findings, both Low, no High/Critical, no requirement broken
+    - no nitpick-driven iteration spent yet → spend the ONE allowed iteration
+  Iteration 1/3: Re-launching sdd:developer with reviewer feedback...
+  Re-launching Panel of 2...
+  Panel median: 4.4/5.0 — same 2 Low findings, unchanged
+  Reasoning: the one allowed nitpick-driven iteration is now spent and it
+    surfaced only the same nitpicks; 4.4 is still above the 3.5 floor
+    → stop, do not iterate again
+  Status: ☑️ ACCEPTED (2 outstanding nitpicks reported under Recommendations)
 
 [Continue for all steps...]
 
@@ -1717,6 +1754,9 @@ Before completing implementation:
 - [ ] Used `THRESHOLD_FOR_CRITICAL_COMPONENTS` for `Panel of 2 Judges` steps
 - [ ] Used `LENIENT_THRESHOLD` only for steps the qa-engineer's spec marks lenient
 - [ ] Iterated until orchestrator-level PASS rule satisfied (or `MAX_ITERATIONS` reached, default 3)
+- [ ] Applied the [Iteration Discretion Rule](#iteration-discretion-rule) only inside `3.0 <= combined_score < 5.0`, never accepted below `max(3.0, threshold - 1.0)`, treated `< 3.0` as unconditional FAIL, and spent at most ONE nitpick-driven iteration
+- [ ] Passed NO threshold, floor or band value to the code-reviewer — the agent stayed threshold-blind
+- [ ] If `STRICT_MODE` is true: Ignored the Iteration Discretion Rule and iterated until `threshold` or `MAX_ITERATIONS`
 - [ ] Triggered human-in-the-loop checkpoints ONLY for steps in `HUMAN_IN_THE_LOOP_STEPS`
 - [ ] If `SKIP_REVIEWS` is true: Skipped ALL code-reviewer dispatches
 - [ ] If `CONTINUE_MODE` is true: Verified last step (via code-reviewer) and resumed correctly
