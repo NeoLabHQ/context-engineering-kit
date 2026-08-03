@@ -13,7 +13,16 @@ Three-layer verification:
 - meta-judge criteria (structured) 
 - LLM-as-a-judge (external)
 
-Iteration - Retry with judge feedback until passing (score >=4, or >=3.0 with all low-priority issues) or max retries (3)
+Iteration - Retry with judge feedback until passing (score >=4, or >=3.0 with all low/medium priority issues) or max retries (3)
+
+## Arguments
+
+| Argument | Format | Default | Description |
+|----------|--------|---------|-------------|
+| `task` | Free-form text | **Required** | Task description to execute |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for the implementation, meta-judge and judge |
+| `--strict` | flag | `false` | Disable iteration discretion — the task passes ONLY at score >= 4.0, otherwise retry until max retries |
+
 
 ## Pattern: Single-Task Execution with Meta-Judge and Judge Verification
 
@@ -55,6 +64,9 @@ Phase 5: Final Report or Escalation
 
 # Architecture change
 /do-and-judge "Extract validation logic from UserController into separate UserValidator class"
+
+# Never accept a result below target quality
+/do-and-judge "Refactor the UserService class to use dependency injection" --strict
 ```
 
 ## When to Use

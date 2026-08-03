@@ -1,7 +1,7 @@
 ---
 name: plan-task
 description: Refine, parallelize, and verify a draft task specification into a fully planned implementation-ready task
-argument-hint: Path to draft task file (e.g., ".specs/tasks/draft/add-validation.feature.md") [options]
+argument-hint: Path to draft task file (e.g., ".specs/tasks/draft/add-validation.feature.md") [--continue] [--refine] [--target-quality] [--max-iterations] [--included-stages] [--skip] [--fast] [--strict] [--model opus|sonnet|haiku]
 ---
 
 # Refine Task Workflow
@@ -50,6 +50,8 @@ Parse the following arguments from `$ARGUMENTS`:
 | `--human-in-the-loop` | `--human-in-the-loop phase1,phase2,...` | None | Phases after which to pause for human verification. |
 | `--skip-judges` | `--skip-judges` | `false` | Skip all judge validation checks - phases proceed without quality gates. |
 | `--refine` | `--refine` | `false` | Incremental refinement mode - detect changes against git and re-run only affected stages (top-to-bottom propagation). |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for the agents and judges |
+| `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - a phase passes ONLY when `score >= THRESHOLD`, otherwise retry until `MAX_ITERATIONS` is reached. |
 
 ### Stage Names (for `--included-stages` / `--skip`)
 
@@ -90,6 +92,7 @@ SKIP_STAGES = --skip || []
 HUMAN_IN_THE_LOOP_PHASES = --human-in-the-loop || []
 SKIP_JUDGES = --skip-judges || false
 REFINE_MODE = --refine || false
+STRICT_MODE = --strict || false
 CONTINUE_STAGE = null
 
 if --continue [stage] present:
@@ -175,7 +178,7 @@ Human verification checkpoints occur:
 
    **Phase:** {phase name}
    **Judge Score:** {score}/{THRESHOLD} threshold
-   **Status:** ✅ PASS / ⚠️ RETRY {n}/{MAX_ITERATIONS}
+   **Status:** ✅ PASS / ☑️ ACCEPTED / ⚠️ RETRY {n}/{MAX_ITERATIONS}
 
    **Artifacts:**
    - {artifact_path_1}
@@ -209,6 +212,9 @@ Human verification checkpoints occur:
 
 # Incremental refinement after user edits (re-runs only affected stages)
 /plan .specs/tasks/todo/my-task.feature.md --refine
+
+# Strict mode: never accept a phase below target - retry until THRESHOLD or MAX_ITERATIONS
+/plan .specs/tasks/draft/critical-api.feature.md --strict
 ```
 
 ## Pre-Flight Checks
@@ -234,6 +240,7 @@ Before starting workflow:
    | **Human Checkpoints** | Phase {HUMAN_IN_THE_LOOP_PHASES as comma-separated} |
    | **Skip Judges** | {SKIP_JUDGES} |
    | **Refine Mode** | {REFINE_MODE} |
+   | **Strict Mode** | {STRICT_MODE} |
    | **Continue From** | {CONTINUE_STAGE} or "Start" |
    ```
 
@@ -326,7 +333,7 @@ Update each todo to `in_progress` when starting a phase and `completed` when jud
 
 ## CRITICAL
 
-- Do not mark PASS for any judge if it did not pass the rubric. Retry the judge after each implementation change till it passes the check!
+- Never record a verdict the judge report does not support: no PASS without a passing rubric result, and no ☑️ ACCEPTED without the [Iteration Discretion Rule](#iteration-discretion-rule) actually permitting it. Otherwise retry the judge after each implementation change till it passes the check!
 - Do not read task files in .claude or .specs directories, your job is orchestrate agents that will do the work, not do it by yourself!
 - Use `THRESHOLD` (default 3.5) for all judge pass/fail decisions, not hardcoded values!
 - Use `MAX_ITERATIONS` (default 3) for retry limits, not hardcoded values!
@@ -336,6 +343,7 @@ Update each todo to `in_progress` when starting a phase and `completed` when jud
 - **If `SKIP_JUDGES` is true: Skip ALL judge validation - proceed directly to next phase after each implementation phase completes!**
 - **Task file must exist in `.specs/tasks/draft/` before running this command (unless `--refine` mode)!**
 - **If `REFINE_MODE` is true: Detect changes via git diff, skip unchanged stages, pass user feedback to agents!**
+- **If `STRICT_MODE` is true: The [Iteration Discretion Rule](#iteration-discretion-rule) is DISABLED - a phase passes ONLY on `score >= THRESHOLD`, otherwise retry until `MAX_ITERATIONS`!**
 
 ### Execution & Evaluation Rules
 
@@ -346,6 +354,23 @@ Relaunch judge till you get valid results, of following happens:
 - Reject Long Reports: If an agent returns a very long report instead of using the scratchpad as requested, reject the result. This indicates the agent failed to follow the "use scratchpad" instruction.
 - Judge Score 5.0 is a Hallucination: If a judge returns a score of 5.0/5.0, treat it as a hallucination or lazy evaluation. Reject it and re-run the judge. Perfect scores are practically impossible in this rigorous framework.
 - Reject Missing Scores: If a judge report is missing the numerical score, reject it. This indicates the judge failed to read or follow the rubric instructions.
+
+#### Iteration Discretion Rule
+
+Your main task is to COMPLETE the planning within target quality. Two failure modes are equally real:
+
+- Burning iterations and context on nitpicks so the overall task never completes → **the task is failed**.
+- Promoting a plan whose quality is genuinely too poor to be considered complete → **an even worse failure**.
+
+This rule governs the `**Decision Logic:**` block of every phase:
+
+- **`score < 3.0` → FAIL, unconditionally. No discretion.** Re-launch the phase with judge feedback until it passes or `MAX_ITERATIONS` is reached.
+- **`3.0 <= score < 5.0` → discretion band.** ONLY inside this band MAY you decide that a phase below `THRESHOLD` (default 3.5) is acceptable.
+- **Bounded drop:** NEVER accept a score more than `1.0` below `THRESHOLD` — the effective floor is `max(3.0, THRESHOLD - 1.0)`, i.e. `3.0` at the default `THRESHOLD` 3.5 and `3.5` at `--target-quality 4.5`. With `THRESHOLD <= 3.0` (e.g. `--fast`) there is no discretion band at all.
+- Inside the band, when the outstanding issues are ONLY `Low`/`Medium` priority (any `High` or `Critical` finding removes discretion entirely) AND none of them breaks a target requirement of the phase or causes a meaningful defect (i.e. they are nitpicks), you MUST reason FIRST — before re-launching the phase — about whether iterating (or marking the phase failed) is worth the time and context cost.
+- **At most ONE nitpick-driven iteration**, and it counts against `MAX_ITERATIONS`. If it again surfaces only nitpicks, you MUST mark the phase PASS (☑️ ACCEPTED in the summary table), report the outstanding issues in the completion summary, and continue with the next phase. If it returns a score below the floor `max(3.0, THRESHOLD - 1.0)`, the FAIL path applies instead.
+- You MUST be critical, NOT lenient. Stopping short of target MUST be an intentional decision grounded in the absence of real, requirement-breaking issues. A genuine blocking issue that prevents completing the phase within `MAX_ITERATIONS` MUST be reported as a failure, never papered over.
+- **If `STRICT_MODE` is true, this whole rule is DISABLED**: stop only when `score >= THRESHOLD` or `MAX_ITERATIONS` is reached. `--strict` changes nothing else — `THRESHOLD`, `MAX_ITERATIONS`, the `< 3.0` unconditional FAIL, human-in-the-loop checkpoints, judge dispatch and `--skip-judges` are unaffected. With `--skip-judges` (or `--one-shot`) no score is produced at all, so both this rule and `--strict` are inert.
 
 ## Workflow Execution
 
@@ -574,7 +599,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Research complete, proceed
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2a with feedback
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2a with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to next stage regardless of score (log warning)
 
 ---
@@ -628,7 +653,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Analysis complete, proceed
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2b with feedback
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2b with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to next stage regardless of score (log warning)
 
 ---
@@ -683,7 +708,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Business analysis complete, proceed
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2c with feedback
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2c with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to next stage regardless of score (log warning)
 
 ---
@@ -779,7 +804,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Architecture synthesis complete, proceed
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 3 with feedback
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 3 with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to Phase 4 regardless of score (log warning)
 
 **Wait for PASS before Phase 4.**
@@ -872,7 +897,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Decomposition complete, proceed to Phase 5
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 4 with feedback
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 4 with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to Phase 5 regardless of score (log warning)
 
 **Wait for PASS before Phase 5.**
@@ -966,7 +991,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Proceed to Phase 6
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 5 with feedback
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 5 with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to Phase 6 regardless of score (log warning)
 
 **Wait for PASS before Phase 6.**
@@ -1061,7 +1086,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Workflow complete, promote task
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 6 with feedback
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 6 with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Complete workflow regardless of score (log warning)
 
 ---
@@ -1118,25 +1143,31 @@ After all executed phases and judges complete:
 | **Human Checkpoints** | Phase {HUMAN_IN_THE_LOOP_PHASES as comma-separated} |
 | **Skip Judges** | {SKIP_JUDGES} |
 | **Refine Mode** | {REFINE_MODE} |
+| **Strict Mode** | {STRICT_MODE} |
 
 ### Quality Gates Summary
 
 | Phase | Judge Score | Verdict |
 |-------|-------------|---------|
-| Phase 2a: Research | X.X/5.0 | ✅ PASS / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
-| Phase 2b: Codebase Analysis | X.X/5.0 | ✅ PASS / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
-| Phase 2c: Business Analysis | X.X/5.0 | ✅ PASS / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
-| Phase 3: Architecture Synthesis | X.X/5.0 | ✅ PASS / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
-| Phase 4: Decomposition | X.X/5.0 | ✅ PASS / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
-| Phase 5: Parallelize | X.X/5.0 | ✅ PASS / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
-| Phase 6: Verify | X.X/5.0 | ✅ PASS / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
+| Phase 2a: Research | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
+| Phase 2b: Codebase Analysis | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
+| Phase 2c: Business Analysis | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
+| Phase 3: Architecture Synthesis | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
+| Phase 4: Decomposition | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
+| Phase 5: Parallelize | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
+| Phase 6: Verify | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
 
 **Threshold Used:** {THRESHOLD}/5.0 (or N/A if SKIP_JUDGES)
 
 **Legend:**
 - ✅ PASS - Score >= THRESHOLD
+- ☑️ ACCEPTED - Score in `max(3.0, THRESHOLD - 1.0)..THRESHOLD` accepted per the [Iteration Discretion Rule](#iteration-discretion-rule) (outstanding nitpicks listed below the table)
 - ⚠️ PROCEEDED (max iter) - Score < THRESHOLD but MAX_ITERATIONS reached, proceeded anyway
 - ⏭️ SKIPPED - Stage not in ACTIVE_STAGES
+
+**Outstanding Issues (accepted below THRESHOLD):**
+
+{For each ☑️ ACCEPTED phase: phase, remaining nitpicks with priority — omit this block when no phase was accepted}
 
 ### Artifacts Generated
 
@@ -1194,6 +1225,7 @@ If any phase agent fails unexpectedly:
 
 If any judge returns FAIL (score < `THRESHOLD`):
 
+0. **Apply the [Iteration Discretion Rule](#iteration-discretion-rule) first**: if `score < 3.0` (or `STRICT_MODE` is true), always retry. If `max(3.0, THRESHOLD - 1.0) <= score < THRESHOLD` and only nitpicks remain, decide deliberately whether retrying is worth it — if you accept, mark the phase ☑️ ACCEPTED, list its outstanding nitpicks in the summary, and proceed to the next phase instead of steps 1-4; otherwise continue with step 1
 1. **Automatic retry**: Re-launch the phase agent with judge feedback
 2. **Human-in-the-loop check**: If phase is in `HUMAN_IN_THE_LOOP_PHASES`, trigger human checkpoint **before** the next judge retry (after implementation retry but before re-judging)
 3. **After `MAX_ITERATIONS` reached**: **Proceed to next stage automatically** (do NOT ask user unless `--human-in-the-loop` includes this phase)

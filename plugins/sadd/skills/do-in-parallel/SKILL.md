@@ -1,7 +1,7 @@
 ---
 name: do-in-parallel
 description: Run independent tasks concurrently across multiple files or targets using parallel sub-agents, with per-task model selection and LLM-as-a-judge verification. Use when tasks do not depend on each other and can run side by side.
-argument-hint: Task description [--files "file1.ts,file2.ts,..."] [--targets "target1,target2,..."] [--model opus|sonnet|haiku] [--output <path>]
+argument-hint: Task description [--files "file1.ts,file2.ts,..."] [--targets "target1,target2,..."] [--model opus|sonnet|haiku] [--output <path>] [--strict]
 ---
 
 # do-in-parallel
@@ -68,6 +68,7 @@ Key benefits:
 - Wait for each implementation to complete before dispatching its judge
 - Parse only VERDICT/SCORE/ISSUES from judge output
 - Iterate with feedback if verification fails (max 3 retries per target)
+- Apply the [Iteration Discretion Rule](#55-iteration-discretion-rule) to every target verdict, unless `--strict` was provided
 - For shared group retries, only re-launch the specific failing implementation agent(s), not the entire group
 - Reuse same meta-judge specification for all retries (never re-run meta-judge)
 
@@ -88,6 +89,10 @@ Input patterns:
 - If `--files` provided: Split by comma, validate each path exists
 - If `--targets` provided: Split by comma, use as-is
 - If neither: Attempt to extract file paths or target names from task description
+- `STRICT_MODE = --strict present || false` - disables the [Iteration Discretion Rule](#55-iteration-discretion-rule); a target then passes ONLY when `score >= 4.0`, otherwise it is retried until max retries
+- Strip ALL flags from the task text before building sub-agent prompts — **never** pass them into a sub-agent prompt
+
+Example: `/do-in-parallel Simplify error handling --files "src/a.ts,src/b.ts" --strict`
 
 ### Phase 2: Task Analysis with Zero-shot CoT
 
@@ -773,12 +778,12 @@ If score >= 4:
   -> Mark target complete
   -> Include IMPROVEMENTS as optional enhancements
 
-IF score >= 3.0 and all found issues are low priority, then:
-  -> VERDICT: PASS
-  -> Mark target complete
-  -> Include IMPROVEMENTS as optional enhancements
+If 3.0 <= score < 4 and NOT STRICT_MODE:
+  -> Apply the Iteration Discretion Rule (5.5)
+     -> accepted -> VERDICT: PASS (mark target complete, report outstanding issues)
+     -> declined -> VERDICT: FAIL -> go to "Check retry count" below
 
-If score < 4:
+Otherwise (score < 3.0, or score < 4 with STRICT_MODE):
   -> VERDICT: FAIL
   -> Check retry count for this target
 
@@ -863,6 +868,22 @@ Let's fix the identified issues step by step.
 CRITICAL: Focus on fixing the specific issues identified. Do not rewrite everything.
 ```
 
+#### 5.5 Iteration Discretion Rule
+
+Your main task is to COMPLETE the task within target quality, and iteration effort MUST stay proportionate to each target's size. Two failure modes are equally real:
+
+- Burning retries and context on nitpicks so the overall batch never completes → **the task is failed**.
+- Accepting a target whose quality is genuinely too poor to be considered complete → **an even worse failure**.
+
+Apply to every judge score (for shared groups, apply this per task verdict inside the group):
+
+- **`score < 3.0` → FAIL, unconditionally. No discretion.** Retry with judge feedback until the target passes or max retries is reached.
+- **`3.0 <= score < 4.0` → discretion band.** ONLY inside this band MAY you decide that a target below the `4.0` target score is acceptable. The fixed `4.0` target puts the effective floor at `3.0`, so no separate bounded-drop guard is needed.
+- Inside the band, when the outstanding issues are ONLY low/medium priority (any High or Critical finding removes discretion entirely) AND none of them breaks a target requirement or causes a meaningful defect (i.e. they are nitpicks), you MUST reason FIRST — before dispatching a retry — about whether another attempt is worth the time and context cost.
+- **At most ONE nitpick-driven retry**, and it counts against the retry budget. If it again surfaces only nitpicks, you MUST mark the target complete (`ACCEPTED`), report the outstanding issues in the final summary, and move on. If it returns a score below `3.0`, the unconditional-FAIL rule applies instead.
+- You MUST be critical, NOT lenient. Stopping short of target MUST be an intentional decision grounded in the absence of real, requirement-breaking issues. A genuine blocking issue that prevents completing the target within max retries MUST be reported as a failed target, never papered over.
+- **If `STRICT_MODE` is true, this whole rule is DISABLED**: stop only when `score >= 4.0` or max retries is reached. `--strict` changes nothing else — the `4.0` target score, the max-retry limit, the `< 3.0` unconditional FAIL and meta-judge/judge dispatch are unaffected.
+
 ### Phase 6: Collect and Summarize Results
 
 After all agents complete (with retries as needed), aggregate results:
@@ -874,6 +895,7 @@ After all agents complete (with retries as needed), aggregate results:
 - **Task:** {task description}
 - **Model:** {selected model}
 - **Targets:** {count} items
+- **Strict Mode:** {STRICT_MODE}
 
 ### Results
 
@@ -883,6 +905,8 @@ After all agents complete (with retries as needed), aggregate results:
 | {target_2} | {Repeatable/Shared/Independent} | {model} | {X.X}/5.0 | {0-3} | SUCCESS | {brief outcome} |
 | {target_3} | {Repeatable/Shared/Independent} | {model} | {X.X}/5.0 | {3} | FAILED | {failure reason} |
 | ... | ... | ... | ... | ... | ... | ... |
+
+Status is `SUCCESS` (score >= 4.0), `ACCEPTED` (below target per the [Iteration Discretion Rule](#55-iteration-discretion-rule) — list the outstanding nitpicks in the Verification Summary), or `FAILED`.
 
 ### Overall Assessment
 - **Completed:** {X}/{total}
@@ -2187,6 +2211,7 @@ Use Task tool:
 - **Target-specific meta-judge specification:** Each target gets tailored rubrics that account for its unique characteristics, producing more precise evaluation criteria
 - **External judge second:** Independent judge applies target-specific meta-judge specification mechanically — catches blind spots self-critique misses
 - **Iteration loop:** Retry with feedback until passing or max retries
+- **Proportionate iteration:** Apply the [Iteration Discretion Rule](#55-iteration-discretion-rule) — at most ONE nitpick-driven retry, never below `3.0`, disabled by `--strict`
 - **Isolated failures:** One target failing doesn't affect others
 - **Review the summary:** Check for failed or partial completions
 - **Run tests after:** Parallel changes may have subtle interactions
@@ -2196,7 +2221,7 @@ Use Task tool:
 
 | Failure Type | Description | Recovery Action |
 |--------------|-------------|-----------------|
-| **Recoverable** | Judge found issues, retry available | Retry with judge feedback (max 3 per target) |
+| **Recoverable** | Judge found issues, retry available | Retry with judge feedback (max 3 per target), subject to the [Iteration Discretion Rule](#55-iteration-discretion-rule) |
 | **Approach Failure** | The approach for this target is wrong | Escalate to user with options |
 | **Foundation Issue** | Requirements unclear or impossible | Escalate to user for clarification |
 | **Max Retries Exceeded** | Target failed after 3 retries | Mark failed, continue other targets, report at end |

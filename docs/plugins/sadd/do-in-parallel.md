@@ -150,7 +150,19 @@ Phase 6: Collect and Summarize Results
 /do-in-parallel "Security audit for injection vulnerabilities" \
   --files "src/db/queries.ts,src/api/search.ts" \
   --model opus
+
+# Never accept a target below target quality
+/do-in-parallel "Simplify error handling to use early returns" \
+  --files "src/services/user.ts,src/services/order.ts" \
+  --strict
 ```
+
+| Argument | Format | Default | Description |
+|----------|--------|---------|-------------|
+| `--files` | `--files "a.ts,b.ts"` | Inferred | File-based targets |
+| `--targets` | `--targets "A,B"` | Inferred | Named targets |
+| `--model` | `opus\|sonnet\|haiku` | Auto-selected | Model override for implementation agents |
+| `--strict` | flag | `false` | Disable iteration discretion — a target passes ONLY at score >= 4.0, otherwise retry until max retries |
 
 ## When to Use
 
@@ -188,7 +200,7 @@ Each implementation agent is then verified by an independent `sadd:judge` agent 
 |--------|---------|
 | **Meta-Judge** | `sadd:meta-judge` (Opus) dispatched per group or independent task, all in parallel |
 | **Judge** | `sadd:judge` (Opus) per target (independent/repeatable) or per group (shared) |
-| **Threshold** | Score >=4/5.0 for PASS; soft PASS at >=3 if all issues are low priority |
+| **Threshold** | Score >=4/5.0 for PASS; soft PASS at >=3 if all issues are low/medium priority |
 | **Max Retries** | 3 retries per target (same meta-judge spec reused on retries) |
 | **Isolation** | Each target's failure doesn't affect others |
 | **Feedback Loop** | Judge ISSUES passed to retry implementation |
