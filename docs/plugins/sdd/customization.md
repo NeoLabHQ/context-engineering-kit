@@ -16,7 +16,7 @@ If you just want results as fast as the framework can produce them, use the `--f
 
 If you know certain steps aren't needed for your task, you can use the `--skip` parameter in the `/plan` command. For example, `--skip research` skips the research phase entirely, and `--skip parallelize` skips task parallelization.
 
-Last but not least, you can ask the orchestrator to use only the `haiku` model for all agents. While this may sound unreliable, the MAKER paper found that parallelizing work across multiple smaller models (3–10 per task) can yield results comparable to larger models. This approach hasn't been tested or officially supported in this plugin yet, but it may still work. You can try combining `haiku` with higher `max-iterations` and `target-quality` values to get faster results with acceptable quality.
+Last but not least, you can ask the orchestrator to use only the `haiku` model for all agents. While this may sound unreliable, the MAKER paper found that parallelizing work across multiple smaller models (3–10 per task) can yield results comparable to larger models. Use the `--model` parameter of the `/plan` and `/implement` commands (for example `/implement my-task.feature.md --model haiku`) to force every sub-agent onto one model. You can try combining `haiku` with higher `max-iterations` and `target-quality` values to get faster results with acceptable quality.
 
 ## Human-in-the-Loop Verification
 

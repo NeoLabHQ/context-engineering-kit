@@ -14,7 +14,7 @@ Execute a single task by dispatching an implementation sub-agent, verifying with
 | Argument | Format | Default | Description |
 |----------|--------|---------|-------------|
 | `task` | Free-form text | **Required** | Task description to execute |
-| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for the implementation, meta-judge and judge |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for **all** sub-agents: implementation, meta-judge, and judge. Default is opus when omitted. |
 | `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - the task passes ONLY when `score >= 4.0`, otherwise retry until max retries is reached. |
 
 Example: `/do-and-judge Refactor the UserService class to use dependency injection --strict`
@@ -130,7 +130,7 @@ Return only the final evaluation specification YAML in your response.
 Use Task tool:
   - description: "Meta-judge: {brief task summary}"
   - prompt: {meta-judge prompt}
-  - model: opus
+  - model: {selected model}
   - subagent_type: "sadd:meta-judge"
 ```
 
@@ -242,7 +242,7 @@ Send BOTH Task tool calls in a single message. Meta-judge first, implementation 
 Message with 2 tool calls:
   Tool call 1 (meta-judge):
     - description: "Meta-judge: {brief task summary}"
-    - model: opus
+    - model: {selected model}
     - subagent_type: "sadd:meta-judge"
 
   Tool call 2 (implementation):
@@ -340,9 +340,8 @@ CRITICAL: NEVER provide score threshold, in any format, including `threshold_pas
 Use Task tool:
   - description: "Judge: {brief task summary}"
   - prompt: {judge verification prompt with exact meta-judge specification YAML, and Pre-existing Changes section if applicable}
-  - model: opus
+  - model: {selected model}
   - subagent_type: "sadd:judge"
-```
 ```
 
 ### Phase 4: Parse Verdict and Iterate

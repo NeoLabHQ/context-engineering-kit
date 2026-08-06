@@ -50,7 +50,7 @@ Parse the following arguments from `$ARGUMENTS`:
 | `--human-in-the-loop` | `--human-in-the-loop phase1,phase2,...` | None | Phases after which to pause for human verification. |
 | `--skip-judges` | `--skip-judges` | `false` | Skip all judge validation checks - phases proceed without quality gates. |
 | `--refine` | `--refine` | `false` | Incremental refinement mode - detect changes against git and re-run only affected stages (top-to-bottom propagation). |
-| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for the agents and judges |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for **all** sub-agents: implementation agents, meta-judge, and judges. Default is opus when omitted. |
 | `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - a phase passes ONLY when `score >= THRESHOLD`, otherwise retry until `MAX_ITERATIONS` is reached. |
 
 ### Stage Names (for `--included-stages` / `--skip`)
@@ -548,7 +548,7 @@ After **each** parallel phase completes, launch its respective judge **with the 
 
 #### Judge 2a: Validate Research/Skill
 
-**Model:** `sonnet`
+**Model:** Use selected `--model` (default `opus`)
 **Agent:** `sdd:researcher`
 **Depends on:** Phase 2a completion
 **Purpose:** Validate skill completeness and relevance
@@ -606,7 +606,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 #### Judge 2b: Validate Codebase Analysis
 
-**Model:** `sonnet`
+**Model:** Use selected `--model` (default `opus`)
 **Agent:** `sdd:code-explorer`
 **Depends on:** Phase 2b completion
 **Purpose:** Validate file identification accuracy and integration mapping
@@ -660,7 +660,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 #### Judge 2c: Validate Business Analysis
 
-**Model:** `opus`
+**Model:** Use selected `--model` (default `opus`)
 **Agent:** `sdd:business-analyst`
 **Depends on:** Phase 2c completion
 **Purpose:** Validate acceptance criteria quality and scope definition
@@ -753,7 +753,7 @@ Launch agent:
 
 ### Judge 3: Validate Architecture Synthesis
 
-**Model:** `opus`
+**Model:** Use selected `--model` (default `opus`)
 **Agent:** `sdd:software-architect`
 **Depends on:** Phase 3 completion
 **Purpose:** Validate architectural coherence and completeness
@@ -843,7 +843,7 @@ Launch agent:
 
 ### Judge 4: Validate Decomposition
 
-**Model:** `opus`
+**Model:** Use selected `--model` (default `opus`)
 **Agent:** `sdd:tech-lead`
 **Depends on:** Phase 4 completion
 **Purpose:** Validate implementation steps quality and completeness
@@ -937,7 +937,7 @@ Launch agent:
 
 ### Judge 5: Validate Parallelization
 
-**Model:** `opus`
+**Model:** Use selected `--model` (default `opus`)
 **Agent:** `sdd:team-lead`
 **Depends on:** Phase 5 completion
 **Purpose:** Validate dependency accuracy and parallelization optimization
@@ -1029,7 +1029,7 @@ Launch agent:
 
 ### Judge 6: Validate Verifications
 
-**Model:** `opus`
+**Model:** Use selected `--model` (default `opus`)
 **Agent:** `sdd:qa-engineer`
 **Depends on:** Phase 6 completion
 **Purpose:** Validate verification rubrics and thresholds
