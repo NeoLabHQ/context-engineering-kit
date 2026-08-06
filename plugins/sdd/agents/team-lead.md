@@ -223,19 +223,19 @@ Step 1 (Foundation) [haiku]
     ├─────────────────┬─────────────────┐
     ▼                 ▼                 ▼
 Step 2a            Step 2b           Step 2c
-[opus]             [opus]            [opus]
+[sonnet]           [sonnet]          [haiku]
 (parallel, width 3)              
     │                 │                 │
     └────────┬────────┘                 │
              ▼                          │
           Step 3                        │
-         [opus]                         │
+         [opus]  (breadth/critical trigger fires)
      (Needs 2a, 2b)                     │
              │                          │
              └────────────┬─────────────┘
                           ▼
                        Step 4
-                      [opus]
+                      [sonnet]
                    (Needs 3, 2c)
 
 ```
@@ -261,7 +261,7 @@ Assign appropriate agents based on OUTPUT TYPE and complexity:
 | Step | Primary Output | Agent | Rationale |
 |------|----------------|-------|-----------|
 | 1 | Directories + installation | haiku | Trivial, mechanical |
-| 2a | Source code | opus | Requires design decisions |
+| 2a | Source code | sonnet | Established pattern, local design choices only |
 | 2b | Documentation | tech-writer | README.md output |
 ```
 
@@ -291,59 +291,48 @@ Use agents that are available in the project. There are examples of agents that 
 
 Also used as general agents for any task when unsure about specialized agents.
 
-| Model | When to Use | Examples |
-|-------|-------------|----------|
-| `opus` | **Default/standard choice**. Safe for any task. Use when correctness matters, decisions are nuanced, or you're unsure. | Most implementation, code writing, business logic, architectural decisions |
-| `sonnet` | Task is **not complex but high volume** - many similar steps, large context to process, repetitive work. | Bulk file updates, processing many similar items, large refactoring with clear patterns |
-| `haiku` | **Trivial operations only**. Simple, mechanical tasks with no decision-making. | Directory creation, file deletion, simple config edits, file copying/moving |
+Model choice is not a formality — it is the single biggest factor in whether a step comes back correct and how long it takes. Weigh four factors for **every** step before picking a tier:
 
-##### Decision Flow
+- **Amount of work** — how much of the codebase the step touches: a single file, a handful of files inside one module, or 3+ modules/services.
+- **Criticality** — whether the step sits in a domain where a mistake is costly or hard to reverse (auth, payments/billing, data integrity, irreversible migration, public API break).
+- **Complexity** — whether the step requires open design or non-trivial reasoning (concurrency, novel algorithms, a new subsystem, architecture not yet decided) versus applying an established pattern.
+- **Time effort** — the step's own size estimate from Phase 4 decomposition (tech-lead's Step Sizing Guidelines: Small/Medium/Large). A `Large` step is rarely `haiku` work, and a `Small`/`Trivial` step rarely earns `opus`; treat a mismatch between the estimate and the tier you're about to pick as a signal to re-check the other three factors.
 
-```
-1. What is the PRIMARY OUTPUT of this step?
-   │
-   ├─► Documentation (.md, README, guides)
-   │   └─► tech-writer
-   │
-   ├─► Source code implementation
-   │   └─► developer
-   │
-   ├─► Architecture/design document
-   │   └─► software-architect
-   │
-   ├─► Task breakdown/specs
-   │   └─► tech-lead
-   │
-   ├─► Requirements/user stories
-   │   └─► business-analyst
-   │
-   ├─► Skill/evaluation report
-   │   └─► researcher
-   │
-   ├─► Code review feedback
-   │   └─► review:code-reviewer
-   │
-   └─► Mixed/Other outputs
-       │
-       └─► Is it trivial/mechanical?
-           │
-           ├─► YES (no decisions, just file ops) → haiku
-           │
-           └─► NO → Is it high-volume but simple pattern?
-               │
-               ├─► YES (many similar items, bulk work) → sonnet
-               │
-               └─► NO or UNSURE → opus (default)
-```
+**Selection Rules**
+
+**Tier default:** `sonnet`/`haiku` cover the majority of steps. `opus` is reserved and opt-in — it MUST be *earned* by a trigger in the table below, never picked because you are unsure or "to be safe."
+
+| Step shape | Tier | Examples |
+|---|---|---|
+| **Straightforward** — one already-understood change with an obvious shape: a single file, an established pattern, no new dependency, no open design question | `haiku` | Create a directory, fix a typo, add a config flag, update a manifest entry, bump a dependency version |
+| **Typical** — ordinary feature, fix, or refactor work: a handful of files inside one module, established patterns, local design choices only | `sonnet` | Write a utility function with tests, add form validation, create a workflow command following an existing pattern |
+| **Complex** — **breadth** (~3+ modules/services, or any breadth when a shared contract changes) OR **critical domain** (auth, payments/billing, data integrity, irreversible migration, public API break) OR **open design** (concurrency, non-trivial algorithms, a new subsystem, architecture not yet decided) | `opus` | Refactor architecture across many modules, implement auth token refresh logic, design a new event pipeline |
+
+**Precedence (MANDATORY):** evaluate EVERY row, not just the first that matches. When more than one row matches, the **HIGHEST matching tier wins** — criticality and open design always override size. The **critical domain** list is exhaustive, not illustrative: shipping to production, touching real users, or adding to an existing public API are NOT triggers on their own, so a step adding a new endpoint with validation in one service stays `sonnet`. **Mechanical-breadth carve-out:** breadth alone is not complexity — for one identical, rule-driven edit repeated across many files with no logic and no contract change, only the **breadth** trigger does not apply (critical domain and open design still do); tier it on a **single occurrence**, so a mechanical rename across 40 files is `haiku`, while the same rename confined to an auth module is `opus`.
+
+**Tie-breaker:** ONLY when no row matches cleanly — the step sits genuinely between two tiers — pick `sonnet`, the working default. You MUST NOT bias up to `opus` to hedge against uncertainty; a modest first guess costs far less than over-provisioning every step.
+
+**Cross-Provider Equivalence:**
+
+When this skill runs outside the Anthropic model context, map the tier to the nearest model of the same class:
+
+| Tier | Role | Comparable models from other providers |
+|---|---|---|
+| `haiku` | Fast and cheap; mechanical work | `gemini-flash-lite`, `gemma` class, `gpt-oss` class, small open-weight models |
+| `sonnet` | Balanced workhorse; most planning phases | `gemini-pro` class and full `gemini-flash` (**not** the `-lite` variant, which is `haiku`-tier), `GPT-5-mini` class, large `Qwen` / `DeepSeek` class |
+| `opus` | Frontier reasoning; critical or complex work | whatever the provider sells as its extended / deliberate-reasoning tier — currently `GPT-5.5`, deep-think modes, `Kimi K3` class, any model whose advantage is longer deliberation rather than throughput |
+
+The mapping is by **capability tier, not by name** — exact names drift as vendors ship new models. Every rule above is expressed in tiers, so on another provider: map tier → your model of that class, then apply the selection, weighting, pairing and escalation rules unchanged.
 
 ##### Common Mistakes to AVOID
 
 | Wrong | Why | Correct |
 |-------|-----|---------|
-| `tech-writer` for updating plugin.json | JSON config is NOT documentation | `haiku` or `opus` |
+| `tech-writer` for updating plugin.json | JSON config is NOT documentation | `haiku` |
 | `developer` for writing README | README is documentation | `tech-writer` |
-| `sonnet` for complex decisions | Sonnet is for volume, not complexity | `opus` |
-| `haiku` for anything requiring judgment | Haiku is for mechanical tasks only | `opus` |
+| `opus` "to be safe" when unsure | `opus` must be EARNED by a breadth/critical/open-design trigger — uncertainty is not a trigger | `sonnet` (the tie-breaker default); escalate later if the step turns out to need it |
+| `opus` for ordinary feature/fix/refactor work | Local design choices on an established pattern are exactly what `sonnet` is for | `sonnet` |
+| `haiku` for anything requiring judgment | Haiku is for mechanical tasks with no decisions | `sonnet` — jump straight to `opus` only if a breadth/critical/open-design trigger also fires |
 | `code-explorer` for fixing bugs | Explorer analyzes, doesn't implement | `developer` |
 | `researcher` for writing code | Researcher defines skills, doesn't code | `developer` |
 
@@ -352,18 +341,20 @@ Also used as general agents for any task when unsure about specialized agents.
 | Step Type | Output | Agent | Rationale |
 |-----------|--------|-------|-----------|
 | Create directories | Folders | `haiku` | Trivial, mechanical |
-| Create single config file | JSON/YAML | `haiku` | Simple, no decisions |
-| Write utility function | Code | `developer` | Source code output |
-| Write complex algorithm | Code | `developer` | Source code output |
+| Create single config file | JSON/YAML | `haiku` | Single file, no decisions |
+| Update manifest (e.g., plugin.json) | JSON config | `haiku` | Single-file edit following an established schema — same shape as "add a config flag" |
+| Write utility function (with tests) | Code | `developer` (`sonnet`) | Single-module code and tests, established pattern |
+| Create workflow command | Markdown command | `tech-writer` (`sonnet`) | Single command file following an established pattern, no open design |
 | Update README | Documentation | `tech-writer` | Documentation output |
 | Write API docs | Documentation | `tech-writer` | Documentation output |
-| Update manifest | JSON config | `opus` | Requires understanding structure |
-| Refactor architecture | Code | `opus` | Complex decisions |
-| Create workflow command | Markdown command | `opus` | Requires careful design |
+| Write complex algorithm / new subsystem | Code | `developer` (`opus`) | Open-design trigger — non-trivial logic, architecture not yet decided |
+| Implement auth or payments logic | Code | `developer` (`opus`) | Critical-domain trigger |
+| Refactor architecture (3+ modules, shared contract) | Code | `developer` (`opus`) | Breadth trigger — shared contract changes across modules |
+| Mechanically rename a symbol across many files | Code | `developer` (`haiku`) | Mechanical-breadth carve-out — no logic change, tier on a single occurrence |
 | Clean up old files | File deletions | `haiku` | Trivial, mechanical |
 | Sync/copy files | Copy operations | `haiku` | Trivial, mechanical |
-| Update 10+ similar files | Bulk edits | `sonnet` | High volume, simple pattern |
-| Process large codebase | Many files | `sonnet` | High context, repetitive |
+| Update 10+ similar files (same edit) | Bulk edits | `sonnet` | High volume, simple/repeated pattern |
+| Process large codebase (analysis) | Analysis report | `sonnet` | High context, repetitive, no open design |
 
 ---
 
@@ -429,8 +420,8 @@ Rewrite each step with this structure:
 
 | Sub-task | Description | Agent | Can Parallel |
 |----------|-------------|-------|--------------|
-| task-1   | Description | opus  | Yes          |
-| task-2   | Description | opus  | Yes          |
+| task-1   | Description | sonnet | Yes         |
+| task-2   | Description | sonnet | Yes         |
 
 - Add horizontal rules (---) between steps for clarity
 - Preserve ALL content before and after Implementation Process section
@@ -562,7 +553,7 @@ Generate 6 questions based on specifics of your parallelization. These are examp
 |---|----------------------|-----------------|
 | 1 | **Dependency Accuracy**: Are step dependencies correctly identified? No false dependencies (steps marked dependent when they're not)? No missing dependencies (steps that actually depend on others)? | Cross-reference each step's "Depends on" against actual input requirements from Stage 2. |
 | 2 | **Parallelization Balanced**: Are parallelizable steps marked with "Parallel with:" AND is every parallel group within width 1–5 (target ~3)? Is the diagram logical? | Verify steps with same dependencies are marked parallel. Count the width of each group — none may exceed 5. Check diagram matches step annotations. |
-| 3 | **Agent Selection Correctness**: Are agent types appropriate for outputs? Does selection follow the Agent Selection Guide strictly? | Review Stage 7 table. Verify each agent matches PRIMARY OUTPUT type, not input analysis. |
+| 3 | **Agent Selection Correctness**: Does each step's Model property follow the Model Selection Guide (tier table, precedence rule, tie-breaker), with a stated reason for every tier assignment? | Review each step's Model property. Verify tier matches the Model Selection table entry, applies precedence correctly when multiple rows match, and includes a stated reason why that tier was chosen. |
 | 4 | **Tightly Coupled Merging**: Were tightly coupled steps appropriately merged? Are there remaining candidates that should be combined? | Review Stage 5 merge candidates. Ensure no step produces output consumed only by immediate next step. |
 | 5 | **Execution Directive Present**: Is the sub-agent execution directive present after ## Implementation Process? Are "MUST" requirements for parallel execution clear? | Check task file for exact directive text. Verify "MUST" language used, not "can". |
 | 6 | **Content Preservation**: Was ALL content before and after Implementation Process preserved unchanged? | Compare original task file against modified version. Only Implementation Process section should change. |
@@ -579,7 +570,7 @@ For each question, you MUST provide:
 
 ```markdown
 [ ] Sub-agent execution directive added (exact text after ## Implementation Process)
-[ ] All steps have Model: property
+[ ] All steps have a Model: property whose tier follows the Model Selection Guide, with a stated reason
 [ ] All steps have Agent: property (following Agent Selection Guide)
 [ ] All steps have Depends on: property
 [ ] Parallel opportunities identified with Parallel with:
@@ -652,9 +643,9 @@ Steps Reorganized: X steps (from Y original)
 Steps Merged: X steps combined (tightly-coupled or trivial work consolidated)
 Max Parallel Width: X steps run simultaneously at peak (MUST be 1–5, target ~3)
 Agent Distribution:
-  - opus: X steps (default)
-  - sonnet: X steps (high-volume)
-  - haiku: X steps (trivial)
+  - haiku: X steps (trivial/mechanical, established schema edits)
+  - sonnet: X steps (typical feature/fix/refactor work — the default for code and command writing)
+  - opus: X steps (earned — breadth, critical domain, or open design; see Model Selection Guide)
   - tech-writer: X steps (docs)
   - developer: X steps (code)
   - [other specialized agents if used]
@@ -712,20 +703,20 @@ Step 1 (Directory Structure) [haiku]
     ▼                   ▼                   ▼
 Step 2a              Step 2b             Step 3
 (FPF Agent)     (Workflow Command)   (Utility Commands + remove old cmds)
-[opus]              [opus]              [opus]
+[opus]              [sonnet]            [sonnet]
     (parallel, width 3)
     │                   │                   │
     └─────────┬─────────┘                   │
               ▼                             │
            Step 4                           │
        (Task Files)                         │
-         [opus]                             │
+         [sonnet]                           │
               │                             │
               └─────────────┬───────────────┘
                             ▼
                          Step 5
                     (Plugin Manifest)
-                        [opus]
+                        [haiku]
                             │
     ┌───────────────────────┼
     ▼                       ▼
@@ -738,8 +729,11 @@ Step 6a                  Step 6b
 *Agent selection rationale:*
 
 - Step 1: `haiku` - Trivial directory creation (mechanical)
-- Steps 2a, 2b, 3, 4: `opus` - Require careful design decisions (default)
-- Step 5: `opus` - Manifest requires understanding structure
+- Step 2a: `opus` - Open-design trigger: defining a brand-new agent's identity, process, and self-critique loop from scratch, not filling a known template
+- Step 2b: `sonnet` - Single command file following the established command pattern (Typical row)
+- Step 3: `sonnet` - Consolidating/renaming command files within one plugin, established pattern, no shared-contract change
+- Step 4: `sonnet` - Task files follow tech-lead's existing step template, local design choices only
+- Step 5: `haiku` - Single JSON manifest edit following an established schema — same shape as "add a config flag"
 - Steps 6a, 6b: `tech-writer` - Documentation files (README.md)
 
 **Restructuring steps...**
@@ -768,7 +762,7 @@ Task updated with:
 
 *Agent distribution:*
 
-- `haiku`: 1 step (trivial/mechanical)
-- `opus`: 5 steps (default, requires decisions)
-- `tech-writer`: 2 steps (documentation)
-- `sonnet`: 0 steps (no high-volume repetitive work)
+- `haiku`: 2 steps (1, 5 — trivial/mechanical, established-schema edits)
+- `sonnet`: 3 steps (2b, 3, 4 — typical, established-pattern work)
+- `opus`: 1 step (2a — earned: open-design trigger)
+- `tech-writer`: 2 steps (6a, 6b — documentation)
