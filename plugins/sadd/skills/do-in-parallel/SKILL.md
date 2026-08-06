@@ -1,13 +1,13 @@
 ---
 name: do-in-parallel
 description: Run independent tasks concurrently across multiple files or targets using parallel sub-agents, with per-task model selection and LLM-as-a-judge verification. Use when tasks do not depend on each other and can run side by side.
-argument-hint: Task description [--files "file1.ts,file2.ts,..."] [--targets "target1,target2,..."] [--model opus|sonnet|haiku] [--output <path>] [--strict]
+argument-hint: Task description [--files "file1.ts,file2.ts,..."] [--targets "target1,target2,..."] [--model haiku|sonnet|opus] [--output <path>] [--strict]
 ---
 
 # do-in-parallel
 
 <task>
-Launch multiple sub-agents in parallel to execute tasks across different files or targets. Analyze the task to intelligently select the optimal model, perform requirement grouping analysis (repeatable, shared, or independent), generate quality-focused prompts with Zero-shot Chain-of-Thought reasoning and mandatory self-critique, then dispatch meta-judges based on grouping (one per group or per independent task, all in parallel), followed by implementors for each task in parallel, with LLM-as-a-judge verification using grouping-appropriate evaluation specs after each completes.
+Launch multiple sub-agents in parallel to execute tasks across different files or targets. Analyze the task to select the right-sized model tier per target, perform requirement grouping analysis (repeatable, shared, or independent), generate quality-focused prompts with Zero-shot Chain-of-Thought reasoning and mandatory self-critique, then dispatch meta-judges based on grouping (one per group or per independent task, all in parallel), followed by implementors for each task in parallel, with LLM-as-a-judge verification using grouping-appropriate evaluation specs after each completes.
 </task>
 
 <context>
@@ -17,6 +17,7 @@ This command implements the **Supervisor/Orchestrator pattern** with parallel di
 Key benefits:
 - **Parallel execution** - Multiple tasks run simultaneously
 - **Requirement grouping** - Reduces meta-judges and judges by identifying repeatable and shared task patterns
+- **Right-sized model** - Chosen per target by the [Model Selection Policy](#model-selection-policy): `sonnet`/`haiku` by default, `opus` only when earned
 - **Fresh context** - Each sub-agent works with clean context window
 - **Task-specific evaluation** - Each meta-judge produces tailored rubrics and checklists for its specific task or group
 - **External verification** - Judge applies target-specific meta-judge specification mechanically — catches blind spots self-critique misses
@@ -37,7 +38,7 @@ Key benefits:
 | `task` | Free-form text | **Required** | Task description to execute across targets |
 | `--files` | `"file1,file2,..."` | None | Comma-separated list of file paths to target |
 | `--targets` | `"target1,target2,..."` | None | Comma-separated list of named targets |
-| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for **all** sub-agents: implementation, meta-judge, and judge. Default is opus when omitted. |
+| `--model` | `haiku\|sonnet\|opus` | *auto-selected per task* | Explicit user override for **all** sub-agents across **every** task: implementation, meta-judge, and judge. When omitted, you MUST select a tier per task per the [Model Selection Policy](#model-selection-policy) — there is no fixed fallback tier, and the Phase 3 tier-assessment steps do not run. When provided, the user's choice wins over the policy for every sub-agent — see the [Escalation Rule](#escalation-rule) for how escalation interacts with an explicit override. |
 | `--output` | Path | None | Output directory path for results |
 | `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#55-iteration-discretion-rule) - a target passes ONLY when `score >= 4.0`, otherwise retry until max retries is reached. |
 
@@ -45,7 +46,7 @@ Example: `/do-in-parallel Refactor error handling --files "src/a.ts,src/b.ts" --
 
 **CRITICAL:** You are the orchestrator only - you MUST NOT perform the task yourself. IF you read, write or run bash tools you failed task imidiatly. It is single most critical criteria for you. If you used anyting except sub-agents you will be killed immediatly!!!! Your role is to:
 
-1. Analyze the task, perform requirement grouping analysis, and select optimal model
+1. Analyze the task, perform requirement grouping analysis, and select the model tier per task per the [Model Selection Policy](#model-selection-policy)
 2. Dispatch meta-judges in parallel based on grouping 
 3. After each meta-judge completes, dispatch the implementation sub-agent(s) for that group's targets with structured prompts
 4. After implementors complete, dispatch judges based on grouping 
@@ -84,6 +85,69 @@ Example: `/do-in-parallel Refactor error handling --files "src/a.ts,src/b.ts" --
 - Apply the [Iteration Discretion Rule](#55-iteration-discretion-rule) to every target verdict, unless `--strict` was provided
 - For shared group retries, only re-launch the specific failing implementation agent(s), not the entire group
 - Reuse same meta-judge specification for all retries (never re-run meta-judge)
+
+## Model Selection Policy
+
+Picking the model is the **single highest-leverage decision** you make — more than any prompt wording, it decides whether a target comes back correct and how long the batch takes. You MUST NOT treat it as a formality: name the tier and give a one-line justification before dispatching **each** target. Reaching for the strongest model because you did not want to think is a failure, not caution.
+
+**Tier default:** `sonnet` and `haiku` are the default. `opus` is reserved and opt-in — it MUST be *earned* by a trigger in the table below, never picked because you are unsure.
+
+**Per task, not per run:** a tier is chosen **independently for every task**, from that task's own scope, complexity and risk — the batch is no longer forced into one "same configuration for all parallel agents." Independent tasks are each tiered on their own merits. A repeatable group's shared meta-judge produces one reusable spec, but that does NOT force one tier: each task in the group keeps its own implementation and judge tier from the Selection Rules below, so a critical-domain target inside an otherwise-mechanical group can still land on `opus` while its siblings stay cheaper. A shared group's single judge reviews every task in the group together, so it runs at the HIGHEST current implementation tier among them (see [Role Pairing](#role-pairing)). A tier reached by one task (including one reached by escalation) MUST NOT be carried into sibling tasks or the next batch.
+
+### Selection Rules
+
+| Task shape | Tier | Examples |
+|---|---|---|
+| Single documentation/text file correction — no code, no cross-file reasoning | `haiku` | Fix a typo, update a link, correct a stale command in a README |
+| Small, few-line (~10 lines or fewer), mechanical code change confined to one file | `haiku` | Bump a constant, add a guard clause, rename a local, edit a config value |
+| Code writing — new functions, components or tests, single-module changes, established patterns | `sonnet` | Add an endpoint, write a service method plus tests, refactor one module |
+| **Multi-file refactoring** (~3+ files, or any file count when a shared contract changes) OR **critical** (auth, payments/billing, data integrity, irreversible migration, public API break) OR **complex logic** (concurrency, non-trivial algorithms, architectural decisions) | `opus` | Cross-cutting refactor, auth or payment logic, schema migration, novel algorithm design |
+
+**Precedence (MANDATORY):** evaluate EVERY row, not just the first that matches. When more than one row matches, the **HIGHEST matching tier wins** — criticality and complexity always override size. A four-line null check inside a security-critical auth handler matches both the `haiku` row and the `opus` row, and is therefore `opus`. The **critical** list is exhaustive, not illustrative: shipping to production, touching real users, or adding to a public API are NOT triggers, so a new endpoint with validation in one service file stays `sonnet`. **Mechanical-breadth carve-out:** breadth alone is not complexity. For a purely mechanical change — one identical, rule-driven edit repeated across targets, with no logic and no contract change — only the **multi-file trigger** does NOT apply; the **critical** and **complex logic** triggers still do. You MUST tier it on the content of a **single occurrence**, as if the task touched one file; mechanically renaming a symbol across 40 files is therefore `haiku`, but the same rename confined to `src/auth/` is `opus` — the critical trigger fires on that single occurrence regardless of breadth. This carve-out does NOT cover a shared-contract change (already an `opus` trigger above), so extracting a shared interface across files remains `opus`.
+
+**Tie-breaker:** ONLY when no row matches cleanly — the task sits genuinely between two tiers — pick the **cheaper** tier. You MUST NOT bias up to `opus` to hedge; the [Escalation Rule](#escalation-rule) makes a cheap first guess recoverable, and one recovered task costs far less than over-provisioning every task.
+
+### Role Pairing
+
+Any model-assigned pipeline has up to three roles — **producer** (does the work), **criteria-setter** (defines what "correct" means), **evaluator** (checks the work against those criteria); in this skill they instantiate **per parallel task** as implementation / meta-judge / judge — a repeatable group shares one meta-judge across its tasks, and a shared group additionally shares one judge across its tasks. **Default: the SAME tier for all three roles of that task.**
+
+**Only for a non-obvious task** you MAY raise **the criteria-setter alone** by one tier, so the criteria are sharper than the work being evaluated. *Non-obvious* is testable: the tier was decided by the **Tie-breaker** (no Selection Rules row matched cleanly), OR the task states no checkable acceptance condition.
+
+| Pattern | Criteria-setter (meta-judge) | Producer + evaluator (implementation + judge) | Use when |
+|---|---|---|---|
+| Sharpened-haiku | `sonnet` | `haiku` | The work is trivial, but what counts as "correct" is not obvious |
+| Sharpened-sonnet | `opus` | `sonnet` | Code work with ambiguous or high-consequence acceptance criteria that does not itself hit an `opus` trigger |
+
+Producer and evaluator MUST always share a tier — for a repeatable or shared group's judge that serves more than one task, "share a tier" means the HIGHEST current implementation tier among the tasks it serves, so it is never asked to judge work above its own tier (see [Model Escalation on Retry](#531-model-escalation-on-retry)). You MUST NOT raise the evaluator alone, and MUST NOT set the criteria-setter below the producer tier. **An explicit `--model` override supersedes this whole section:** when the user passed `--model`, every role for every task runs at that tier, and Role Pairing MUST NOT raise the meta-judge above it.
+
+### Escalation Rule
+
+Bump **BOTH producer and evaluator** (the failing task's implementation and judge) one tier for the next attempt when either trigger fires:
+
+1. **Low first-attempt quality** — a low score, or issues showing the model misunderstood the task rather than merely missing details.
+2. **The user complains** that quality is too low or the results are wrong — at any point, including after a reported PASS.
+
+Ladder: `haiku` → `sonnet` → `opus`. `opus` is the **ceiling** — there is no further tier. If `opus`-tier work still fails, escalate to the **user**, never loop.
+
+- **Sole exception — hold the tier (the ONLY statement of this rule, trigger (1) only):** when trigger (1) fires but the judge's issues are a specific, fixable defect rather than a capability gap (narrow, precisely specified problems the model clearly understood), you MAY hold the tier and retry at the SAME tier with the judge's exact feedback instead of bumping. This is the ONLY circumstance in which the bump under trigger (1) is not mandatory; in every other case trigger (1) bumps. Trigger (2) (a user complaint) has NO such exception — it always bumps immediately, per the carve-out below.
+- **Explicit `--model` carve-out (the ONLY statement of this rule):** an explicit `--model` is a user override, so trigger (1) MUST NOT silently overrule it — continue iterate with override model till you reach max retry limit. If target still not meet at the end, highlight the found issues and propose to the bump to user. Trigger (2) IS that approval, so it bumps immediately.
+- **Scoped to the failing task only.** Escalation re-tiers the retries of THAT task's implementation and judge. It does NOT re-tier the batch: sibling tasks running concurrently, and every task in a later batch, are assessed on their own merits per the [Selection Rules](#selection-rules), starting again from the `sonnet`/`haiku` default.
+- Escalation moves implementation and judge only. The task's meta-judge (or the group's, for repeatable/shared groups) is NOT re-run and NOT re-tiered — its specification is reused across the task's retries, and changing the criteria mid-task invalidates the comparison across attempts.
+- Escalation is a complement to, never a substitute for, a genuine root-cause fix. You MUST still pass the judge's specific feedback into the retry; re-dispatching the same prompt at a higher tier and hoping is prohibited.
+- Escalation is orthogonal to the score thresholds, the [Iteration Discretion Rule](#55-iteration-discretion-rule) and the per-target max-3-retries budget — it changes *which model* runs the next attempt, never *whether* an attempt is warranted.
+- **Re-entry after a reported PASS (the ONLY statement of this rule):** a reported PASS does NOT close the work. If the user later says a target's result is wrong or its quality too low, re-enter that target's retry path under trigger (2), and that target's retry budget **resets** — the complaint opens a fresh cycle of up to 3 retries even if the earlier cycle was exhausted.
+
+### Cross-Provider Equivalence
+
+When this skill runs outside the Anthropic model context, map the tier to the nearest model of the same class:
+
+| Tier | Role | Comparable models from other providers |
+|---|---|---|
+| `haiku` | Fast and cheap; mechanical work | `gemini-flash-lite`, `gemma` class, `gpt-oss` class, small open-weight models |
+| `sonnet` | Balanced workhorse; most code writing | `gemini-pro` class and full `gemini-flash` (**not** the `-lite` variant, which is `haiku`-tier), `GPT-5-mini` class, large `Qwen` / `DeepSeek` class |
+| `opus` | Frontier reasoning; critical or complex work | whatever the provider sells as its extended / deliberate-reasoning tier — currently `GPT-5.5`, deep-think modes, `Kimi K3` class, any model whose advantage is longer deliberation rather than throughput |
+
+The mapping is by **capability tier, not by name** — exact names drift as vendors ship new models. Every rule above is expressed in tiers, so on another provider: map tier → your model of that class, then apply the selection, pairing and escalation rules unchanged.
 
 ## Process
 
@@ -210,35 +274,23 @@ If the shared judge finds issues, analyze which specific implementation agent(s)
 
 ### Phase 3: Model and Agent Selection
 
-Select the optimal model and specialized agent based on task analysis. **Same configuration for all parallel agents** (ensures consistent quality):
+Select the model tier and specialized agent per task, based on the analysis in Phase 2, per the [Model Selection Policy](#model-selection-policy) — `sonnet`/`haiku` by default, `opus` only when earned. If `--model` was passed, skip straight to [3.2](#32-specialized-agent-selection-optional): every sub-agent for every task runs at the user's tier, per the [Role Pairing](#role-pairing) override clause.
 
-#### 3.1 Model Selection
+#### 3.1 Model Tier Selection Per Task
 
-| Task Profile | Recommended Model | Rationale |
-|--------------|-------------------|-----------|
-| **Complex per-target** (architecture, design) | `opus` | Maximum reasoning capability per task |
-| **Specialized domain** (code review, security) | `opus` | Domain expertise matters |
-| **Medium complexity, large output** | `sonnet` | Good capability, cost-efficient for volume |
-| **Simple transformations** (rename, format) | `haiku` | Fast, cheap, sufficient for mechanical tasks |
-| **Default** (when uncertain) | `opus` | Optimize for quality over cost |
+Assess **every** task on the three axes below, then read its tier straight off the [Selection Rules](#selection-rules) table — tiers are chosen per task, never once for the whole batch:
 
-**Decision Tree:**
+- **Scope** — one file, one component, or multiple files?
+- **Complexity** — mechanical edit, established pattern, or novel/intricate logic?
+- **Risk** — isolated and reversible, internal, or **critical** per the exhaustive list in the [Selection Rules](#selection-rules) `opus` row?
 
-```
-Is EACH target's task COMPLEX (architecture, novel problem, critical decision)?
-|
-+-- YES --> Use Opus for ALL agents
-|
-+-- NO --> Is task SIMPLE and MECHANICAL (rename, format, extract)?
-           |
-           +-- YES --> Use Haiku for ALL agents
-           |
-           +-- NO --> Is output LARGE but task not complex?
-                      |
-                      +-- YES --> Use Sonnet for ALL agents
-                      |
-                      +-- NO --> Use Opus for ALL agents (default)
-```
+**Per grouping type:**
+
+- **Independent** tasks — tier each task on its own merits; it gets its own meta-judge and its own judge at that tier.
+- **Repeatable** groups — the shared meta-judge produces ONE reusable spec, but each task's implementation and judge are still tiered individually: assess each target against the Selection Rules exactly as if it were independent. A critical-domain target inside the group (e.g. one file happens to be auth code) can land on `opus` while its siblings stay at `sonnet` or `haiku`, even though they share one spec.
+- **Shared** groups — tier each task on its own content first, then set the group's ONE shared judge to the HIGHEST of those tiers (per [Role Pairing](#role-pairing)), so it is never asked to judge work above its own tier.
+
+For each task, state the three findings, the chosen tier, and a one-line justification before dispatching it. Then apply [Role Pairing](#role-pairing) — which governs in full, including its `--model` override — to decide that task's (or group's) meta-judge tier.
 
 #### 3.2 Specialized Agent Selection (Optional)
 
@@ -368,19 +420,19 @@ Use Task tool (one per group/independent task, all in same message):
 [Meta-judge for Repeatable Group: "add tests"]
   - description: "Meta-judge (repeatable): reusable spec for adding tests across 3 modules"
   - prompt: {repeatable group meta-judge prompt}
-  - model: {selected model}
+  - model: {meta-judge model — the user's `--model` if one was passed; otherwise the HIGHEST current implementation tier among the group's tasks, or one tier up per Role Pairing}
   - subagent_type: "sadd:meta-judge"
 
 [Meta-judge for Shared Group: "S3 adapter + integration"]
   - description: "Meta-judge (shared): combined spec for S3 adapter implementation and integration"
   - prompt: {shared group meta-judge prompt}
-  - model: {selected model}
+  - model: {meta-judge model — the user's `--model` if one was passed; otherwise the HIGHEST current implementation tier among the group's tasks, or one tier up per Role Pairing}
   - subagent_type: "sadd:meta-judge"
 
 [Meta-judge for Independent Task: "update CI pipeline"]
   - description: "Meta-judge: update CI pipeline"
   - prompt: {independent meta-judge prompt}
-  - model: {selected model}
+  - model: {meta-judge model — the user's `--model` if one was passed; otherwise this task's implementation tier, or one tier up per Role Pairing}
   - subagent_type: "sadd:meta-judge"
 
 [All meta-judges launched simultaneously]
@@ -522,7 +574,7 @@ After meta-judges complete, launch all implementation sub-agents simultaneously,
 │   Independent:            Repeatable Group:                             │
 │   ┌──────────────┐        ┌─────────────────────┐                       │
 │   │ Meta-Judge A  │        │ Meta-Judge (shared)  │                       │
-│   │ (Opus)        │        │ (Opus)               │                       │
+│   │ (tier)        │        │ (tier)               │                       │
 │   │ → Spec YAML A │        │ → Reusable Spec YAML │                       │
 │   └──────┬───────┘        └──────────┬──────────┘                       │
 │          │                     ┌─────┴─────┐                            │
@@ -553,7 +605,7 @@ After meta-judges complete, launch all implementation sub-agents simultaneously,
 │   Phase 3.5: Meta-Judge for Shared Group                                │
 │   ┌──────────────────────┐                                              │
 │   │ Meta-Judge (combined) │                                              │
-│   │ (Opus)                │                                              │
+│   │ (tier)                │                                              │
 │   │ → Combined Spec YAML  │                                              │
 │   └──────────┬───────────┘                                              │
 │         ┌────┴────┐                                                     │
@@ -751,11 +803,11 @@ CRITICAL: You must reply with this exact structured evaluation report format in 
 Use Task tool:
   - description: "Judge: {target name}"
   - prompt: {judge verification prompt with exact meta-judge specification YAML, and Pre-existing or Expected Parallel Changes section if applicable}
-  - model: {selected model}
+  - model: {judge model — the user's `--model` if one was passed; otherwise MUST equal this task's current implementation tier, including after escalation}
   - subagent_type: "sadd:judge"
 ```
 
-For repeatable groups, each judge receives the SAME shared reusable spec from the group's single meta-judge. The judge prompt template from 5.2.2 is used as-is; only the target and implementation output differ between judges.
+For repeatable groups, each judge receives the SAME shared reusable spec from the group's single meta-judge, but its **model** is still that task's own current implementation tier — repeatable tasks can diverge in tier even though they share one spec. The judge prompt template from 5.2.2 is used as-is; only the target and implementation output differ between judges.
 
 **Shared group -- ONE judge for the entire group:**
 
@@ -763,7 +815,7 @@ For repeatable groups, each judge receives the SAME shared reusable spec from th
 Use Task tool:
   - description: "Judge (shared): {group description}"
   - prompt: {shared group judge prompt from 5.2.3 with combined meta-judge specification YAML and ALL implementation outputs}
-  - model: {selected model}
+  - model: {judge model — the user's `--model` if one was passed; otherwise MUST equal the HIGHEST current implementation tier among this group's tasks, including after any of them escalates}
   - subagent_type: "sadd:judge"
 ```
 
@@ -801,8 +853,11 @@ Otherwise (score < 3.0, or score < 4 with STRICT_MODE):
   -> Check retry count for this target
 
   If retries < 3:
-    -> Dispatch retry implementation agent with judge feedback
-    -> Return to judge verification with same target-specific meta-judge specification
+    -> Decide this target's retry tier per "5.3.1 Model Escalation on Retry" below
+       (per the Escalation Rule — bump BOTH implementation and judge, unless its sole hold exception applies)
+    -> Dispatch retry implementation agent at that tier with judge feedback
+    -> Return to judge verification with same target-specific meta-judge specification,
+       dispatching the judge at the retry tier (judge always matches implementation)
 
   If retries >= 3:
     -> Mark target as failed (isolate from other targets)
@@ -843,6 +898,18 @@ CRITICAL: Only the specific failing implementation agent(s) are retried.
 Passing tasks are NOT re-implemented. The shared judge always reviews
 the complete group together on each evaluation round.
 ```
+
+##### 5.3.1 Model Escalation on Retry
+
+Before dispatching any retry you MUST decide the failing task's tier explicitly per the [Escalation Rule](#escalation-rule) — which governs in full, including its sole hold exception — and record the decision in the target's row of the Results table. Retry-specific anchors on top of it:
+
+- **Trigger (1) is anchored at `score < 3.0`** here (or issues showing the model misunderstood the task rather than merely missing details).
+- **Scope:** per the [Escalation Rule](#escalation-rule).
+- **Independent and repeatable-group judges:** the retry's judge MUST be dispatched at the same tier as the retry implementation.
+- **Shared-group judge:** because ONE judge reviews every task in the group together, its retry tier MUST equal the HIGHEST current implementation tier among the group's tasks — so an escalated task's judge coverage never falls below its own tier, even while unescalated siblings stay at their original tier.
+- The task's meta-judge (or the group's, for repeatable/shared groups) is neither re-run nor re-tiered; its specification is reused across every retry.
+- The escalated tier applies to **this task's remaining attempts only** — every other target keeps the tier it was assigned in [Phase 3](#phase-3-model-and-agent-selection).
+- If `opus` still fails, escalate to the user per [Error Handling](#error-handling).
 
 #### 5.4 Retry with Feedback (If Needed)
 
@@ -906,7 +973,7 @@ After all agents complete (with retries as needed), aggregate results:
 
 ### Configuration
 - **Task:** {task description}
-- **Model:** {selected model}
+- **Models Used:** {tiers seen across all targets, e.g. "sonnet (3), opus (1), haiku (1)" — or `--model` override if the user passed one; see Results table for per-target detail}
 - **Targets:** {count} items
 - **Strict Mode:** {STRICT_MODE}
 
@@ -920,6 +987,8 @@ After all agents complete (with retries as needed), aggregate results:
 | ... | ... | ... | ... | ... | ... | ... |
 
 Status is `SUCCESS` (score >= 4.0), `ACCEPTED` (below target per the [Iteration Discretion Rule](#55-iteration-discretion-rule) — list the outstanding nitpicks in the Verification Summary), or `FAILED`.
+
+**Model** is the tier the target finished at; when [escalation](#531-model-escalation-on-retry) fired, record it as `{starting tier} → {final tier}`.
 
 ### Overall Assessment
 - **Completed:** {X}/{total}
@@ -993,6 +1062,17 @@ Phase 2: Task Analysis + Requirement Grouping
    - Judges: 4 (3 using shared test spec + 1 for GH Actions)
    - Total: 10 agents (vs. 12 without grouping)
 ```
+
+**Phase 3: Model Selection**
+
+| Target | Grouping | Tier | Rationale |
+|--------|----------|------|-----------|
+| src/modules/auth.ts | Repeatable | opus | opus is EARNED — the critical trigger fires on the auth domain even though the task itself is "just" adding tests; a wrong test could mask a real auth defect |
+| src/modules/cart.ts | Repeatable | sonnet | Code writing (test generation) on an established pattern; cart.ts has no critical-domain trigger |
+| src/modules/payments.ts | Repeatable | opus | opus is EARNED — the critical trigger fires on the payments domain |
+| .github/workflows/ci.yml | Independent | haiku | Small, mechanical addition of one CI step following existing pipeline conventions |
+
+The repeatable group's tasks do NOT share one tier even though they share one meta-judge spec: auth.ts and payments.ts each independently hit the critical trigger, cart.ts does not. The shared meta-judge itself runs at `opus`, the HIGHEST tier among the three tasks it serves.
 
 **Phase 3.5: Meta-Judge Dispatch (2 meta-judges in parallel):**
 
@@ -1079,7 +1159,7 @@ Use Task tool:
     Your report will be used to verify only this particular task, not the
     all tasks in the user prompt.
     Return only the final evaluation specification YAML in your response.
-  - model: opus
+  - model: haiku
   - subagent_type: "sadd:meta-judge"
 
 [Both meta-judges launched simultaneously]
@@ -1117,7 +1197,7 @@ Use Task tool:
 
     ## Self-Critique Verification (MANDATORY)
     [standard self-critique suffix]
-  - model: sonnet
+  - model: opus  # opus is EARNED — critical trigger: auth.ts implements authentication logic
 
 [Implementation 2: cart module tests]
 Use Task tool:
@@ -1158,7 +1238,7 @@ Use Task tool:
 Use Task tool:
   - description: "Parallel: add tests to src/modules/payments.ts"
   - prompt: [Same CoT prefix + task body for payments.ts + critique suffix]
-  - model: sonnet
+  - model: opus  # opus is EARNED — critical trigger: payments.ts is the payments/billing domain
 
 [Implementation 4: GitHub Actions test step]
 Use Task tool:
@@ -1194,7 +1274,7 @@ Use Task tool:
     2. Check that the workflow YAML is valid and well-structured
     3. Verify no unrelated workflow steps were modified
     4. Confirm the Summary section is complete and accurate
-  - model: sonnet
+  - model: haiku
 
 [All 4 launched simultaneously]
 ```
@@ -1259,7 +1339,7 @@ Use Task tool:
     ## Output
     CRITICAL: You must reply with this exact structured evaluation report
     format in YAML at the START of your response!
-  - model: opus
+  - model: opus  # matches auth.ts's own implementation tier, not the group's shared meta-judge tier
   - subagent_type: "sadd:judge"
 
 [Judge 2: cart module — uses SAME shared reusable spec]
@@ -1268,7 +1348,7 @@ Use Task tool:
   - prompt: [Same judge template, same reusable spec YAML, cart implementation output.
     Pre-existing and expected parallel changes section: same prior batch info,
     expected parallel changes list auth.ts, payments.ts, and GH Actions instead]
-  - model: opus
+  - model: sonnet  # matches cart.ts's own implementation tier
   - subagent_type: "sadd:judge"
 
 [Judge 3: payments module — uses SAME shared reusable spec]
@@ -1277,7 +1357,7 @@ Use Task tool:
   - prompt: [Same judge template, same reusable spec YAML, payments implementation output.
     Pre-existing and expected parallel changes section: same prior batch info,
     expected parallel changes list auth.ts, cart.ts, and GH Actions instead]
-  - model: opus
+  - model: opus  # matches payments.ts's own implementation tier
   - subagent_type: "sadd:judge"
 
 [Judge 4: GitHub Actions — uses INDEPENDENT spec from GH Actions meta-judge]
@@ -1336,7 +1416,7 @@ Use Task tool:
     ## Output
     CRITICAL: You must reply with this exact structured evaluation report
     format in YAML at the START of your response!
-  - model: opus
+  - model: haiku  # matches ci.yml's own implementation tier
   - subagent_type: "sadd:judge"
 
 [All 4 judges launched simultaneously]
@@ -1346,10 +1426,10 @@ Use Task tool:
 
 | Target | Grouping | Model | Judge Score | Retries | Status |
 |--------|----------|-------|-------------|---------|--------|
-| src/modules/auth.ts | Repeatable | sonnet | 4.2/5.0 | 0 | SUCCESS |
+| src/modules/auth.ts | Repeatable | opus | 4.2/5.0 | 0 | SUCCESS |
 | src/modules/cart.ts | Repeatable | sonnet | 4.0/5.0 | 0 | SUCCESS |
-| src/modules/payments.ts | Repeatable | sonnet | 4.1/5.0 | 0 | SUCCESS |
-| .github/workflows/ci.yml | Independent | sonnet | 4.3/5.0 | 0 | SUCCESS |
+| src/modules/payments.ts | Repeatable | opus | 4.1/5.0 | 0 | SUCCESS |
+| .github/workflows/ci.yml | Independent | haiku | 4.3/5.0 | 0 | SUCCESS |
 
 **Overall:** 4/4 completed. Total Agents: 10 (2 meta-judges + 4 implementations + 4 judges)
 
@@ -1401,6 +1481,18 @@ Phase 2: Task Analysis + Requirement Grouping
    - Judges: 4 (1 shared for S3 group + 3 individual for cart)
    - Total: 11 agents (vs. 15 without grouping)
 ```
+
+**Phase 3: Model Selection**
+
+| Target | Grouping | Tier | Rationale |
+|--------|----------|------|-----------|
+| src/adapters/s3.adapter.ts | Shared | opus | Shared-contract trigger — its public interface is the contract Task B integrates against |
+| src/modules/analytics.module.ts | Shared | opus | Shared-contract trigger — integrates against the adapter's public interface defined in the paired task |
+| src/modules/cart/cart.service.ts | Repeatable | sonnet | Refactor confined to one file, no contract change |
+| src/modules/cart/cart.repository.ts | Repeatable | sonnet | Refactor confined to one file, no contract change |
+| src/modules/cart/cart.controller.ts | Repeatable | sonnet | Refactor confined to one file, no contract change |
+
+The shared group lands on `opus` because Tasks A and B share a contract — the S3 adapter's public interface that the analytics integration consumes — which the [Selection Rules](#selection-rules) name as an `opus` trigger "at any file count when a shared contract changes." The repeatable group lands on `sonnet` because each cart file is refactored in isolation with no contract change. The shared group's meta-judge and its single judge also run at `opus` — Role Pairing's default is the SAME tier for all three roles of a task, and the shared judge's tier is the HIGHEST current implementation tier among the tasks it serves (both `opus`, since they agree).
 
 **Phase 3.5: Meta-Judge Dispatch (2 meta-judges in parallel):**
 
@@ -1497,7 +1589,7 @@ Use Task tool:
     User prompt is provided as context, you should use it only as reference
     of changes that can occur in the project by other agents.
     Return only the final evaluation specification YAML in your response.
-  - model: opus
+  - model: sonnet
   - subagent_type: "sadd:meta-judge"
 
 [Both meta-judges launched simultaneously]
@@ -1689,7 +1781,7 @@ Use Task tool:
     ## Output
     CRITICAL: You must reply with this exact structured evaluation report
     format in YAML at the START of your response! Include per-task verdicts.
-  - model: opus
+  - model: opus  # HIGHEST current implementation tier among Task A and Task B (both opus)
   - subagent_type: "sadd:judge"
 
 [Judge 2: cart.service.ts — uses SHARED reusable spec from repeatable meta-judge]
@@ -1750,7 +1842,7 @@ Use Task tool:
     ## Output
     CRITICAL: You must reply with this exact structured evaluation report
     format in YAML at the START of your response!
-  - model: opus
+  - model: sonnet  # matches cart.service.ts's own implementation tier
   - subagent_type: "sadd:judge"
 
 [Judge 3: cart.repository.ts — uses SAME shared reusable spec]
@@ -1759,7 +1851,7 @@ Use Task tool:
   - prompt: [Same judge template, same reusable spec YAML, cart.repository implementation output.
     Pre-existing and expected parallel changes section: same user modifications,
     expected parallel changes list S3 group, cart.service.ts, and cart.controller.ts instead]
-  - model: opus
+  - model: sonnet  # matches cart.repository.ts's own implementation tier
   - subagent_type: "sadd:judge"
 
 [Judge 4: cart.controller.ts — uses SAME shared reusable spec]
@@ -1768,25 +1860,27 @@ Use Task tool:
   - prompt: [Same judge template, same reusable spec YAML, cart.controller implementation output.
     Pre-existing and expected parallel changes section: same user modifications,
     expected parallel changes list S3 group, cart.service.ts, and cart.repository.ts instead]
-  - model: opus
+  - model: sonnet  # matches cart.controller.ts's own implementation tier
   - subagent_type: "sadd:judge"
 
 [All 4 judges launched simultaneously]
 ```
 
-**Shared judge retry scenario** (if S3 shared judge finds issues):
+**Repeatable-group retry scenario** (if the cart.controller.ts judge finds issues) — demonstrates [Model Escalation on Retry](#531-model-escalation-on-retry):
 
 ```
-Shared Judge Verdict:
-  - Task A (S3 adapter): PASS, SCORE: 4.2/5.0
-  - Task B (analytics integration): FAIL, SCORE: 3.0/5.0
-    ISSUES: Analytics module imports wrong method name from S3 adapter
-  - CROSS-TASK ISSUES: Method signature mismatch between adapter and consumer
+Judge 4 Verdict (cart.controller.ts):
+  FAIL, SCORE: 2.6/5.0
+  ISSUES: The refactor introduced a circular import between
+  cart.controller.ts and cart.service.ts — the implementation agent
+  misunderstood the module's dependency direction, not a narrow,
+  fixable nitpick (Escalation trigger 1: low first-attempt quality)
 
-Retry Decision:
-  → Task A PASSED — do NOT re-launch S3 adapter implementation agent
-  → Task B FAILED — re-launch ONLY the analytics integration agent with feedback
-  → After retry, re-launch shared judge to review ALL changes again
+Retry Decision (per Model Escalation on Retry):
+  → cart.controller.ts FAILED on a misunderstanding, not a fixable nitpick — bump ONE tier: sonnet -> opus
+  → Re-launch ONLY the cart.controller.ts implementation agent, now at opus, with the judge's feedback
+  → Re-launch ONLY the cart.controller.ts judge, now at opus, to re-evaluate
+  → cart.service.ts and cart.repository.ts are untouched — their sonnet tier, their judges, and their PASS verdicts stand; escalation is scoped to cart.controller.ts alone, never the whole repeatable group
 ```
 
 **Result:**
@@ -1794,12 +1888,12 @@ Retry Decision:
 | Target | Grouping | Model | Judge Score | Retries | Status |
 |--------|----------|-------|-------------|---------|--------|
 | src/adapters/s3.adapter.ts | Shared | opus | 4.2/5.0 | 0 | SUCCESS |
-| src/modules/analytics.module.ts | Shared | opus | 4.1/5.0 | 1 | SUCCESS |
+| src/modules/analytics.module.ts | Shared | opus | 4.4/5.0 | 0 | SUCCESS |
 | src/modules/cart/cart.service.ts | Repeatable | sonnet | 4.0/5.0 | 0 | SUCCESS |
 | src/modules/cart/cart.repository.ts | Repeatable | sonnet | 4.3/5.0 | 0 | SUCCESS |
-| src/modules/cart/cart.controller.ts | Repeatable | sonnet | 4.1/5.0 | 0 | SUCCESS |
+| src/modules/cart/cart.controller.ts | Repeatable | sonnet → opus | 4.1/5.0 | 1 | SUCCESS |
 
-**Overall:** 5/5 completed. Total Agents: 12 (2 meta-judges + 5 implementations + 1 retry + 4 judges [1 shared re-run + 3 cart])
+**Overall:** 5/5 completed. Total Agents: 13 (2 meta-judges + 5 implementations + 4 judges + 1 retry implementation + 1 retry judge)
 
 ---
 
@@ -1833,6 +1927,14 @@ Phase 2: Task Analysis + Requirement Grouping
    - Judges: 3 (one per task)
    - Total: 9 agents (no reduction possible)
 ```
+
+**Phase 3: Model Selection**
+
+| Target | Tier | Rationale |
+|--------|------|-----------|
+| src/services/loan.service.ts | sonnet | Test writing on an established pattern; generating tests alone does not fire the critical trigger |
+| src/modules/auth/ | opus | opus is EARNED — the critical trigger fires on the auth domain (password-reset token issuance and validation) |
+| .github/workflows/ci.yml | haiku | Small, mechanical caching config change using a standard GitHub Action; no logic to write |
 
 **Phase 3.5: Meta-Judge Dispatch (3 meta-judges in parallel):**
 
@@ -1871,7 +1973,7 @@ Use Task tool:
     Your report will be used to verify only this particular task, not the
     all tasks in the user prompt.
     Return only the final evaluation specification YAML in your response.
-  - model: opus
+  - model: sonnet
   - subagent_type: "sadd:meta-judge"
 
 [Meta-judge 2: Independent — password recovery feature]
@@ -1947,7 +2049,7 @@ Use Task tool:
     Your report will be used to verify only this particular task, not the
     all tasks in the user prompt.
     Return only the final evaluation specification YAML in your response.
-  - model: opus
+  - model: haiku
   - subagent_type: "sadd:meta-judge"
 
 [All 3 meta-judges launched simultaneously]
@@ -2038,7 +2140,7 @@ Use Task tool:
 
     ## Self-Critique Verification (MANDATORY)
     [standard self-critique suffix]
-  - model: sonnet
+  - model: haiku
 
 [All 3 launched simultaneously]
 ```
@@ -2080,7 +2182,7 @@ Use Task tool:
     ## Output
     CRITICAL: You must reply with this exact structured evaluation report
     format in YAML at the START of your response!
-  - model: opus
+  - model: sonnet
   - subagent_type: "sadd:judge"
 
 [Judge 2: password recovery — independent spec]
@@ -2152,7 +2254,7 @@ Use Task tool:
     ## Output
     CRITICAL: You must reply with this exact structured evaluation report
     format in YAML at the START of your response!
-  - model: opus
+  - model: haiku
   - subagent_type: "sadd:judge"
 
 [All 3 judges launched simultaneously]
@@ -2164,7 +2266,7 @@ Use Task tool:
 |--------|----------|-------|-------------|---------|--------|
 | src/services/loan.service.ts | Independent | sonnet | 4.1/5.0 | 0 | SUCCESS |
 | src/modules/auth/ | Independent | opus | 4.3/5.0 | 0 | SUCCESS |
-| .github/workflows/ci.yml | Independent | sonnet | 4.0/5.0 | 0 | SUCCESS |
+| .github/workflows/ci.yml | Independent | haiku | 4.0/5.0 | 0 | SUCCESS |
 
 **Overall:** 3/3 completed. Total Agents: 9 (3 meta-judges + 3 implementations + 3 judges). No grouping reduction possible for fully independent tasks.
 
@@ -2179,14 +2281,15 @@ Use Task tool:
 
 ### Model Selection Guidelines
 
-| Scenario | Model | Reason |
-|----------|-------|--------|
-| Security analysis | Opus | Critical reasoning required |
-| Architecture decisions | Opus | Quality over speed |
-| Simple refactoring | Haiku | Fast, sufficient |
-| Documentation generation | Haiku | Mechanical task |
-| Code review per file | Sonnet | Balanced capability |
-| Test generation | Sonnet | Extensive but patterned |
+Quick-reference examples only — the [Model Selection Policy](#model-selection-policy) is authoritative; when a scenario doesn't fit neatly below, follow the [Selection Rules](#selection-rules) table, not this list.
+
+| Scenario | Tier | Reason |
+|----------|------|--------|
+| Security-critical logic (auth, payments, data integrity) | `opus` | Critical trigger — earned regardless of task size |
+| Multi-file refactor or shared-contract change | `opus` | Complex trigger — breadth or contract change across files |
+| Refactoring confined to one file, no contract change | `sonnet` | Single-module change on an established pattern |
+| Documentation generation | `haiku` | Mechanical task, no code or cross-file reasoning |
+| Code review or test generation per file | `sonnet` | Balanced capability, established patterns |
 
 ### Meta-Judge + Judge Verification
 
@@ -2201,13 +2304,15 @@ Use Task tool:
 
 ### Judge Selection
 
-| Implementation Model | Judge Model | Rationale |
-|---------------------|-------------|-----------|
-| Opus | Opus | Critical work needs strong verification |
-| Sonnet | Opus | Tailored evaluation requires strong reasoning |
-| Haiku | Opus | Verify simple work with strong evaluation |
+Per [Role Pairing](#role-pairing), the judge tier is NOT independent of the implementation tier — the default is the SAME tier for both. There is no scenario where a `haiku`-tier task is judged by `opus`; sharpening (see the Role Pairing table) can only raise the shared **criteria-setter** (meta-judge), never the judge alone.
 
-**Guideline:** Judges always use Opus for consistent, high-quality evaluation across all targets.
+| Implementation Tier | Judge Tier | Rationale |
+|---------------------|------------|-----------|
+| `opus` | `opus` | Producer and evaluator CAN share a tier |
+| `sonnet` | `sonnet` | Producer and evaluator CAN share a tier |
+| `haiku` | `haiku` | Producer and evaluator CAN share a tier |
+
+**Guideline:** see [Role Pairing](#role-pairing).
 
 ### Context Isolation
 

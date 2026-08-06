@@ -1,7 +1,7 @@
 ---
 name: plan-task
 description: Refine, parallelize, and verify a draft task specification into a fully planned implementation-ready task
-argument-hint: Path to draft task file (e.g., ".specs/tasks/draft/add-validation.feature.md") [--continue] [--refine] [--target-quality] [--max-iterations] [--included-stages] [--skip] [--fast] [--strict] [--model opus|sonnet|haiku]
+argument-hint: Path to draft task file (e.g., ".specs/tasks/draft/add-validation.feature.md") [--continue] [--refine] [--target-quality] [--max-iterations] [--included-stages] [--skip] [--fast] [--strict] [--model haiku|sonnet|opus]
 ---
 
 # Refine Task Workflow
@@ -50,7 +50,7 @@ Parse the following arguments from `$ARGUMENTS`:
 | `--human-in-the-loop` | `--human-in-the-loop phase1,phase2,...` | None | Phases after which to pause for human verification. |
 | `--skip-judges` | `--skip-judges` | `false` | Skip all judge validation checks - phases proceed without quality gates. |
 | `--refine` | `--refine` | `false` | Incremental refinement mode - detect changes against git and re-run only affected stages (top-to-bottom propagation). |
-| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for **all** sub-agents: implementation agents, meta-judge, and judges. Default is opus when omitted. |
+| `--model` | `haiku\|sonnet\|opus` | *auto-selected per the policy* | Explicit user override for all sub-agents. When omitted, resolve each phase's tier per the [Model Selection Policy](#model-selection-policy). See [Role Pairing](#role-pairing) for the override's effect and the [Escalation Rule](#escalation-rule) for how escalation interacts with it. |
 | `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - a phase passes ONLY when `score >= THRESHOLD`, otherwise retry until `MAX_ITERATIONS` is reached. |
 
 ### Stage Names (for `--included-stages` / `--skip`)
@@ -94,6 +94,11 @@ SKIP_JUDGES = --skip-judges || false
 REFINE_MODE = --refine || false
 STRICT_MODE = --strict || false
 CONTINUE_STAGE = null
+
+# Model tiers - governed in full by the Model Selection Policy
+MODEL_OVERRIDE = --model || null
+BASELINE_TIER = MODEL_OVERRIDE || tier of the overall task per the Selection Rules
+
 
 if --continue [stage] present:
     CONTINUE_STAGE = stage or resolve from context
@@ -242,6 +247,7 @@ Before starting workflow:
    | **Refine Mode** | {REFINE_MODE} |
    | **Strict Mode** | {STRICT_MODE} |
    | **Continue From** | {CONTINUE_STAGE} or "Start" |
+   | **Model** | `{MODEL_OVERRIDE}` (user override) or "auto — baseline `{BASELINE_TIER}`: {one-line justification}" |
    ```
 
 3. **Handle `--continue` mode:**
@@ -372,13 +378,79 @@ This rule governs the `**Decision Logic:**` block of every phase:
 - You MUST be critical, NOT lenient. Stopping short of target MUST be an intentional decision grounded in the absence of real, requirement-breaking issues. A genuine blocking issue that prevents completing the phase within `MAX_ITERATIONS` MUST be reported as a failure, never papered over.
 - **If `STRICT_MODE` is true, this whole rule is DISABLED**: stop only when `score >= THRESHOLD` or `MAX_ITERATIONS` is reached. `--strict` changes nothing else — `THRESHOLD`, `MAX_ITERATIONS`, the `< 3.0` unconditional FAIL, human-in-the-loop checkpoints, judge dispatch and `--skip-judges` are unaffected. With `--skip-judges` (or `--one-shot`) no score is produced at all, so both this rule and `--strict` are inert.
 
+## Model Selection Policy
+
+Picking the model is the **single highest-leverage decision** you make — more than any prompt wording, it decides whether the plan comes back correct and how long the run takes. You MUST NOT treat it as a formality: name the tier and give a one-line justification before dispatching **each** phase agent. Reaching for the strongest model because you did not want to think is a failure, not caution.
+
+**Tier default:** `sonnet` is the working default, and `sonnet`/`haiku` cover the majority of runs. `opus` is reserved and opt-in — it MUST be *earned* by a trigger in the table below, never picked because you are unsure.
+
+### Selection Rules
+
+Assess the **overall task being planned** — the draft task file's title and type plus the user's input — against this table. The matching row is the run's `BASELINE_TIER`. (The same table also tiers a *single unit of work*, which is how Judge 5 grades the per-step model assignments produced by Phase 5.)
+
+| Task shape | Tier | Examples |
+|---|---|---|
+| **Straightforward** — one already-understood change with an obvious shape: a single file, and an established pattern, no new dependency, no open design question, and "done" is already evident from the draft | `haiku` | Fix a typo in one README, add a config flag, bump a dependency version, correct a log message |
+| **Typical** — ordinary feature, fix or refactor work: a handful of files inside one module or service, established patterns, local design choices only | `sonnet` | Add a REST endpoint to an existing service, add form validation, extract a helper and its tests |
+| **Complex** — **breadth** (~3+ modules/services, or any breadth when a shared contract changes) OR **critical domain** (auth, payments/billing, data integrity, irreversible migration, public API break) OR **open design** (concurrency, non-trivial algorithms, a new subsystem, architecture not yet decided) | `opus` | Re-architect the payments subsystem across 12 modules, design a new event pipeline, plan a schema migration |
+
+**Precedence (MANDATORY):** evaluate EVERY row, not just the first that matches. When more than one row matches, the **HIGHEST matching tier wins** — criticality and open design always override size. The **critical domain** list is exhaustive, not illustrative: shipping to production, touching real users, or *adding* to an existing public API are NOT triggers, so a new endpoint with validation in one service stays `sonnet`. **Mechanical-breadth carve-out:** breadth alone is not complexity — for one identical, rule-driven edit repeated across many files with no logic and no contract change, only the **breadth** trigger does not apply (critical domain and open design still do); tier it on a **single occurrence**, so a mechanical rename across 40 files is `haiku`, while the same rename confined to `src/auth/` is `opus`.
+
+**Tie-breaker:** ONLY when no row matches cleanly — the task sits genuinely between two tiers — pick `sonnet`, the working default. You MUST NOT bias up to `opus` to hedge; the [Escalation Rule](#escalation-rule) makes a modest first guess recoverable, and one recovered phase costs far less than over-provisioning every phase of every run.
+
+### Phase Weighting
+
+`BASELINE_TIER` is the tier of **every** model-assigned phase, with exactly one stated deviation:
+
+| Phase | Weight | Tier |
+|---|---|---|
+| Phase 3: Architecture Synthesis | **Heavy** — the only phase that makes open design decisions rather than applying settled ones; three inputs are synthesized here and every later phase, plus the implementation itself, inherits the result | **one tier above `BASELINE_TIER`**, capped at `opus` |
+| Phases 2a, 2b, 2c, 4, 5, 6 | Standard | `BASELINE_TIER` |
+
+Every model-assigned phase appears in exactly ONE row, so each resolves to exactly ONE tier. The cap means an `opus` baseline leaves all phases at `opus`. Phase 7 (Promote) is a file move you perform yourself — no sub-agent, no tier. See [Role Pairing](#role-pairing) for the `--model` override.
+
+### Role Pairing
+
+This pipeline has two model-assigned roles per phase: the **producer** (the phase agent) and the **evaluator** (its judge). **A judge ALWAYS runs at the tier of the phase it validates**, including after escalation. You MUST NOT tier a judge independently of its phase.
+
+**An explicit `--model` supersedes this entire policy (the ONLY statement of this rule):** every phase agent and every judge runs at the user's tier, the `BASELINE_TIER` assessment does NOT run, and [Phase Weighting](#phase-weighting) never deviates from it.
+
+### Escalation Rule
+
+Bump **BOTH the phase agent and its judge** one tier for the next iteration of that phase when either trigger fires:
+
+1. **Low first-iteration quality** — a low score, or judge issues showing the model misunderstood the phase rather than merely missing details.
+2. **The user complains** that quality is too low or the results are wrong — at any point, including after a reported PASS or a finished run.
+
+Ladder: `haiku` → `sonnet` → `opus`. `opus` is the **ceiling** — there is no further tier. If `opus`-tier work still fails, report it and escalate to the **user**; never loop.
+
+- **Sole exception — hold the tier (the ONLY statement of this rule, trigger (1) only):** when trigger (1) fires but the judge's issues are a specific, fixable defect rather than a capability gap (narrow, precisely specified problems the model clearly understood), you MAY hold the tier and re-launch the phase at the SAME tier with the judge's exact feedback instead of bumping. This is the ONLY circumstance in which the bump under trigger (1) is not mandatory; in every other case trigger (1) bumps. Trigger (2) has NO such exception — it always bumps immediately, per the carve-out below.
+- **Explicit `--model` carve-out (the ONLY statement of this rule):** an explicit `--model` is a user override, so trigger (1) MUST NOT silently overrule it — report the low-quality evidence, *propose* the bump, and re-launch at the user's tier unless they approve. Trigger (2) IS that approval, so it bumps immediately.
+- **`--skip-judges` carve-out (the ONLY statement of this rule):** with no judge running, there is no score or judge issue for trigger (1) to read, so trigger (1) cannot fire. Trigger (2) is user-initiated, not judge-derived, so it is unaffected — a user complaint under `--skip-judges` (or `--one-shot`) still bumps the tier for that phase's re-launch.
+- **Scoped to the failing phase.** An escalated tier applies to that phase's remaining iterations only; every later phase resumes from its own [Phase Weighting](#phase-weighting) tier.
+- Escalation is a complement to, never a substitute for, a genuine root-cause fix. You MUST still pass the judge's specific feedback into the re-launch; re-launching the same prompt at a higher tier and hoping is prohibited.
+- Escalation is orthogonal to `THRESHOLD`, `MAX_ITERATIONS`, `STRICT_MODE` and the [Iteration Discretion Rule](#iteration-discretion-rule) — it changes *which model* runs the next iteration, never *whether* one is warranted. When the Iteration Discretion Rule accepts a phase, no iteration happens, so nothing escalates.
+- **Re-entry after a finished phase (the ONLY statement of this rule):** a ✅ PASS or ☑️ ACCEPTED does NOT close the work. A later user quality complaint re-enters that phase under trigger (2) — through `--continue` or `--refine` — and `MAX_ITERATIONS` **resets** for it, with the phase and its judge running at the bumped tier.
+
+### Cross-Provider Equivalence
+
+When this skill runs outside the Anthropic model context, map the tier to the nearest model of the same class:
+
+| Tier | Role | Comparable models from other providers |
+|---|---|---|
+| `haiku` | Fast and cheap; mechanical work | `gemini-flash-lite`, `gemma` class, `gpt-oss` class, small open-weight models |
+| `sonnet` | Balanced workhorse; most planning phases | `gemini-pro` class and full `gemini-flash` (**not** the `-lite` variant, which is `haiku`-tier), `GPT-5-mini` class, large `Qwen` / `DeepSeek` class |
+| `opus` | Frontier reasoning; critical or complex work | whatever the provider sells as its extended / deliberate-reasoning tier — currently `GPT-5.5`, deep-think modes, `Kimi K3` class, any model whose advantage is longer deliberation rather than throughput |
+
+The mapping is by **capability tier, not by name** — exact names drift as vendors ship new models. Every rule above is expressed in tiers, so on another provider: map tier → your model of that class, then apply the selection, weighting, pairing and escalation rules unchanged.
+
 ## Workflow Execution
 
 You MUST launch for each step a separate agent, instead of performing all steps yourself.
 
 **CRITICAL:** For each agent you MUST:
 
-1. Use the **Agent** type and **Model** specified in the step
+1. Use the **Agent** type specified in the phase, and the **Model** tier resolved per the [Model Selection Policy](#model-selection-policy)
 2. Provide the task file path and user input as context
 3. **Provide the value of `${CLAUDE_PLUGIN_ROOT}` so agents can resolve paths like `@${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh`**
 4. Require agent to implement exactly that step, not more, not less
@@ -399,7 +471,8 @@ Phase 2: Parallel Analysis
     ▼                     ▼                     ▼
 Phase 2a:             Phase 2b:             Phase 2c:
 Research              Codebase Analysis     Business Analysis
-[sdd:researcher sonnet]   [sdd:code-explorer sonnet]  [sdd:business-analyst opus]
+[sdd:researcher]      [sdd:code-explorer]   [sdd:business-analyst]
+all three at baseline tier
 Judge 2a              Judge 2b              Judge 2c
 (pass: >THRESHOLD)     (pass: >THRESHOLD)     (pass: >THRESHOLD)
     │                     │                     │
@@ -407,22 +480,22 @@ Judge 2a              Judge 2b              Judge 2c
                           │
                           ▼
                     Phase 3: Architecture Synthesis
-                    [sdd:software-architect opus]
+                    [sdd:software-architect] baseline+1 (cap opus)
                     Judge 3 (pass: >THRESHOLD)
                           │
                           ▼
                     Phase 4: Decomposition
-                    [sdd:tech-lead opus]
+                    [sdd:tech-lead] baseline
                     Judge 4 (pass: >THRESHOLD)
                           │
                           ▼
                     Phase 5: Parallelize
-                    [sdd:team-lead opus]
+                    [sdd:team-lead] baseline
                     Judge 5 (pass: >THRESHOLD)
                           │
                           ▼
                     Phase 6: Verifications
-                    [sdd:qa-engineer opus]
+                    [sdd:qa-engineer] baseline
                     Judge 6 (pass: >THRESHOLD)
                           │
                           ▼
@@ -446,7 +519,7 @@ Launch these three phases **in parallel** immediately:
 
 #### Phase 2a: Research
 
-**Model:** `sonnet`
+**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: gathering and summarizing resources for an already-scoped task, no design decisions.
 **Agent:** `sdd:researcher`
 **Depends on:** Task file exists
 **Purpose:** Gather relevant resources, documentation, libraries, and prior art. Creates or updates a reusable skill.
@@ -479,7 +552,7 @@ CRITICAL: If expected files not created, launch the agent again with the same pr
 
 #### Phase 2b: Codebase Impact Analysis
 
-**Model:** `sonnet`
+**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: reading the codebase to locate files and integration points scales with the task's own breadth, which the baseline already reflects.
 **Agent:** `sdd:code-explorer`
 **Depends on:** Task file exists
 **Purpose:** Identify affected files, interfaces, and integration points
@@ -512,7 +585,7 @@ CRITICAL: If expected files not created, launch the agent again with the same pr
 
 #### Phase 2c: Business Analysis
 
-**Model:** `opus`
+**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: structured elicitation driven end-to-end by `analyse-business-requirements.md`, not open-ended synthesis — the procedure, not the model, carries the rigour here.
 **Agent:** `sdd:business-analyst`
 **Depends on:** Task file exists
 **Purpose:** Refine description and create acceptance criteria
@@ -544,11 +617,11 @@ Launch agent:
 
 ### Judge 2a/2b/2c: Validate Parallel Phases
 
-After **each** parallel phase completes, launch its respective judge **with the same agent type and model**.
+After **each** parallel phase completes, launch its respective judge **with the same agent type** as that phase, at the tier [Role Pairing](#role-pairing) gives it.
 
 #### Judge 2a: Validate Research/Skill
 
-**Model:** Use selected `--model` (default `opus`)
+**Model:** Phase 2a's tier — see [Role Pairing](#role-pairing)
 **Agent:** `sdd:researcher`
 **Depends on:** Phase 2a completion
 **Purpose:** Validate skill completeness and relevance
@@ -599,14 +672,14 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Research complete, proceed
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2a with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2a with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to next stage regardless of score (log warning)
 
 ---
 
 #### Judge 2b: Validate Codebase Analysis
 
-**Model:** Use selected `--model` (default `opus`)
+**Model:** Phase 2b's tier — see [Role Pairing](#role-pairing)
 **Agent:** `sdd:code-explorer`
 **Depends on:** Phase 2b completion
 **Purpose:** Validate file identification accuracy and integration mapping
@@ -653,14 +726,14 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Analysis complete, proceed
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2b with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2b with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to next stage regardless of score (log warning)
 
 ---
 
 #### Judge 2c: Validate Business Analysis
 
-**Model:** Use selected `--model` (default `opus`)
+**Model:** Phase 2c's tier — see [Role Pairing](#role-pairing)
 **Agent:** `sdd:business-analyst`
 **Depends on:** Phase 2c completion
 **Purpose:** Validate acceptance criteria quality and scope definition
@@ -708,7 +781,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Business analysis complete, proceed
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2c with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 2c with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to next stage regardless of score (log warning)
 
 ---
@@ -721,7 +794,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 ## Phase 3: Architecture Synthesis
 
-**Model:** `opus`
+**Model:** One tier above `BASELINE_TIER`, capped at `opus`, per [Phase Weighting](#phase-weighting) — the sole **heavy** phase: it decides the solution strategy and trade-offs that every later phase and the implementation inherit.
 **Agent:** `sdd:software-architect`
 **Depends on:** Phase 2a + Judge 2a PASS, Phase 2b + Judge 2b PASS, Phase 2c + Judge 2c PASS
 **Purpose:** Synthesize research, analysis, and business requirements into architectural overview
@@ -753,7 +826,7 @@ Launch agent:
 
 ### Judge 3: Validate Architecture Synthesis
 
-**Model:** Use selected `--model` (default `opus`)
+**Model:** Phase 3's tier — see [Role Pairing](#role-pairing)
 **Agent:** `sdd:software-architect`
 **Depends on:** Phase 3 completion
 **Purpose:** Validate architectural coherence and completeness
@@ -804,7 +877,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Architecture synthesis complete, proceed
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 3 with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 3 with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to Phase 4 regardless of score (log warning)
 
 **Wait for PASS before Phase 4.**
@@ -813,7 +886,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 ## Phase 4: Decomposition
 
-**Model:** `opus`
+**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: it applies an architecture Phase 3 already settled rather than making open design decisions, but still demands genuine per-step judgment — risks and mitigations specific to this task's own steps, not a generic checklist (see Judge 4's Risk Coverage criterion).
 **Agent:** `sdd:tech-lead`
 **Depends on:** Phase 3 + Judge 3 PASS
 **Purpose:** Break architecture into implementation steps with success criteria and risks
@@ -843,7 +916,7 @@ Launch agent:
 
 ### Judge 4: Validate Decomposition
 
-**Model:** Use selected `--model` (default `opus`)
+**Model:** Phase 4's tier — see [Role Pairing](#role-pairing)
 **Agent:** `sdd:tech-lead`
 **Depends on:** Phase 4 completion
 **Purpose:** Validate implementation steps quality and completeness
@@ -897,7 +970,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Decomposition complete, proceed to Phase 5
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 4 with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 4 with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to Phase 5 regardless of score (log warning)
 
 **Wait for PASS before Phase 5.**
@@ -906,7 +979,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 ## Phase 5: Parallelize Steps
 
-**Model:** `opus`
+**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: dependency-graph bookkeeping over steps that already declare their dependencies, plus agent/model assignment from a supplied list.
 **Agent:** `sdd:team-lead`
 **Depends on:** Phase 4 + Judge 4 PASS
 **Purpose:** Reorganize implementation steps for maximum parallel execution
@@ -923,6 +996,9 @@ Launch agent:
 
   Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
 
+  Assign each step's model tier per this policy:
+  {paste the Selection Rules table plus its Precedence and Tie-breaker paragraphs from the orchestrator's Model Selection Policy verbatim, applied per implementation step; drop the cross-reference links, which do not resolve outside that file}
+
   CRITICAL: DO NOT OUTPUT YOUR PARALLELIZATION, ONLY CREATE THE SCRATCHPAD AND UPDATE THE TASK FILE.
   ```
 
@@ -937,7 +1013,7 @@ Launch agent:
 
 ### Judge 5: Validate Parallelization
 
-**Model:** Use selected `--model` (default `opus`)
+**Model:** Phase 5's tier — see [Role Pairing](#role-pairing)
 **Agent:** `sdd:team-lead`
 **Depends on:** Phase 5 completion
 **Purpose:** Validate dependency accuracy and parallelization optimization
@@ -975,7 +1051,7 @@ Launch judge:
      - 1=No parallelization/wrong, 2=Some optimization, 3=Acceptable, 5=Maximum parallelization
 
   3. Agent Selection Correctness (weight: 0.20)
-     - Are agent types appropriate for outputs (opus by default, haiku for trivial, sonnet for simple but high in volume)?
+     - Are agent types appropriate for outputs?
      - Does selection follow the Agent Selection Guide?
      - Are only agents from the provided available agents list used?
      - 1=Wrong agents, 2=Mostly appropriate, 3=Acceptable, 4=Optimal selection, 5=Perfect selection
@@ -991,7 +1067,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Proceed to Phase 6
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 5 with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 5 with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Proceed to Phase 6 regardless of score (log warning)
 
 **Wait for PASS before Phase 6.**
@@ -1000,7 +1076,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 ## Phase 6: Define Verifications
 
-**Model:** `opus`
+**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: it derives rubrics and test strategies from acceptance criteria already settled rather than making open design decisions, but still demands genuine per-artifact judgment — criteria and test cases tailored to each artifact, not a generic template (see Judge 6's Rubric Quality and Test Strategy Coverage criteria, which reject generic output).
 **Agent:** `sdd:qa-engineer`
 **Depends on:** Phase 5 + Judge 5 PASS
 **Purpose:** Add LLM-as-Judge verification sections with rubrics
@@ -1029,7 +1105,7 @@ Launch agent:
 
 ### Judge 6: Validate Verifications
 
-**Model:** Use selected `--model` (default `opus`)
+**Model:** Phase 6's tier — see [Role Pairing](#role-pairing)
 **Agent:** `sdd:qa-engineer`
 **Depends on:** Phase 6 completion
 **Purpose:** Validate verification rubrics and thresholds
@@ -1086,7 +1162,7 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Decision Logic:**
 
 - **PASS** (score >= `THRESHOLD`): Workflow complete, promote task
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 6 with feedback (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
+- **FAIL** (score < `THRESHOLD`): Re-launch Phase 6 with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
 - **MAX_ITERATIONS reached**: Complete workflow regardless of score (log warning)
 
 ---
@@ -1226,7 +1302,7 @@ If any phase agent fails unexpectedly:
 If any judge returns FAIL (score < `THRESHOLD`):
 
 0. **Apply the [Iteration Discretion Rule](#iteration-discretion-rule) first**: if `score < 3.0` (or `STRICT_MODE` is true), always retry. If `max(3.0, THRESHOLD - 1.0) <= score < THRESHOLD` and only nitpicks remain, decide deliberately whether retrying is worth it — if you accept, mark the phase ☑️ ACCEPTED, list its outstanding nitpicks in the summary, and proceed to the next phase instead of steps 1-4; otherwise continue with step 1
-1. **Automatic retry**: Re-launch the phase agent with judge feedback
+1. **Automatic retry**: Re-launch the phase agent with judge feedback, at the tier decided per the [Escalation Rule](#escalation-rule) — which governs in full, including its sole hold exception and its `--model` carve-out. Retry-specific anchors on top of it: trigger (1) is anchored at `score < 3.0` here (or judge issues showing the model misunderstood the phase); re-judge at the same tier as the re-launched phase; state the tier decision in the phase summary
 2. **Human-in-the-loop check**: If phase is in `HUMAN_IN_THE_LOOP_PHASES`, trigger human checkpoint **before** the next judge retry (after implementation retry but before re-judging)
 3. **After `MAX_ITERATIONS` reached**: **Proceed to next stage automatically** (do NOT ask user unless `--human-in-the-loop` includes this phase)
 4. Log warning in completion summary: `⚠️ Phase X did not pass quality threshold (X.X/THRESHOLD) after MAX_ITERATIONS iterations`

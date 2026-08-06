@@ -1,7 +1,7 @@
 ---
 name: do-and-judge
 description: Execute a task with sub-agent implementation and LLM-as-a-judge verification with automatic retry loop
-argument-hint: Task description [--model opus|sonnet|haiku] [--strict] (e.g., "Refactor the UserService class to use dependency injection")
+argument-hint: Task description [--model haiku|sonnet|opus] [--strict] (e.g., "Refactor the UserService class to use dependency injection")
 ---
 
 # do-and-judge
@@ -14,7 +14,7 @@ Execute a single task by dispatching an implementation sub-agent, verifying with
 | Argument | Format | Default | Description |
 |----------|--------|---------|-------------|
 | `task` | Free-form text | **Required** | Task description to execute |
-| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for **all** sub-agents: implementation, meta-judge, and judge. Default is opus when omitted. |
+| `--model` | `haiku\|sonnet\|opus` | *auto-selected* | Explicit user override for **all** sub-agents: implementation, meta-judge, and judge. When omitted, you MUST select the model per the [Model Selection Policy](#model-selection-policy) — there is no fixed fallback tier. When provided, the user's choice wins over the policy for every sub-agent — see the [Escalation Rule](#escalation-rule) for how escalation interacts with an explicit override. |
 | `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - the task passes ONLY when `score >= 4.0`, otherwise retry until max retries is reached. |
 
 Example: `/do-and-judge Refactor the UserService class to use dependency injection --strict`
@@ -33,7 +33,7 @@ Key benefits:
 
 **CRITICAL:** You are the orchestrator only - you MUST NOT perform the task yourself. IF you read, write or run bash tools you failed task imidiatly. It is single most critical criteria for you. If you used anyting except sub-agents you will be killed immediatly!!!! Your role is to:
 
-1. Analyze the task and select optimal model
+1. Analyze the task and select the model per the [Model Selection Policy](#model-selection-policy) — `sonnet`/`haiku` by default, `opus` only when earned
 2. Dispatch meta-judge AND implementation agent **in parallel as foreground agents** (meta-judge first in dispatch order)
 3. Dispatch judge agent with meta-judge's evaluation specification
 4. Parse verdict and iterate if needed (max 3 retries)
@@ -59,40 +59,77 @@ Key benefits:
 - Parse only VERDICT/SCORE/ISSUES from judge output
 - Iterate with feedback if verification fails
 
+## Model Selection Policy
+
+Picking the model is the **single highest-leverage decision** you make — more than any prompt wording, it decides whether the task comes back correct and how long it takes. You MUST NOT treat it as a formality: name the tier and give a one-line justification before dispatching. Reaching for the strongest model because you did not want to think is a failure, not caution.
+
+**Tier default:** `sonnet` and `haiku` are the default. `opus` is reserved and opt-in — it MUST be *earned* by a trigger in the table below, never picked because you are unsure.
+
+### Selection Rules
+
+| Task shape | Tier | Examples |
+|---|---|---|
+| Single documentation/text file correction — no code, no cross-file reasoning | `haiku` | Fix a typo, update a link, correct a stale command in a README |
+| Small, few-line (~10 lines or fewer), mechanical code change confined to one file | `haiku` | Bump a constant, add a guard clause, rename a local, edit a config value |
+| Code writing — new functions, components or tests, single-module changes, established patterns | `sonnet` | Add an endpoint, write a service method plus tests, refactor one module |
+| **Multi-file refactoring** (~3+ files, or any file count when a shared contract changes) OR **critical** (auth, payments/billing, data integrity, irreversible migration, public API break) OR **complex logic** (concurrency, non-trivial algorithms, architectural decisions) | `opus` | Cross-cutting refactor, auth or payment logic, schema migration, novel algorithm design |
+
+**Precedence (MANDATORY):** evaluate EVERY row, not just the first that matches. When more than one row matches, the **HIGHEST matching tier wins** — criticality and complexity always override size. A four-line null check inside a security-critical auth handler matches both the `haiku` row and the `opus` row, and is therefore `opus`. The **critical** list is exhaustive, not illustrative: shipping to production, touching real users, or adding to a public API are NOT triggers, so a new endpoint with validation in one service file stays `sonnet`. **Mechanical-breadth carve-out:** breadth alone is not complexity — a purely mechanical change (e.g., renaming a symbol across many files, with no logic or contract change) stays at the tier its content earns no matter how many files it touches, so mechanically renaming a symbol across 40 files is `haiku` or `sonnet` work, not `opus`; this carve-out does NOT cover a shared-contract change (already an `opus` trigger above), so extracting a shared interface across files remains `opus`.
+
+**Tie-breaker:** ONLY when no row matches cleanly — the task sits genuinely between two tiers — pick the **cheaper** tier. You MUST NOT bias up to `opus` to hedge; the [Escalation Rule](#escalation-rule) makes a cheap first guess recoverable, and one recovered run costs far less than over-provisioning every run.
+
+### Role Pairing
+
+Any model-assigned pipeline has up to three roles — **producer** (does the work), **criteria-setter** (defines what "correct" means), **evaluator** (checks the work against those criteria); in this skill they instantiate as implementation / meta-judge / judge. **Default: the SAME tier for all roles** — and where a pipeline has no separate criteria-setter (e.g. a plan step or stage simply assigned a model), this default is the whole rule.
+
+**Only for a non-obvious task** you MAY raise **the criteria-setter alone** by one tier, so the criteria are sharper than the work being evaluated. *Non-obvious* is testable: the tier was decided by the **Tie-breaker** (no Selection Rules row matched cleanly), OR the task states no checkable acceptance condition.
+
+| Pattern | Criteria-setter (meta-judge) | Producer + evaluator (implementation + judge) | Use when |
+|---|---|---|---|
+| Sharpened-haiku | `sonnet` | `haiku` | The work is trivial, but what counts as "correct" is not obvious |
+| Sharpened-sonnet | `opus` | `sonnet` | Code work with ambiguous or high-consequence acceptance criteria that does not itself hit an `opus` trigger |
+
+Producer and evaluator MAY be a differnt tier. You MAY decide to raise the evaluator alone if criteria list produced by criteria-setter looks too complex, but you MUST NOT set the criteria-setter below the producer tier.
+
+### Escalation Rule
+
+Bump **BOTH producer and evaluator** (implementation and judge) one tier for the next iteration when either trigger fires:
+
+1. **Low first-iteration quality** — a low score, or issues showing the model misunderstood the task rather than merely missing details.
+2. **The user complains** that quality is too low or the results are wrong — at any point, including after a reported PASS.
+
+Ladder: `haiku` → `sonnet` → `opus`. `opus` is the **ceiling** — there is no further tier. If `opus`-tier work still fails, escalate to the **user**, never loop.
+
+- **Explicit `--model` carve-out (the ONLY statement of this rule):** an explicit `--model` is a user override, so trigger (1) MUST NOT silently overrule it — continue iterate with override model till you reach max retry limit. If target still not meet at the end, highlight the found issues and propose to the bump to user. Trigger (2) IS that approval, so it bumps immediately.
+- Escalation moves producer and evaluator only. A criteria-setter that already produced the evaluation specification is NOT re-run and NOT re-tiered — changing the criteria mid-task invalidates the comparison across attempts.
+- Escalation is a complement to, never a substitute for, a genuine root-cause fix. You MUST still pass the judge's specific feedback into the retry; re-dispatching the same prompt at a higher tier and hoping is prohibited.
+- Escalation is orthogonal to the score thresholds and the [Iteration Discretion Rule](#iteration-discretion-rule) — it changes *which model* runs the next iteration, never *whether* an iteration is warranted.
+
+### Cross-Provider Equivalence
+
+When this skill runs outside the Anthropic model context, map the tier to the nearest model of the same class:
+
+| Tier | Role | Comparable models from other providers |
+|---|---|---|
+| `haiku` | Fast and cheap; mechanical work | `gemini-flash-lite`, `gemma` class, `gpt-oss` class, small open-weight models |
+| `sonnet` | Balanced workhorse; most code writing | `gemini-pro` class and full `gemini-flash` (**not** the `-lite` variant, which is `haiku`-tier), `GPT-5-mini` class, large `Qwen` / `DeepSeek` class |
+| `opus` | Frontier reasoning; critical or complex work | whatever the provider sells as its extended / deliberate-reasoning tier — currently `GPT-5.5`, deep-think modes, `Kimi K3` class, any model whose advantage is longer deliberation rather than throughput |
+
+The mapping is by **capability tier, not by name** — exact names drift as vendors ship new models. Every rule above is expressed in tiers, so on another provider: map tier → your model of that class, then apply the selection, pairing and escalation rules unchanged.
+
 ## Process
 
 ### Phase 1: Task Analysis and Model Selection
 
 Resolve configuration first: `STRICT_MODE = --strict present || false`. Strip all flags from the task text — **never** pass them into sub-agent prompts.
 
-Analyze the task to select the optimal model:
+Unless the user passed `--model`, assess the task on three axes, then read the tier straight off the [Selection Rules](#selection-rules) table:
 
-```
-Let me analyze this task to determine the optimal configuration:
+- **Scope** — one file, one module, or multiple files?
+- **Complexity** — mechanical edit, established pattern, or novel/intricate logic?
+- **Risk** — isolated and reversible, internal, or **critical** per the exhaustive list in the [Selection Rules](#selection-rules) `opus` row?
 
-1. **Complexity Assessment**
-   - High: Architecture decisions, novel problem-solving, critical logic
-   - Medium: Standard patterns, moderate refactoring, API updates
-   - Low: Simple transformations, straightforward updates
-
-2. **Risk Assessment**
-   - High: Breaking changes, security-sensitive, data integrity
-   - Medium: Internal changes, reversible modifications
-   - Low: Non-critical utilities, isolated changes
-
-3. **Scope Assessment**
-   - Large: Multiple files, complex interactions
-   - Medium: Single component, focused changes
-   - Small: Minor modifications, single file
-```
-
-**Model Selection Guide:**
-
-| Model | When to Use | Examples |
-|-------|-------------|----------|
-| `opus` | **Default/standard choice**. Safe for any task. Use when correctness matters, decisions are nuanced, or you're unsure. | Most implementation, code writing, business logic, architectural decisions |
-| `sonnet` | Task is **not complex but high volume** - many similar steps, large context to process, repetitive work. | Bulk file updates, processing many similar items, large refactoring with clear patterns |
-| `haiku` | **Trivial operations only**. Simple, mechanical tasks with no decision-making. | Directory creation, file deletion, simple config edits, file copying/moving |
+State the three findings, the chosen tier, and a one-line justification before dispatching. Then apply [Role Pairing](#role-pairing) to decide the meta-judge tier — same tier as implementation unless the task is genuinely non-obvious. **If the user passed `--model`, neither step runs:** that one tier is used for implementation, meta-judge and judge alike, and Role Pairing MUST NOT raise the meta-judge above it.
 
 **Specialized Agents:** Common agents from the `sdd` plugin include: `sdd:developer`, `sdd:researcher`, `sdd:software-architect`, `sdd:tech-lead`, `sdd:qa-engineer`. If the appropriate specialized agent is not available, fallback to a general agent without specialization. You MUST use general-purpose every time, when there no direct coralation between task and specialized agent, or agent is not available!
 
@@ -130,7 +167,7 @@ Return only the final evaluation specification YAML in your response.
 Use Task tool:
   - description: "Meta-judge: {brief task summary}"
   - prompt: {meta-judge prompt}
-  - model: {selected model}
+  - model: {meta-judge model — the user's `--model` if one was passed; otherwise same as implementation, or one tier up per Role Pairing}
   - subagent_type: "sadd:meta-judge"
 ```
 
@@ -230,7 +267,7 @@ Determine the optimal agent type based on the task and avaiable agents, for exmp
 Use Task tool:
   - description: "Implement: {brief task summary}"
   - prompt: {constructed prompt with CoT + task + self-critique}
-  - model: {selected model}
+  - model: {selected implementation model}
   - subagent_type: "{selected agent type}"
 ```
 
@@ -242,12 +279,12 @@ Send BOTH Task tool calls in a single message. Meta-judge first, implementation 
 Message with 2 tool calls:
   Tool call 1 (meta-judge):
     - description: "Meta-judge: {brief task summary}"
-    - model: {selected model}
+    - model: {meta-judge model — the user's `--model` if one was passed; otherwise same as implementation, or one tier up per Role Pairing}
     - subagent_type: "sadd:meta-judge"
 
   Tool call 2 (implementation):
     - description: "Implement: {brief task summary}"
-    - model: {selected model}
+    - model: {selected implementation model}
     - subagent_type: "{selected agent type}"
 ```
 
@@ -340,7 +377,7 @@ CRITICAL: NEVER provide score threshold, in any format, including `threshold_pas
 Use Task tool:
   - description: "Judge: {brief task summary}"
   - prompt: {judge verification prompt with exact meta-judge specification YAML, and Pre-existing Changes section if applicable}
-  - model: {selected model}
+  - model: {judge model — MUST equal the current implementation model, including after escalation}
   - subagent_type: "sadd:judge"
 ```
 
@@ -374,6 +411,7 @@ Otherwise (score <3.0, or score <4 with STRICT_MODE):
   → Check retry count
 
   If retries < 3:
+    → Decide the retry tier per Phase 5 "Model Escalation on Retry" (bump BOTH implementation and judge, or hold)
     → Dispatch retry implementation agent with judge feedback
     → Return to Phase 3 (judge verification with same meta-judge specification)
 
@@ -381,6 +419,8 @@ Otherwise (score <3.0, or score <4 with STRICT_MODE):
     → Escalate to user (see Error Handling)
     → Do NOT proceed without user decision
 ```
+
+Note: `retries` counts attempts within the CURRENT cycle only. This budget **resets** on re-entry after a reported PASS (see [Phase 6 Re-entry](#phase-6-final-report)) — a later user quality complaint opens a fresh cycle of up to 3 retries even if a prior cycle already reached the limit above.
 
 #### Iteration Discretion Rule
 
@@ -399,6 +439,14 @@ Apply to every judge score:
 - **If `STRICT_MODE` is true, this whole rule is DISABLED**: stop only when `score >= 4.0` or max retries is reached. `--strict` changes nothing else — the `4.0` target, the max-retry limit, the `< 3.0` unconditional FAIL and meta-judge/judge dispatch are unaffected.
 
 ### Phase 5: Retry with Feedback (If Needed)
+
+#### Model Escalation on Retry
+
+Before dispatching any retry you MUST decide the tier explicitly per the [Escalation Rule](#escalation-rule) — which governs in full — and state the decision in your output. Retry-specific anchors on top of it:
+
+- **Trigger (1) is anchored at `score < 3.0`** here (or issues showing the model misunderstood the task rather than merely missing details).
+- **Hold the tier** when the failure is a specific fixable defect rather than a capability gap — narrow, precisely specified issues are resolved faster by a same-tier retry with exact feedback.
+- If `opus` still fails, escalate to the user per [Error Handling](#error-handling).
 
 **Retry prompt template:**
 
@@ -464,6 +512,8 @@ After task passes verification:
 {IMPROVEMENTS from judge, if any}
 ```
 
+**Re-entry after reporting:** a reported PASS does NOT close the task. If the user then says the result is wrong or the quality is too low, re-enter Phase 5 with their complaint as the feedback — that is [Escalation Rule](#escalation-rule) trigger (2), so bump BOTH producer and evaluator one tier (unless already `opus`) and retry. The retry budget **resets**: the complaint opens a fresh cycle of up to 3 retries even if the previous cycle exhausted its own.
+
 ## Error Handling
 
 ### If Max Retries Exceeded
@@ -477,6 +527,7 @@ When the task still fails verification after 3 retries:
    - Persistent issues across retries
 3. **Escalate** - Present options to user:
    - Provide additional context/guidance for retry
+   - Re-run at the next model tier up (unavailable if the run was already at `opus`)
    - Modify task requirements
    - Abort task
 4. **Wait** - Do NOT proceed without user decision
@@ -501,8 +552,9 @@ When the task still fails verification after 3 retries:
 
 ### Options
 1. **Provide guidance** - Give additional context for another retry
-2. **Modify requirements** - Simplify or clarify task
-3. **Abort** - Stop execution
+2. **Escalate the tier** - Re-run implementation and judge one tier up (omit this option if already `opus`)
+3. **Modify requirements** - Simplify or clarify task
+4. **Abort** - Stop execution
 
 Awaiting your decision...
 ```
@@ -524,7 +576,13 @@ Phase 1: Task Analysis
   - Complexity: Medium (rewriting existing documentation with new technical flow)
   - Risk: Low (documentation only, no code changes)
   - Scope: Small (single file, focused section)
-  → Model: opus
+  → Model: haiku (implementation + judge), sonnet (meta-judge)
+    Reasoning: Single documentation file, no code written — no opus
+    trigger fires. It is more than a one-line correction, so it straddles
+    haiku/sonnet; the tie-breaker sends it DOWN to haiku, and escalation
+    covers a thin first pass. The task states no checkable acceptance
+    condition — the second non-obvious disjunct — so the sharpened-haiku
+    pairing raises the meta-judge one tier to sonnet.
   → Agent type: general-purpose
     Reasoning: This is a documentation task — writing and restructuring
     prose, not implementing code. The sdd:developer agent is optimized
@@ -534,7 +592,7 @@ Phase 1: Task Analysis
     code-centric constraints.
 
 Phase 2: Parallel Dispatch (single message, 2 tool calls)
-  Tool call 1 — Meta-judge (Opus)...
+  Tool call 1 — Meta-judge (Sonnet)...
     Meta-judge prompt sent:
     ┌─────────────────────────────────────────────────────────
     │ ## Task
@@ -566,7 +624,7 @@ Phase 2: Parallel Dispatch (single message, 2 tool calls)
     → 3 rubric dimensions (accuracy, completeness, clarity)
     → 5 checklist items
 
-  Tool call 2 — Implementation (general-purpose + Opus)...
+  Tool call 2 — Implementation (general-purpose + Haiku)...
     Implementation prompt sent (abbreviated):
     ┌─────────────────────────────────────────────────────────
     │ ## Reasoning Approach
@@ -634,7 +692,7 @@ Phase 3: Dispatch Judge (with meta-judge specification)
   │ Follow your full judge process...
   └─────────────────────────────────────────────────────────
 
-  Judge (sadd:judge + Opus)...
+  Judge (sadd:judge + Haiku)...   ← same tier as implementation
     → VERDICT: PASS, SCORE: 4.2/5.0
     → ISSUES: None
     → IMPROVEMENTS: Add error response examples for expired tokens
@@ -648,7 +706,7 @@ Phase 6: Final Report
   Files: docs/api-reference.md (modified)
 ```
 
-### Example 2: Complex Task (Pass After Retry)
+### Example 2: Pass After Retry with Model Escalation
 
 **Input:**
 
@@ -660,34 +718,43 @@ Phase 6: Final Report
 
 ```
 Phase 1: Task Analysis
-  - Complexity: High (new feature, multiple concerns)
-  - Risk: High (affects all endpoints)
-  - Scope: Medium (single middleware)
-  → Model: opus
+  - Complexity: Medium (new middleware, established pattern)
+  - Risk: Medium (middleware sits in front of all endpoints)
+  - Scope: Small (single middleware + config schema)
+  → Model: sonnet (implementation + meta-judge + judge)
+    Reasoning: Code writing on an established pattern, confined to one
+    module. No opus trigger fires — not multi-file, not complex logic,
+    and rate limiting is on none of the critical list; breadth of reach
+    is not itself a trigger. Same tier for all three roles.
 
 Phase 2: Parallel Dispatch (Attempt 1)
-  Tool call 1 — Meta-judge (Opus)...
+  Tool call 1 — Meta-judge (Sonnet)...
     → Generated evaluation specification YAML
     → 4 rubric dimensions, 8 checklist items
-  Tool call 2 — Implementation (sdd:developer + Opus)...
+  Tool call 2 — Implementation (sdd:developer + Sonnet)...
     → Created RateLimiter middleware
     → Added configuration schema
 
 Phase 3: Dispatch Judge (with meta-judge specification)
-  Judge (sadd:judge + Opus)...
-    → VERDICT: FAIL, SCORE: 3.1/5.0
+  Judge (sadd:judge + Sonnet)...
+    → VERDICT: FAIL, SCORE: 2.9/5.0
     → ISSUES:
-      - Missing per-endpoint configuration
-      - No Redis support for distributed deployments
+      - Missing per-endpoint configuration (a stated requirement)
+      - Limiter is not concurrency-safe under parallel requests
     → IMPROVEMENTS: Add monitoring hooks
 
 Phase 5: Retry with Feedback
-  Implementation (sadd:meta-judge + Opus)...
+  Model Escalation on Retry:
+    → Score 2.9 < 3.0 and the concurrency issue shows the task was
+      misunderstood, not merely under-delivered → ESCALATE
+    → Bump BOTH implementation and judge: sonnet → opus
+    → Meta-judge NOT re-run, NOT re-tiered — same specification reused
+  Implementation (sdd:developer + Opus)...
     → Added endpoint-specific limits
-    → Added Redis adapter option
+    → Replaced the counter with an atomic, concurrency-safe token bucket
 
 Phase 3: Dispatch Judge (Attempt 2, same meta-judge specification)
-  Judge (sadd:judge + Opus)...
+  Judge (sadd:judge + Opus)...   ← escalated with the implementation
     → VERDICT: PASS, SCORE: 4.4/5.0
     → IMPROVEMENTS: Add metrics export
 
@@ -708,9 +775,12 @@ Phase 6: Final Report
 
 ```
 Phase 1: Task Analysis
-  - Complexity: High
+  - Complexity: High (multi-tenancy affects every query path)
   - Risk: High (database schema change)
-  → Model: opus
+  - Scope: Large (schema, migrations, query layer)
+  → Model: opus (implementation + meta-judge + judge)
+    Reasoning: opus is EARNED here — two triggers fire: multi-file
+    refactoring and critical (data integrity, irreversible migration).
 
 Phase 2: Parallel Dispatch
   Meta-judge → evaluation specification YAML
@@ -724,7 +794,8 @@ ESCALATION:
   Persistent issue: Existing data migration requires business decisions
   about how to handle orphaned records.
 
-  Options presented to user:
+  Options presented to user (tier escalation omitted — already at the
+  opus ceiling, no bump available):
   1. Provide guidance on orphan handling
   2. Simplify to new tenants only
   3. Abort
@@ -748,8 +819,9 @@ Attempt 4 (with guidance): PASS (4.1/5.0)
 Phase 1: Task Analysis
   - Complexity: High (new feature, security-sensitive)
   - Risk: High (authentication is critical)
-  - Scope: Medium (new module)
-  → Model: opus
+  - Scope: Medium (new module, several files)
+  → Model: opus (implementation + meta-judge + judge)
+    Reasoning: opus is EARNED — the critical trigger fires on auth.
   - Pre-existing Changes: None
 
 Phase 2: Parallel Dispatch (Attempt 1)
@@ -853,6 +925,10 @@ Phase 3: Dispatch Judge (with meta-judge specification)
     → IMPROVEMENTS: Add rate limiting on login endpoint
 
 Phase 5: Retry with Feedback (Attempt 2)
+  Model Escalation on Retry:
+    → Already at opus — the ceiling, no bump available. Retry at the
+      same tier with the judge's specific feedback; if this fails
+      repeatedly, escalate to the user rather than looping.
   Implementation (sdd:developer + Opus)...
     → Added bcrypt password hashing
     → Created tests/auth/AuthService.test.ts
@@ -885,8 +961,10 @@ Phase 6: Final Report
 Phase 1: Task Analysis
   - Complexity: Medium (refactoring existing code)
   - Risk: Medium (modifying working auth module)
-  - Scope: Medium (single module refactor)
-  → Model: opus
+  - Scope: Large (5 files across the module and its wiring)
+  → Model: opus (implementation + meta-judge + judge)
+    Reasoning: opus is EARNED — multi-file refactoring, and the module
+    being rewired is the security-critical auth path.
   - Pre-existing Changes: Auth module created in previous task
 
 Phase 2: Parallel Dispatch
@@ -1040,14 +1118,18 @@ Phase 1: Task Analysis
   - Complexity: Medium (bug fix in existing module)
   - Risk: Medium (cart logic affects checkout)
   - Scope: Small (focused bug fix)
-  → Model: opus
+  → Model: sonnet (implementation + meta-judge + judge)
+    Reasoning: Code writing on a contained bug plus a regression test.
+    No opus trigger — not a multi-file refactor, nothing on the critical
+    list (in-memory cart state, not billing), no intricate logic. Too
+    much reasoning is needed for haiku, so sonnet for all three roles.
   - Pre-existing Changes: User modified several files before this task
 
 Phase 2: Parallel Dispatch
-  Tool call 1 — Meta-judge (Opus)...
+  Tool call 1 — Meta-judge (Sonnet)...
     → Generated evaluation specification YAML
     → 3 rubric dimensions, 5 checklist items
-  Tool call 2 — Implementation (sdd:developer + Opus)...
+  Tool call 2 — Implementation (sdd:developer + Sonnet)...
     → Fixed duplicate detection in CartService.addItem()
     → Added deduplication guard in cart.routes.ts
     → Added regression test for duplicate item scenario
@@ -1111,7 +1193,7 @@ Phase 3: Dispatch Judge (with meta-judge specification)
   │ Follow your full judge process...
   └─────────────────────────────────────────────────────────
 
-  Judge (sadd:judge + Opus)...
+  Judge (sadd:judge + Sonnet)...   ← same tier as implementation
     → VERDICT: PASS, SCORE: 4.1/5.0
     → ISSUES: None
     → IMPROVEMENTS: Consider extracting deduplication logic
@@ -1127,9 +1209,12 @@ Phase 6: Final Report
 
 ### Model Selection
 
-- **When in doubt, use Opus** - Quality matters more than cost for verified work
-- **Match complexity** - Don't use Opus for simple transformations
-- **Consider risk** - Higher risk = stronger model
+The rules govern in the [Model Selection Policy](#model-selection-policy); these are the habits that make them stick:
+
+- **Justify out loud** - state scope, complexity and risk plus the resulting tier before dispatching; this is the highest-leverage decision in the run
+- **`opus` is earned, never a hedge** - resolve every overlap and tie by the [Selection Rules](#selection-rules) precedence and tie-breaker, never by instinct
+- **One tier across roles** - raise only the criteria-setter (meta-judge), and only for a non-obvious task ([Role Pairing](#role-pairing))
+- **Escalate on evidence** - a clearly-too-low iteration or a user quality complaint ([Escalation Rule](#escalation-rule))
 
 ### Meta-Judge + Judge Verification
 
