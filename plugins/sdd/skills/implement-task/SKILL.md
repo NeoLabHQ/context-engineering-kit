@@ -1,7 +1,7 @@
 ---
 name: implement-task
 description: Implement a task with automated LLM-as-Judge verification per step
-argument-hint: Task file [--continue] [--refine] [--target-quality] [--max-iterations] [--lenient-threshold] [--strict]
+argument-hint: Task file [--continue] [--refine] [--human-in-the-loop] [--target-quality] [--max-iterations] [--skip-reviews] [--lenient-threshold] [--model opus|sonnet|haiku] [--strict]
 ---
 
 # Implement Task with Verification
@@ -34,6 +34,7 @@ Parse the following arguments from `$ARGUMENTS`:
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum fix→verify cycles per step. Default is 3 iterations. Set to `unlimited` for no limit. |
 | `--skip-reviews` | `--skip-reviews` | `false` | Skip all per-step code-reviewer checks - steps proceed without quality gates. |
 | `--lenient-threshold` | `--lenient-threshold X.X` | `3.5` | Lenient threshold (out of 5.0) used for steps with verification level explicitly marked lenient by qa-engineer. |
+| `--model` | `opus\|sonnet\|haiku` | Unset | Model for **all** sub-agents (developer/implementer AND `sdd:code-reviewer`) that **overrides** every model in the task specification file; when omitted, models come from the task file, otherwise each dispatch's default. |
 | `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - a step is marked PASS ONLY when `combined_score >= threshold`, otherwise iterate until `MAX_ITERATIONS` is reached. |
 
 ### Configuration Resolution
@@ -56,6 +57,7 @@ else:
     THRESHOLD_FOR_CRITICAL_COMPONENTS = 4.5  # default
 
 # Initialize other defaults
+MODEL_OVERRIDE = --model value (opus|sonnet|haiku) || none  # none = no override; models come from the task file
 MAX_ITERATIONS = --max-iterations || 3  # default is 3 iterations
 HUMAN_IN_THE_LOOP_STEPS = --human-in-the-loop || [] (empty = none, "*" = all)
 SKIP_REVIEWS = --skip-reviews || false
@@ -130,7 +132,7 @@ When `--refine` is used, it detects changes to **project files** (not the task f
 
 4. **Refine Execution:**
    - For each affected step (in order):
-     - Launch the **`sdd:code-reviewer` agent** to verify the step's artifacts (including user's changes), passing the 5 standard inputs
+     - Launch the **`sdd:code-reviewer` agent** to verify the step's artifacts (including user's changes), passing the 4 standard inputs — **Model**: `MODEL_OVERRIDE` if set — otherwise `opus`
      - If the step PASSES per the [Iteration Discretion Rule](#iteration-discretion-rule): Mark step done, proceed to next
      - Otherwise: Launch the developer agent with user's changes AND the reviewer's issues as feedback, then re-verify
    - User's manual fixes are preserved - the developer agent should build upon them, not overwrite
@@ -314,11 +316,12 @@ Orchestrators who "quickly verify" = skip `sdd:code-reviewer` agents = quality c
 
 ### Configuration Rules
 
+- **Model precedence (`MODEL_OVERRIDE`): if `--model` was given, that model WINS over the task specification file and over every default in this skill — dispatch EVERY sub-agent with it (developer/implementer of any agent type AND `sdd:code-reviewer`), ignoring any per-step or per-agent model in the task file. It is an override, NOT a fallback. If `--model` was NOT given (`MODEL_OVERRIDE = none`), model selection is unchanged: use the model the task specification file assigns, falling back to the default named in each dispatch block.**
 - Use `THRESHOLD_FOR_STANDARD_COMPONENTS` (default 4.0) for standard steps!
 - Use `THRESHOLD_FOR_CRITICAL_COMPONENTS` (default 4.5) for steps marked as critical in the task file.
 - Use `LENIENT_THRESHOLD` (default 3.5) only when the step's verification specification explicitly marks it as lenient.
 - The threshold is applied at THIS orchestrator layer against `combined_score` returned by code-reviewer. **NEVER pass any threshold to the code-reviewer agent — or he will try to reach target score and as result become subjective.**
-- A step PASSES if `combined_score >= threshold`. If `3.0 <= combined_score < threshold`, the step passes ONLY when the [Iteration Discretion Rule](#iteration-discretion-rule) says so — never below its floor of `max(3.0, threshold - 1.0)`. If `combined_score < 3.0`, the step FAILS unconditionally.
+- A step PASSES if `combined_score >= threshold`. If `3.0 <= combined_score < 4.0`, the step passes ONLY when the [Iteration Discretion Rule](#iteration-discretion-rule) says so — never below the fixed floor of `3.0`. If `combined_score < 3.0`, the step FAILS unconditionally.
 - **Default is 3 iterations** - stop after 3 fix→verify cycles and proceed to next step (with warning)!
 - If `MAX_ITERATIONS` is set to `unlimited`: Iterate until quality threshold is met (no limit)
 - Trigger human-in-the-loop checkpoints ONLY after steps in `HUMAN_IN_THE_LOOP_STEPS` (or all steps if `"*"`)!
@@ -348,10 +351,9 @@ Your main task is to COMPLETE the task within target quality. Two failure modes 
 Apply to every step's `combined_score`:
 
 - **`combined_score < 3.0` → FAIL, unconditionally. No discretion.** Iterate with reviewer feedback until the step passes or `MAX_ITERATIONS` is reached.
-- **`3.0 <= combined_score < 5.0` → discretion band.** ONLY inside this band MAY you decide that a step below `threshold` is acceptable.
-- **Bounded drop:** NEVER accept a `combined_score` more than `1.0` below the active `threshold` — the effective floor is `max(3.0, threshold - 1.0)`: `3.5` for `THRESHOLD_FOR_CRITICAL_COMPONENTS` (4.5), `3.0` for `THRESHOLD_FOR_STANDARD_COMPONENTS` (4.0) and `LENIENT_THRESHOLD` (3.5). A `threshold <= 3.0` leaves no discretion band.
+- **`3.0 <= combined_score < 4.5` → discretion band.** ONLY inside this band MAY you decide that a step below the 4.5 target is acceptable. The fixed floor is `3.0` and the band ceiling is `4.5`.
 - Inside the band, when the outstanding issues are ONLY `Low`/`Medium` priority (any `High` or `Critical` finding removes discretion entirely) AND none of them breaks a target requirement of the step or causes a meaningful defect (i.e. they are nitpicks), you MUST reason FIRST — before dispatching another iteration — about whether iterating (or marking the step failed) is worth the time and context cost.
-- **At most ONE nitpick-driven iteration**, and it counts against `MAX_ITERATIONS`. If it again surfaces only nitpicks, you MUST mark the step PASS (☑️ ACCEPTED in the summary table), report the outstanding issues in the final report, and continue with the next step. If it returns a `combined_score` below the floor `max(3.0, threshold - 1.0)`, the FAIL path applies instead.
+- **At most ONE nitpick-driven iteration**, and it counts against `MAX_ITERATIONS`. If it again surfaces only nitpicks, you MUST mark the step PASS (☑️ ACCEPTED in the summary table), report the outstanding issues in the final report, and continue with the next step. If it returns a `combined_score` below `3.0`, the FAIL path applies instead.
 - You MUST be critical, NOT lenient. Stopping short of target MUST be an intentional decision grounded in the absence of real, requirement-breaking issues. A genuine blocking issue that prevents implementing the step within `MAX_ITERATIONS` MUST be reported as a failure, never papered over.
 - **If `STRICT_MODE` is true, this whole rule is DISABLED**: stop only when `combined_score >= threshold` or `MAX_ITERATIONS` is reached. `--strict` changes nothing else — thresholds, `MAX_ITERATIONS`, the `< 3.0` unconditional FAIL, human-in-the-loop checkpoints, code-reviewer dispatch and `--skip-reviews` are unaffected. With `--skip-reviews` no `combined_score` is produced at all, so both this rule and `--strict` are inert.
 
@@ -498,6 +500,7 @@ Parse all flags from `$ARGUMENTS` and initialize configuration.
 | Setting | Value |
 |---------|-------|
 | **Task File** | {TASK_PATH} |
+| **Model Override** | {MODEL_OVERRIDE or "None (models from task file)"} |
 | **Standard Components Threshold** | {THRESHOLD_FOR_STANDARD_COMPONENTS}/5.0 |
 | **Critical Components Threshold** | {THRESHOLD_FOR_CRITICAL_COMPONENTS}/5.0 |
 | **Lenient Components Threshold** | {LENIENT_THRESHOLD}/5.0 |
@@ -520,7 +523,7 @@ Parse all flags from `$ARGUMENTS` and initialize configuration.
 
 2. **Verify Last Completed Step (if any):**
    - If `LAST_COMPLETED_STEP > 0`:
-     - Launch the `sdd:code-reviewer` agent to verify the artifacts from that step (passing the 5 inputs documented in Phase 2)
+     - Launch the `sdd:code-reviewer` agent to verify the artifacts from that step (passing the 4 inputs documented in Phase 2) — **Model**: `MODEL_OVERRIDE` if set — otherwise `opus`
      - If the step PASSES per the [Iteration Discretion Rule](#iteration-discretion-rule): Set `RESUME_FROM_STEP = LAST_COMPLETED_STEP + 1`
      - Otherwise: Set `RESUME_FROM_STEP = LAST_COMPLETED_STEP` (re-implement using reviewer feedback)
 
@@ -648,7 +651,7 @@ For each step in dependency order, select the dispatch pattern by reading the st
 
 ### Code-Reviewer Input Contract (NON-NEGOTIABLE)
 
-Every `sdd:code-reviewer` dispatch — regardless of pattern — MUST include exactly these 5 inputs and NOTHING else that resembles a threshold or pass/fail expectation:
+Every `sdd:code-reviewer` dispatch — regardless of pattern — MUST include exactly these 4 inputs and NOTHING else that resembles a threshold or pass/fail expectation (the Task tool's `model` parameter is a dispatch setting, not a prompt input — see `MODEL_OVERRIDE`):
 
 1. **Artifact Path(s)**: The file paths the developer reports as created or modified for this step (or item, in Pattern C)
 2. **Step number**: The step number to review
@@ -727,7 +730,7 @@ After the developer completes the retry, dispatch the code-reviewer again with t
 Use Task tool with:
 
 - **Agent Type**: `sdd:developer`
-- **Model**: As specified in step or `opus` by default
+- **Model**: `MODEL_OVERRIDE` if set — otherwise as specified in step or `opus`
 - **Description**: "Implement Step [N]: [Title]"
 - **Prompt**:
 
@@ -772,7 +775,7 @@ Use this pattern for steps with `Single Judge` (1 reviewer) or `Panel of 2 Judge
 Use Task tool with:
 
 - **Agent Type**: `sdd:developer`
-- **Model**: As specified in step or `opus` by default
+- **Model**: `MODEL_OVERRIDE` if set — otherwise as specified in step or `opus`
 - **Description**: "Implement Step [N]: [Title]"
 - **Prompt**:
 
@@ -806,7 +809,7 @@ When complete, report:
 - For `Single Judge`: launch **1** `sdd:code-reviewer` agent.
 - For `Panel of 2 Judges`: launch **2** `sdd:code-reviewer` agents in parallel with identical prompts.
 
-**Reviewer 1 & 2** (launch both in parallel with same prompt structure):
+**Reviewer 1 & 2** (launch both in parallel with same prompt structure) — **Model**: `MODEL_OVERRIDE` if set — otherwise `opus`:
 
 ```
 CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
@@ -824,7 +827,7 @@ Inputs:
 3. Specification Path:
    [path to the specification file]
 
-5. CLAUDE_PLUGIN_ROOT: ${CLAUDE_PLUGIN_ROOT}
+4. CLAUDE_PLUGIN_ROOT: ${CLAUDE_PLUGIN_ROOT}
 ```
 
 **5. Aggregate Reviewer Results (orchestrator-side):**
@@ -906,7 +909,7 @@ For steps that create multiple similar items:
 Use Task tool for EACH item (launch all in parallel):
 
 - **Agent Type**: `sdd:developer`
-- **Model**: As specified or `opus` by default
+- **Model**: `MODEL_OVERRIDE` if set — otherwise as specified in step or `opus`
 - **Description**: "Implement Step [N], Item: [Name]"
 - **Prompt**:
 
@@ -939,7 +942,7 @@ When complete, report:
 **⚠️ MANDATORY: Launch code-reviewer agents. Do NOT skip. Do NOT verify yourself.**
 
 
-For each item:
+For each item — **Model**: `MODEL_OVERRIDE` if set — otherwise `opus`:
 
 ```
 CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
@@ -957,7 +960,7 @@ Inputs:
 3. Specification Path:
    [path to the specification file]
 
-5. CLAUDE_PLUGIN_ROOT: ${CLAUDE_PLUGIN_ROOT}
+4. CLAUDE_PLUGIN_ROOT: ${CLAUDE_PLUGIN_ROOT}
 ```
 
 **5. Collect All Results and Apply the Gate per Item:**
@@ -976,7 +979,7 @@ For each item's reviewer report, apply the orchestrator-level threshold (per the
 
 - For each failing item, build retry feedback per [Retry Feedback Construction](#retry-feedback-construction)
 - Re-launch the developer agent for ONLY the failing items (preserve user's changes if in refine mode)
-- Re-launch the code-reviewer for each re-implemented item with the SAME 5 inputs
+- Re-launch the code-reviewer for each re-implemented item with the SAME 4 inputs
 - **Iterate until ALL items PASS** or until `MAX_ITERATIONS` reached
 - If `MAX_ITERATIONS` reached:
   - Log warning: "Step [N] has {X} items that did not pass after {MAX_ITERATIONS} iterations"
@@ -1042,7 +1045,7 @@ After all implementation steps are complete, verify the task meets all Definitio
 **Use Task tool with:**
 
 - **Agent Type**: `sdd:developer`
-- **Model**: `opus`
+- **Model**: `MODEL_OVERRIDE` if set — otherwise `opus`
 - **Description**: "Verify Definition of Done"
 - **Prompt**:
 
@@ -1085,7 +1088,7 @@ Be thorough - check everything the task requires.
 
 If any Definition of Done items FAIL:
 
-**1. Launch Developer Agent for Each Failing Item:**
+**1. Launch Developer Agent for Each Failing Item** — **Model**: `MODEL_OVERRIDE` if set — otherwise `opus`:
 
 ```
 Fix Definition of Done item: [Item Description]
@@ -1215,6 +1218,7 @@ After all steps complete and DoD verification passes:
 
 | Setting | Value |
 |---------|-------|
+| **Model Override** | {MODEL_OVERRIDE or "None (models from task file)"} |
 | **Standard Components Threshold** | {THRESHOLD_FOR_STANDARD_COMPONENTS}/5.0 |
 | **Critical Components Threshold** | {THRESHOLD_FOR_CRITICAL_COMPONENTS}/5.0 |
 | **Lenient Threshold** | {LENIENT_THRESHOLD}/5.0 |
@@ -1236,7 +1240,7 @@ After all steps complete and DoD verification passes:
 
 **Legend:**
 - ✅ PASS - Score >= threshold for step type
-- ☑️ ACCEPTED - Score in `max(3.0, threshold - 1.0)..threshold` accepted per the [Iteration Discretion Rule](#iteration-discretion-rule) (outstanding nitpicks listed under Recommendations)
+- ☑️ ACCEPTED - Score in discretion band `3.0..4.0` accepted per the [Iteration Discretion Rule](#iteration-discretion-rule) (outstanding nitpicks listed under Recommendations)
 - ⚠️ MAX_ITER - Did not pass but MAX_ITERATIONS reached, proceeded anyway
 - ⏭️ SKIPPED - Step skipped (continue/refine mode)
 
@@ -1411,6 +1415,9 @@ After all steps complete and DoD verification passes:
 # Strict mode: never accept a step below target - iterate until threshold or MAX_ITERATIONS
 /implement add-validation.feature.md --strict
 
+# Force ALL sub-agents (developer + code-reviewer) onto one model, overriding the task file
+/implement add-validation.feature.md --model sonnet
+
 # Combined: continue with human review
 /implement add-validation.feature.md --continue --human-in-the-loop
 ```
@@ -1449,16 +1456,16 @@ Step 2: Launching sdd:developer agent...
   Launching 2 sdd:code-reviewer agents in parallel (Panel of 2)...
   Reviewer 1: combined_score 4.3/5.0
   Reviewer 2: combined_score 4.5/5.0
-  Panel median: 4.4/5.0 (threshold 4.5, floor max(3.0, 4.5-1.0) = 3.5)
+  Panel median: 4.4/5.0 (threshold 4.5, discretion floor 3.0)
   Reasoning (Iteration Discretion Rule, before dispatching an iteration):
-    - 4.4 is inside 3.0..5.0 and above the 3.5 floor → discretion available
+    - 4.4 is inside discretion band 3.0..4.0 → discretion available
     - 2 outstanding findings, both Low, no High/Critical, no requirement broken
     - no nitpick-driven iteration spent yet → spend the ONE allowed iteration
   Iteration 1/3: Re-launching sdd:developer with reviewer feedback...
   Re-launching Panel of 2...
   Panel median: 4.4/5.0 — same 2 Low findings, unchanged
   Reasoning: the one allowed nitpick-driven iteration is now spent and it
-    surfaced only the same nitpicks; 4.4 is still above the 3.5 floor
+    surfaced only the same nitpicks; 4.4 is still within the discretion band
     → stop, do not iterate again
   Status: ☑️ ACCEPTED (2 outstanding nitpicks reported under Recommendations)
 
@@ -1750,11 +1757,12 @@ Before completing implementation:
 ### Configuration Handling
 
 - [ ] Parsed all flags from `$ARGUMENTS` correctly
+- [ ] Applied the `MODEL_OVERRIDE` precedence rule for `--model` (see [Configuration Rules](#configuration-rules))
 - [ ] Used `THRESHOLD_FOR_STANDARD_COMPONENTS` for `Single Judge` and `Per-Item Judges` steps
 - [ ] Used `THRESHOLD_FOR_CRITICAL_COMPONENTS` for `Panel of 2 Judges` steps
 - [ ] Used `LENIENT_THRESHOLD` only for steps the qa-engineer's spec marks lenient
 - [ ] Iterated until orchestrator-level PASS rule satisfied (or `MAX_ITERATIONS` reached, default 3)
-- [ ] Applied the [Iteration Discretion Rule](#iteration-discretion-rule) only inside `3.0 <= combined_score < 5.0`, never accepted below `max(3.0, threshold - 1.0)`, treated `< 3.0` as unconditional FAIL, and spent at most ONE nitpick-driven iteration
+- [ ] Applied the [Iteration Discretion Rule](#iteration-discretion-rule) only inside discretion band `3.0 <= combined_score < 4.5`, never accepted below `3.0`, treated `< 3.0` as unconditional FAIL, and spent at most ONE nitpick-driven iteration
 - [ ] Passed NO threshold, floor or band value to the code-reviewer — the agent stayed threshold-blind
 - [ ] If `STRICT_MODE` is true: Ignored the Iteration Discretion Rule and iterated until `threshold` or `MAX_ITERATIONS`
 - [ ] Triggered human-in-the-loop checkpoints ONLY for steps in `HUMAN_IN_THE_LOOP_STEPS`
@@ -1902,7 +1910,7 @@ When the `sdd:code-reviewer` evaluates artifacts, it uses this 5-point scale for
 1. After a `sdd:developer` agent completes implementation
 2. Read the step's `#### Verification` subsection
 3. Extract: Level, Artifact paths, Threshold
-5. Launch the appropriate count of `sdd:code-reviewer` agent(s) based on Level
+5. Launch the appropriate count of `sdd:code-reviewer` agent(s) based on Level — **Model**: `MODEL_OVERRIDE` if set — otherwise `opus`
 6. Pass exactly the 4 inputs to each reviewer (artifact, step number, specification path, CLAUDE_PLUGIN_ROOT) — **NEVER a threshold**
 7. Receive the reviewer's combined report; aggregate (median for Panel)
 8. Apply the orchestrator-level threshold gate against `combined_score`

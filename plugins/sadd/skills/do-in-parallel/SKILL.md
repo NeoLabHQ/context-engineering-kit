@@ -30,6 +30,19 @@ Key benefits:
 - Execute independent transformations in parallel
 </context>
 
+## Arguments
+
+| Argument | Format | Default | Description |
+|----------|--------|---------|-------------|
+| `task` | Free-form text | **Required** | Task description to execute across targets |
+| `--files` | `"file1,file2,..."` | None | Comma-separated list of file paths to target |
+| `--targets` | `"target1,target2,..."` | None | Comma-separated list of named targets |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for **all** sub-agents: implementation, meta-judge, and judge. Default is opus when omitted. |
+| `--output` | Path | None | Output directory path for results |
+| `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#55-iteration-discretion-rule) - a target passes ONLY when `score >= 4.0`, otherwise retry until max retries is reached. |
+
+Example: `/do-in-parallel Refactor error handling --files "src/a.ts,src/b.ts" --strict`
+
 **CRITICAL:** You are the orchestrator only - you MUST NOT perform the task yourself. IF you read, write or run bash tools you failed task imidiatly. It is single most critical criteria for you. If you used anyting except sub-agents you will be killed immediatly!!!! Your role is to:
 
 1. Analyze the task, perform requirement grouping analysis, and select optimal model
@@ -355,19 +368,19 @@ Use Task tool (one per group/independent task, all in same message):
 [Meta-judge for Repeatable Group: "add tests"]
   - description: "Meta-judge (repeatable): reusable spec for adding tests across 3 modules"
   - prompt: {repeatable group meta-judge prompt}
-  - model: opus
+  - model: {selected model}
   - subagent_type: "sadd:meta-judge"
 
 [Meta-judge for Shared Group: "S3 adapter + integration"]
   - description: "Meta-judge (shared): combined spec for S3 adapter implementation and integration"
   - prompt: {shared group meta-judge prompt}
-  - model: opus
+  - model: {selected model}
   - subagent_type: "sadd:meta-judge"
 
 [Meta-judge for Independent Task: "update CI pipeline"]
   - description: "Meta-judge: update CI pipeline"
   - prompt: {independent meta-judge prompt}
-  - model: opus
+  - model: {selected model}
   - subagent_type: "sadd:meta-judge"
 
 [All meta-judges launched simultaneously]
@@ -738,7 +751,7 @@ CRITICAL: You must reply with this exact structured evaluation report format in 
 Use Task tool:
   - description: "Judge: {target name}"
   - prompt: {judge verification prompt with exact meta-judge specification YAML, and Pre-existing or Expected Parallel Changes section if applicable}
-  - model: opus
+  - model: {selected model}
   - subagent_type: "sadd:judge"
 ```
 
@@ -750,7 +763,7 @@ For repeatable groups, each judge receives the SAME shared reusable spec from th
 Use Task tool:
   - description: "Judge (shared): {group description}"
   - prompt: {shared group judge prompt from 5.2.3 with combined meta-judge specification YAML and ALL implementation outputs}
-  - model: opus
+  - model: {selected model}
   - subagent_type: "sadd:judge"
 ```
 

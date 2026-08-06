@@ -14,6 +14,7 @@ Execute task implementation steps using automated LLM-as-Judge quality verificat
 | Argument | Format | Default | Description |
 |----------|--------|---------|-------------|
 | `task-file` | Path or filename | Auto-detect | Task file name or path (e.g., `add-validation.feature.md`). Auto-selects from `in-progress/` or `todo/` if only one task exists. |
+| `--model` | `opus\|sonnet\|haiku` | Unset | Model for all sub-agents — developer and `sdd:code-reviewer`. Overrides the models assigned in the task specification file. When omitted, the task file's models apply, otherwise each dispatch's default. |
 | `--target-quality` | `--target-quality X.X` or `X.X,Y.Y` | `4.0` (standard) / `4.5` (critical) | Quality threshold. Single value sets both. Two comma-separated values set standard,critical. |
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum fix→verify cycles per step. Set to `unlimited` for no limit. |
 | `--human-in-the-loop` | `--human-in-the-loop [s1,s2,...]` | None | Steps after which to pause for review. If no steps are specified, the process pauses after every step. |
@@ -231,6 +232,9 @@ After each specified step passes:
 # Never accept a step below target quality
 /implement-task add-validation.feature.md --strict
 
+# Force every sub-agent onto one model, overriding the task file
+/implement-task add-validation.feature.md --model sonnet
+
 # Combined: continue with human review
 /implement-task add-validation.feature.md --continue --human-in-the-loop
 ```
@@ -252,3 +256,4 @@ After each specified step passes:
 - Use `--human-in-the-loop` for high-risk implementations where you want to review each step
 - Use `--skip-reviews` only for well-understood tasks where speed matters more than verification
 - Use `--strict` when the target quality is non-negotiable and you accept the extra iterations it costs
+- Use `--model` to force one model everywhere (e.g. `haiku` for a cheap dry run); leave it off to keep the per-step models chosen during planning

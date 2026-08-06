@@ -29,7 +29,7 @@ This command implements the **Supervisor/Orchestrator pattern** for sequential t
 |----------|--------|---------|-------------|
 | `task` | Free-form text | **Required** | Task description to decompose and execute |
 | `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#36-iteration-discretion-rule) - a step passes ONLY when `score >= 4.0`, otherwise retry until max retries is reached. |
-| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for the implementation, meta-judge and judge |
+| `--model` | `opus|sonnet|haiku` | `opus` | Model to use for **all** sub-agents: implementation, meta-judge, and judge. Default is opus when omitted. |
 
 Example: `/do-in-steps Refactor UserService class and update all consumers --strict`
 
@@ -505,7 +505,7 @@ Send BOTH Task tool calls in a single message. Meta-judge first, implementation 
 Message with 2 tool calls:
   Tool call 1 (meta-judge):
     - description: "Meta-judge Step {N}/{total}: {subtask_name}"
-    - model: opus
+    - model: {selected model}
     - subagent_type: "sadd:meta-judge"
 
   Tool call 2 (implementation):
@@ -607,7 +607,7 @@ CRITICAL: NEVER provide score threshold, in any format, including `threshold_pas
 Use Task tool:
   - description: "Judge Step {N}/{total}: {subtask_name}"
   - prompt: {judge verification prompt with exact meta-judge specification YAML, and Pre-existing Changes section if applicable}
-  - model: opus
+  - model: {selected model}
   - subagent_type: "sadd:judge"
 ```
 
