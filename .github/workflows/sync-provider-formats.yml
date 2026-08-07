@@ -1,0 +1,100 @@
+# Keeps the root-level Gemini CLI / Antigravity CLI provider bundle
+# (skills/, agents/, gemini-extension.json, plugin.json) in sync with
+# plugins/*/skills, plugins/*/agents, and the marketplace manifest.
+#
+# `just sync-provider-formats` (see justfile) fully regenerates those four
+# paths from the current plugin content. This workflow runs it on every PR
+# that could change the bundle and reacts to exactly four outcomes:
+#   1. Sync ran fine, no drift               -> pass, nothing to do.
+#   2. Sync ran fine, drift found, same-repo  -> commit + push the fix back.
+#   3. Sync ran fine, drift found, fork PR    -> fail with instructions
+#      (the default GITHUB_TOKEN cannot push to a fork's branch).
+#   4. Sync itself errored (e.g. a skill/agent name collision) -> fail and
+#      surface the script's own error message, without touching git state.
+name: Sync provider formats
+
+on:
+  pull_request:
+    paths:
+      - "plugins/**/skills/**"
+      - "plugins/**/agents/**"
+      - ".claude-plugin/marketplace.json"
+
+# Only the push-back path (outcome 2) needs write access; everything else
+# only reads the checked-out tree.
+permissions:
+  contents: write
+
+# A fresh push to the same PR should supersede an in-flight run rather than
+# race it for the push-back step.
+concurrency:
+  group: sync-provider-formats-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  sync:
+    name: Sync provider formats
+    runs-on: ubuntu-latest
+    steps:
+      # `ref: head.sha` (rather than the branch name) works for both
+      # same-repo and fork PRs: GitHub exposes the PR head commit on the
+      # base repo's refs even when the branch itself only exists in a fork.
+      - name: Checkout PR head commit
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install just
+        uses: extractions/setup-just@v4
+
+      # Captures the recipe's own exit code as a step output instead of
+      # letting it fail the step directly, so "script errored" and "script
+      # succeeded but produced a diff" stay two distinct, separately
+      # branchable signals (handled by the two steps below).
+      - name: Run sync-provider-formats
+        id: sync
+        run: |
+          if just sync-provider-formats > sync-provider-formats.log 2>&1; then
+            echo "outcome=ok" >> "$GITHUB_OUTPUT"
+          else
+            echo "outcome=error" >> "$GITHUB_OUTPUT"
+          fi
+          cat sync-provider-formats.log
+
+      # `git add -A` (not `git diff` alone) is required here: the recipe
+      # deletes and recreates these paths from scratch, so a newly added
+      # plugin skill/agent is untracked, not merely modified, and plain
+      # `git diff` would miss it entirely.
+      - name: Check for drift against the committed bundle
+        id: diff
+        run: |
+          git add -A -- skills agents gemini-extension.json plugin.json
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            git diff --cached --stat
+          fi
+
+      - name: Fail with instructions (fork PR is out of sync)
+        if: steps.diff.outputs.changed == 'true' && github.event.pull_request.head.repo.fork == true
+        run: |
+          echo "::error::The provider bundle (skills/, agents/, gemini-extension.json, plugin.json) is out of date. Run 'just sync-provider-formats' locally and commit the result, then push again. Automatic push-back is unavailable for pull requests from forks because the default GITHUB_TOKEN cannot push to fork branches."
+          exit 1
+
+      # Files are already staged by the diff-check step above, so this only
+      # needs to commit and push - no separate `git add`.
+      #
+      # HEAD_REF is passed through an env var rather than interpolated
+      # directly into the script, since branch names come from the PR
+      # payload and are attacker-controlled input (security hardening
+      # guidance for GitHub Actions inline scripts).
+      - name: Commit and push regenerated bundle
+        if: steps.diff.outputs.changed == 'true' && github.event.pull_request.head.repo.fork == false
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: sync provider formats (gemini/antigravity bundle)"
+          git push origin "HEAD:$HEAD_REF"
