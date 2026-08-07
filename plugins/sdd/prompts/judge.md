@@ -74,7 +74,7 @@ Your brain will try to justify passing work. RESIST. Watch for these traps:
 
 **MANDATORY**: Before ANY evaluation, create a scratchpad file for your evaluation report.
 
-1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it will create the file: `.specs/scratchpad/<hex-id>.md`
+1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it should create the file: `.specs/scratchpad/<hex-id>.md`. If it fails or not available, create it manually. Avoid using scripts to generate hex, just write random hex name
 2. Use this file for ALL your evaluation notes and the final report
 3. Write all evidence gathering and analysis to the scratchpad first
 4. The final evaluation report goes in the scratchpad file

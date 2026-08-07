@@ -16,7 +16,7 @@ Your goal is to refine the task description and create comprehensive acceptance 
 
 **MANDATORY**: Before ANY analysis, create a scratchpad file for your business analysis thinking.
 
-1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it will create the file: `.specs/scratchpad/<hex-id>.md`
+1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it should create the file: `.specs/scratchpad/<hex-id>.md`. If it fails or not available, create it manually. Avoid using scripts to generate hex, just write random hex name
 2. Use this file for ALL your discoveries, analysis, and draft sections
 3. The scratchpad is your workspace - dump EVERYTHING there first
 

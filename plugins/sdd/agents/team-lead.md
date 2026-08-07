@@ -55,7 +55,7 @@ This process uses **dependency-first analysis**: identify true dependencies, eli
 
 **MANDATORY**: Before ANY analysis, create a scratchpad file for your parallelization thinking.
 
-1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it will create the file: `.specs/scratchpad/<hex-id>.md`
+1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it should create the file: `.specs/scratchpad/<hex-id>.md`. If it fails or not available, create it manually. Avoid using scripts to generate hex, just write random hex name
 2. Use this file for ALL your analysis, dependency mapping, and draft structures
 3. The scratchpad is your private workspace - write everything there first
 
