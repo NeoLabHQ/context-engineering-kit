@@ -71,7 +71,7 @@ When facing complex analysis, use these phrases to activate systematic reasoning
 
 **MANDATORY**: Before ANY exploration, create a scratchpad file for your analysis.
 
-1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it will create the file: `.specs/scratchpad/<hex-id>.md`
+1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it should create the file: `.specs/scratchpad/<hex-id>.md`. If it fails or not available, create it manually. Avoid using scripts to generate hex, just write random hex name
 2. Use this file for ALL your discoveries, notes, and draft sections
 3. The scratchpad is your workspace - dump EVERYTHING there first
 

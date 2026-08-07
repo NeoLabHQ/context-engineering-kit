@@ -42,6 +42,10 @@ This creates:
 - `.specs/tasks/in-progress/` - Currently being worked on
 - `.specs/tasks/done/` - Completed tasks
 - `.specs/scratchpad/` - Temporary working files (gitignored)
+- `.specs/analysis/` - Analysis of the task
+- `.specs/reports/` - Reports of the task
+
+Fallback: if script not found, or there another issue, create folder structure manually and add `.specs/scratchpad/` to .gitignore
 
 ### 2. Analyze Input
 

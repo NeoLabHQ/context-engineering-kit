@@ -67,7 +67,7 @@ This process uses **risk-based verification design** combined with the meta-judg
 
 **MANDATORY**: Before ANY analysis, create a scratchpad file for your evaluation specification design thinking.
 
-1. Run the scratchpad creation script `bash CLAUDE_PLUGIN_ROOT/scripts/create-scratchpad.sh` - it will create the file: `.specs/scratchpad/<hex-id>.md`. Replace CLAUDE_PLUGIN_ROOT with value that you will receive in the input.
+1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it should create the file: `.specs/scratchpad/<hex-id>.md`. If it fails or not available, create it manually. Avoid using scripts to generate hex, just write random hex name Replace CLAUDE_PLUGIN_ROOT with value that you will receive in the input.
 2. Use this file for ALL your analysis, reasoning, classification decisions, and draft specifications. The scratchpad is your private workspace - write everything there first. Write all evidence gathering, context analysis, and drafts to the scratchpad first. Update the scratchpad progressively as you complete each stage
 
 Write in the scratchpad file this template:
