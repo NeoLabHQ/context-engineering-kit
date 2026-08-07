@@ -3,6 +3,13 @@
 plugins := "review customaize-agent ddd docs git kaizen mcp reflexion sadd sdd tdd tech-stack fpf"
 marketplace := ".claude-plugin/marketplace.json"
 
+# just's own default recipe shell is "sh -cu" (dash on this repo, which has no
+# associative arrays). sync-provider-formats below needs `declare -A` to detect
+# skill/agent name collisions, so the shell is upgraded to bash while keeping
+# the exact same "-cu" flags — every existing sh-compatible recipe still runs
+# unchanged under bash.
+set shell := ["bash", "-cu"]
+
 # Show all commands
 help:
     @just --list
@@ -32,6 +39,78 @@ sync-plugins-to-docs:
             echo "  Skipped: plugins/$plugin/README.md (not found)"; \
         fi; \
     done
+    @echo "Done."
+
+# Regenerate the root-level Gemini CLI / Antigravity CLI provider bundle (skills/, agents/, gemini-extension.json, plugin.json)
+#
+# Neither Gemini CLI nor Antigravity CLI has a marketplace concept - each
+# `gemini extensions install`/`agy plugin install` installs exactly one
+# extension/plugin from a repo root manifest. So every plugin's skills/ and
+# agents/ folders are merged into one root-level bundle instead of staying
+# per-plugin. Full regeneration (delete then rebuild) keeps the bundle in
+# sync automatically when plugin content is added or removed.
+#
+# Collision check runs first and touches nothing: if it fails, the previous
+# bundle is left completely intact, so a real collision never leaves skills/,
+# agents/, or the manifests in a partially-rebuilt state.
+sync-provider-formats:
+    @echo "Syncing provider formats (Gemini CLI / Antigravity CLI) at repo root..."
+    @echo "  Checking for skill/agent name collisions across plugins..."; \
+    declare -A skill_owner; \
+    declare -A agent_owner; \
+    for plugin in {{plugins}}; do \
+        if [ -d "plugins/$plugin/skills" ]; then \
+            for entry in "plugins/$plugin/skills"/*; do \
+                [ -e "$entry" ] || continue; \
+                name=$(basename "$entry"); \
+                if [ -n "${skill_owner[$name]:-}" ]; then \
+                    echo "Error: skill '$name' is defined by both '${skill_owner[$name]}' and '$plugin' plugins" >&2; \
+                    exit 1; \
+                fi; \
+                skill_owner[$name]="$plugin"; \
+            done; \
+        fi; \
+        if [ -d "plugins/$plugin/agents" ]; then \
+            for entry in "plugins/$plugin/agents"/*; do \
+                [ -e "$entry" ] || continue; \
+                name=$(basename "$entry"); \
+                if [ -n "${agent_owner[$name]:-}" ]; then \
+                    echo "Error: agent '$name' is defined by both '${agent_owner[$name]}' and '$plugin' plugins" >&2; \
+                    exit 1; \
+                fi; \
+                agent_owner[$name]="$plugin"; \
+            done; \
+        fi; \
+    done; \
+    echo "  No collisions found."
+    @rm -rf skills agents gemini-extension.json plugin.json; \
+    mkdir -p skills agents; \
+    for plugin in {{plugins}}; do \
+        if [ -d "plugins/$plugin/skills" ]; then \
+            for entry in "plugins/$plugin/skills"/*; do \
+                [ -e "$entry" ] || continue; \
+                cp -R "$entry" "skills/$(basename "$entry")"; \
+            done; \
+        fi; \
+        if [ -d "plugins/$plugin/agents" ]; then \
+            for entry in "plugins/$plugin/agents"/*; do \
+                [ -e "$entry" ] || continue; \
+                cp -R "$entry" "agents/$(basename "$entry")"; \
+            done; \
+        fi; \
+    done; \
+    echo "  Merged skills/ and agents/ from: {{plugins}}"
+    @name=$(jq -r '.name' {{marketplace}}); \
+    version=$(jq -r '.version' {{marketplace}}); \
+    description=$(jq -r '.description' {{marketplace}}); \
+    jq -n --arg name "$name" --arg version "$version" --arg description "$description" \
+        '{name: $name, version: $version, description: $description}' \
+        > gemini-extension.json; \
+    echo "  Generated: gemini-extension.json"; \
+    jq -n --arg name "$name" --arg description "$description" \
+        '{"$schema": "https://antigravity.google/schemas/v1/plugin.json", name: $name, description: $description}' \
+        > plugin.json; \
+    echo "  Generated: plugin.json"
     @echo "Done."
 
 # Set version for a specific plugin

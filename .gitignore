@@ -149,3 +149,6 @@ vite.config.ts.timestamp-*
 
 #Ignore cursor AI rules
 .cursor/rules/codacy.mdc
+.specs/scratchpad/*.md
+.specs/analysis/*.md
+.specs/reports/*.md

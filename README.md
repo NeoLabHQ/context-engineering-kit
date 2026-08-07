@@ -43,9 +43,10 @@ Updates from key releases:
 
 ### Step 1: Install Marketplace and Plugins
 
-#### Claude Code
+<details>
+<summary>Claude Code</summary>
 
-Open Claude Code and add the Context Engineering Kit marketplace
+Open Claude Code and add the Context Engineering Kit marketplace:
 
 ```bash
 /plugin marketplace add NeoLabHQ/context-engineering-kit
@@ -61,14 +62,52 @@ Install any plugin — for example, reflexion:
 
 Each installed plugin loads only its specific agents, commands, and skills into Claude's context.
 
-#### Cursor, Antigravity, Codex, OpenCode and others
+</details>
+
+<details>
+<summary>Gemini CLI or Antigravity CLI</summary>
+
+**Gemini CLI installation**
+
+```bash
+gemini extensions install https://github.com/NeoLabHQ/context-engineering-kit
+```
+
+**Antigravity CLI installation:**
+
+**Important**: This command requires Gemini CLI to be installed. 
+
+```bash
+gemini extensions install https://github.com/NeoLabHQ/context-engineering-kit
+agy plugin import gemini
+```
+
+**Antigravity CLI installation without Gemini CLI:**
+
+```bash
+git clone https://github.com/NeoLabHQ/context-engineering-kit
+cd context-engineering-kit
+agy plugin install .
+```
+
+**Note:** This installs every plugin's skills and agents as a single bundle — there's no per-plugin selection like Claude Code's. Unfortunately, Gemini and Antigravity CLI does not support per-plugin selection. But you can delete skills and agents that you don't need, after installation.
+
+</details>
+
+<details>
+<summary>Cursor, Codex, OpenCode and others</summary>
 
 Run the [vercel-labs/skills](https://github.com/vercel-labs/skills) command in your terminal:
 
 ```bash
 npx skills add NeoLabHQ/context-engineering-kit
 ```
-You can pick which skills and agents to install.
+
+You can pick which skills to install.
+
+**Note:** Each provider uses its own agent format and `npx skills` does not support subagents, so this installation method won't provide the full experience.
+
+</details>
 
 <details>
 <summary>Alternative installation methods</summary>

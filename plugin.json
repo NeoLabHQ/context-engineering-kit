@@ -1,0 +1,5 @@
+{
+  "$schema": "https://antigravity.google/schemas/v1/plugin.json",
+  "name": "context-engineering-kit",
+  "description": "Hand-crafted collection of advanced context engineering techniques and patterns with minimal token footprint focused on improving agent result quality."
+}
