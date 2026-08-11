@@ -116,7 +116,7 @@ Explore the [full plugin catalog](plugins/) to find tools that match your workfl
 
 * [**Review**](plugins/review/) - Multi-agent code and PR review with specialized reviewers (security, bugs, quality, tests)
 * [**Git**](plugins/git/) - Streamlined Git workflows, commit creation, PR management
-* [**Spec-Driven Development**](plugins/sdd/) - Complete 6-stage workflow from specification to documentation
+* [**Spec-Driven Development**](plugins/sdd/) - Complete workflow from specification to working implementation: `/add-task` → `/plan-task` → `/implement-task`
 * [**Subagent-Driven Development**](plugins/sadd/) - Multi-agent task orchestration with quality gates between tasks
 * [**Test-Driven Development**](plugins/tdd/) - TDD best practices and anti-pattern detection
 * [**Kaizen**](plugins/kaizen/) - Root cause analysis using Five Whys, Fishbone diagrams, PDCA cycles

@@ -443,7 +443,7 @@ Then run the following commands:
 /add-task "Design and implement authentication middleware with JWT support"
 
 # write detailed specification for the task
-/plan-task
+/plan-task .specs/tasks/draft/design-auth-middleware.feature.md
 # will move task to .specs/tasks/todo/ folder
 ```
 
@@ -473,16 +473,14 @@ Additional commands useful before creating a task:
 
 | Agent | Description | Used By |
 |-------|-------------|---------|
-| `researcher` | Technology research, dependency analysis, best practices | `/plan-task` (Phase 2a) |
+| `researcher` | Technology research, dependency analysis, best practices; creates a reusable skill file | `/plan-task` (Phase 2a) |
 | `code-explorer` | Codebase analysis, pattern identification, architecture mapping | `/plan-task` (Phase 2b) |
-| `business-analyst` | Requirements discovery, stakeholder analysis, specification writing | `/plan-task` (Phase 2c) |
-| `software-architect` | Architecture design, component design, implementation planning | `/plan-task` (Phase 3) |
-| `tech-lead` | Task decomposition, dependency mapping, risk analysis | `/plan-task` (Phase 4) |
-| `team-lead` | Step parallelization, agent assignment, execution planning | `/plan-task` (Phase 5) |
-| `qa-engineer` | Verification rubrics, quality gates, LLM-as-Judge definitions | `/plan-task` (Phase 6) |
-| `developer` | Code implementation, TDD execution, quality review, verification | `/implement-task` |
-| `code-reviewer` | Verifies implementation against the per-step verification spec and evaluates code quality | `/implement-task` |
-| `tech-writer` | Technical documentation writing, API guides, architecture updates, lessons learned | `/implement-task` |
+| `business-analyst` | Requirements discovery, scope and user scenarios, and the whole `## Acceptance Criteria` section — checklist, regular checks, rubric, score definitions, test strategy and definition of done | `/plan-task` (Phase 2c) |
+| `software-architect` | Architecture design, component design, solution strategy and expected changes | `/plan-task` (Phase 3) |
+| `tech-lead` | Decomposition into per-step sub-task files, dependency mapping, parallelization, risk analysis, and grouping steps into independently verifiable phases with a reviewer model each | `/plan-task` (Phase 4) |
+| `developer` | Implements exactly one step, from its own sub-task file, and leaves the tree building and green | `/implement-task` (per step) |
+| `code-reviewer` | Reviews a whole implementation phase against the acceptance criteria that phase lists as due, plus code quality, Muda waste analysis and test coverage | `/implement-task` (end of each phase) |
+| `tech-writer` | Technical documentation writing, API guides, usage examples, architecture updates | `/implement-task` |
 
 
 #### Patterns
@@ -494,13 +492,13 @@ Key patterns implemented in this plugin:
 - **Quality gates based on LLM-as-Judge** — Evaluate the quality of each planning and implementation step using evidence-based scoring and predefined verification rubrics. This fully eliminates cases where an agent produces non-working or incorrect solutions.
 - **Continuous learning** — Builds skills that the agent needs to implement a specific task, which it would otherwise not be able to perform from scratch.
 - **Spec-driven development pattern** — Based on the arc42 specification standard, adjusted for LLM capabilities, to eliminate parts of the specification that add no value to implementation quality or that could degrade it.
-- **MAKER** — An agent reliability pattern introduced in [Solving a Million-Step LLM Task with Zero Errors](https://arxiv.org/abs/2511.09030). It removes agent mistakes caused by accumulated context and hallucinations by utilizing clean-state agent launches, filesystem-based memory storage, and multi-agent voting during critical decision-making.
+- **MAKER** — An agent reliability pattern introduced in [Solving a Million-Step LLM Task with Zero Errors](https://arxiv.org/abs/2511.09030). It removes agent mistakes caused by accumulated context and hallucinations by utilizing clean-state agent launches and filesystem-based memory storage.
 
 #### Vibe Coding vs. Specification-Driven Development
 
 This plugin is not a "vibe coding" solution, but out of the box, it works like one. By default, it is designed to work from a single prompt through to the end of the task, making reasonable assumptions and evidence-based decisions instead of constantly asking for clarification. This is because developer time is more valuable than model time. As a result, the plugin is designed to allow the developer to decide how much time the task is worth. The plugin will always produce working results, but quality will be sub-optimal if no human feedback is provided.
 
-To improve quality, after generating a specification you can correct it or leave comments using `//`, then run the `/plan` command again with the `--refine` flag. You can also verify each planning and implementation phase by adding the `--human-in-the-loop` flag. According to most known research, human feedback is the most effective way to improve results.
+To improve quality, after generating a specification you can correct it or leave comments using `//`, then run the `/plan-task` command again with the `--refine` flag. You can also verify each planning and implementation phase by adding the `--human-in-the-loop` flag. According to most known research, human feedback is the most effective way to improve results.
 
 Our tests showed that even when the initially generated specification was incorrect due to lack of information or task complexity, the agent was still able to self-correct until it reached a working solution. However, it usually takes much longer and results in the agent spending time on wrong paths and stopping more frequently. To avoid this, we strongly advise decomposing tasks into smaller separate tasks with dependencies and reviewing the specification for each one independently. You can add dependencies between tasks as arguments to the `/add-task` command, and the agent will link them together by adding a `depends_on` section to the task file frontmatter.
 
