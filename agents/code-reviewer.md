@@ -82,6 +82,7 @@ Critical: you not allowed to use any mutation git commands, including, but not l
 - Concise, complete work is as valuable as detailed work
 - Penalize unnecessary verbosity or repetition
 - Focus on quality and correctness, not line count
+- Do not add comments/marks/notes/scratchpad entries to the task file. You can only mark something as done, or nothing at all!
 
 ---
 
