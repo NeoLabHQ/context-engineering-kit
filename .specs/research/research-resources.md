@@ -57,3 +57,37 @@ claude --agents '{
 [] Check "Prompting Science" series. https://arxiv.org/abs/2503.04818, https://arxiv.org/abs/2512.05858, https://chatpaper.com/paper/172346, https://arxiv.org/abs/2508.00614, https://www.researchgate.net/publication/392530384_Prompting_Science_Report_2_The_Decreasing_Value_of_Chain_of_Thought_in_Prompting
 [] https://arxiv.org/html/2602.16666v1 - Towards a Science of AI Agent Reliability
 [] https://arxiv.org/html/2601.06112v1 - ReliabilityBench: Evaluating LLM Agent Reliability Under Production-Like Stress Conditions
+
+## LLM-as-a-Judge Calibration & Rubric Design
+
+Collected while investigating why the strict 1-5 scoring scale in `plugins/sadd/agents/judge.md`, `plugins/sadd/agents/meta-judge.md`, `plugins/sdd/agents/business-analyst.md` and `plugins/sdd/agents/code-reviewer.md` produces 2-3 on acceptable work with newer models, while the pass bar in `plugins/sadd/skills/do-and-judge/SKILL.md` is a hardcoded `4.0`. Problem: absolute Likert scores are not comparable across judge model generations.
+
+### Primary fix — replace Likert bands with binary decomposition
+
+[][CheckEval](https://arxiv.org/abs/2403.18771) (EMNLP 2025) - Attributes low agreement / high variance across evaluator models to subjective criteria + Likert scoring. Decomposes each dimension into binary YES/NO questions; dimension score = weighted fraction of YES. **+0.45 average inter-model agreement across 12 evaluator models**, reduced variance. Keeps dimensions and strictness; removes only the adjectival bands. Code: <https://github.com/yukyunglee/CheckEval>
+[][Rubrics as Rewards (RaR)](https://arxiv.org/abs/2507.17746) - Checklist-style rubrics as reward signal beat direct Likert rewards by up to 28-31% relative. Independent replication of the checklist > Likert effect.
+[][OpenRubrics](https://arxiv.org/abs/2510.07743) - Contrastive Rubric Generation derives both hard rules AND principles by contrasting preferred/rejected responses — same split as `meta-judge.md` Stages 3/4, but generated contrastively from a good/bad pair rather than from the prompt alone.
+
+### Calibration without an upfront golden set
+
+[][Who Drifted: the System or the Judge?](https://arxiv.org/pdf/2606.15474) - Anytime-valid sequential testing attributes score drift to judge vs. system **without a pre-labeled golden set**, using the judge's own historical baseline. Basis for passively accumulating a per-`model_id` profile from runs already performed (e.g. from `.specs/scratchpad/`), instead of shipping a model→profile map in advance.
+[][Analyzing Uncertainty of LLM-as-a-Judge: Interval Evaluations with Conformal Prediction](https://arxiv.org/abs/2509.18658) (EMNLP 2025) - Prediction intervals for judge scores from a single evaluation run, with an **ordinal boundary adjustment for discrete rating tasks** (built for 1-5 Likert).
+[][SCOPE: Selective Conformal Optimized Pairwise LLM Judging](https://arxiv.org/pdf/2602.13110) - Calibrates an acceptance threshold so error among non-abstained judgments is ≤ user-specified α. Judge abstains instead of rejecting when evidence is weak — principled trigger for escalation / adversarial review.
+[][Diagnosing LLM Judge Reliability: Conformal Prediction Sets and Transitivity Violations](https://arxiv.org/html/2604.15302v1) - Split conformal prediction sets over 1-5 Likert scores with coverage guarantees + transitivity analysis for detecting judge inconsistency.
+
+### Offline / one-time calibration authoring
+
+[][AutoCalibrate — Calibrating LLM-Based Evaluator](https://arxiv.org/abs/2309.13308) (LREC 2024) - Infers scoring criteria from few-shot exemplars of a small labeled set (Monte-Carlo resampling against label/position bias), keeps best performers, self-refines. Runtime artifact is **static prompt text** — cost is one-time authoring, not per-evaluation.
+[][LLM-Rubric](https://arxiv.org/pdf/2501.00274) (ACL 2024) - Per-dimension question distributions + small calibration network with **judge-specific parameters** mapping to human ratings; 2× RMSE improvement over uncalibrated. Architectural lesson: judge emits raw signal, a separate per-judge mapping owns the decision.
+[][Anchor is the key: automated essay scoring with LLMs through prompting](https://www.sciencedirect.com/science/article/pii/S1075293526000413) - Anchor exemplars substantially reduce score deviation vs. rubric-only prompting. Endpoint anchors carry most calibration; 2-5 examples spanning the scale incl. one borderline case beat larger extreme-only sets; balance verdicts to avoid inducing a prior. Zero runtime cost (tokens only).
+
+### Score compression / granularity
+
+[][Improving LLM-as-a-Judge Inference with the Judgment Distribution](https://arxiv.org/pdf/2503.03064) - Mean of the judgment distribution beats greedy/mode extraction and mitigates coarse clustering (all outputs landing on the same integer). Complementary to CoT judging. Requires logprobs or N sampled passes.
+[][G-Eval](https://arxiv.org/abs/2303.16634) - Original probability-weighted scoring: token-level probabilities produce continuous scores because LLMs otherwise emit only a few dominant integers regardless of instructions.
+
+### Meta-evaluation — validating a judge change
+
+[][Reliability without Validity](https://arxiv.org/abs/2606.19544) - 21 judges, 9 providers, ~541k judgments. Exact-match agreement systematically overstates judge ability (**kappa deflation 33-41pp** on MT-Bench); judge rankings shift up to 14 positions across benchmarks; high test-retest reliability coexists with severe position bias. Proposes a Minimum Viable Validation Protocol. Validate scoring changes with chance-corrected agreement on hand-labeled artifacts, not with "scores look more reasonable".
+[][Who Validates the Validators?](https://arxiv.org/abs/2404.12272) (UIST 2024) - EvalGen; identifies **criteria drift**: users need criteria to grade outputs, but grading outputs is what defines the criteria. Challenges any design assuming rubric generation can be fully independent of observing outputs — relevant to `meta-judge` producing the spec before implementation exists.
+[][LLMs-as-Judges: A Comprehensive Survey on LLM-based Evaluation Methods](https://arxiv.org/pdf/2412.05579) - Survey; background reading.
