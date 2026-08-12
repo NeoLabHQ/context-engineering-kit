@@ -288,7 +288,7 @@ CRITICAL: For each sub-agent you dispatch, you MUST provide:
 - Read the task file ONCE (Workflow Phase 1 only)
 - Launch sub-agents via Task tool
 - Receive reports from sub-agents
-- Mark steps and implementation phases complete after the orchestrator-level PASS rule on reviewer output
+- Mark steps and implementation phases complete after the orchestrator-level PASS rule on reviewer output as [DONE]
 - Reason about blast radius when a phase review fails, and choose fix / re-review models accordingly
 - Aggregate results and report to user
 
@@ -303,6 +303,7 @@ CRITICAL: For each sub-agent you dispatch, you MUST provide:
 | Evaluate code quality yourself | Not your job, causes forgetting | Launch `sdd:code-reviewer` agent |
 | Review a step individually | Review is a PHASE-level gate | Review once, at the end of the phase |
 | Skip a phase review "because simple" | Every phase review is mandatory unless `--skip-reviews` | Launch `sdd:code-reviewer` anyway |
+| Never add comments/marks/notes about results of review, scratchpads, iterations, etc. to the task file. | The task file is a specification artifact, not a log. If task not done, it should be visible from code only! | You can write only [DONE] mark ever, or nothing at all! |
 
 ### Anti-Rationalization Rules
 
