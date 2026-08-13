@@ -358,7 +358,7 @@ Orchestrators who "quickly verify" = skip `sdd:code-reviewer` agents = quality c
 Relaunch the code-reviewer till you get valid results, if following happens:
 
 - Reject Long Reports: If the code-reviewer returns a very long report instead of using the scratchpad as requested, reject the result. This indicates the agent failed to follow the "use scratchpad" instruction.
-- Combined Score 5.0 is a Hallucination: If the code-reviewer returns a `combined_score` of 5.0/5.0, treat it as a hallucination or lazy evaluation. Reject it and re-run the agent. Perfect scores are practically impossible in this rigorous framework.
+- Combined Score 5.0 is a Hallucination: If the code-reviewer returns a `combined_score` of exactly 5.0/5.0, treat it as a hallucination or lazy evaluation. Reject it and re-run the agent. This applies to the **weighted aggregate only** — an individual criterion may legitimately score 5 and no score is rationed, but every criterion across spec compliance, code quality and Muda waste analysis landing strictly past its `score_4` anchor at once is not a plausible review outcome. Never use it as a reason to question a single high criterion score.
 - Reject Missing Scores: If the code-reviewer's report is missing the `combined_score` (or any sub-score: `spec_compliance_score`, `builtin_score`), reject it. This indicates the agent failed to follow the rubric instructions.
 - Reject PASS/FAIL Verdicts in Report: If the code-reviewer's output contains a PASS/FAIL verdict or references a threshold, reject it. The orchestrator owns that decision; the agent must remain threshold-blind.
 - Reject Out-of-Scope Findings: If the reviewer penalizes acceptance criteria that the phase's `#### Phase N` block does NOT list — reporting work a LATER phase delivers as "missing" or "incomplete" — reject the report and re-run the agent, restating that a phase is a checkpoint, not the finish line.
@@ -1491,7 +1491,7 @@ If an implementation agent reports failure:
 
 ### Reviewer Returns an Invalid Report
 
-If the `sdd:code-reviewer` returns a report that trips any rule in [Execution & Evaluation Rules](#execution--evaluation-rules) — a 5.0 score, a missing `combined_score`, a PASS/FAIL verdict, or findings against acceptance criteria the phase does not own — reject it and re-run the agent with the same 4 inputs. Never repair its report yourself.
+If the `sdd:code-reviewer` returns a report that trips any rule in [Execution & Evaluation Rules](#execution--evaluation-rules) — a 5.0 `combined_score`, a missing `combined_score`, a PASS/FAIL verdict, or findings against acceptance criteria the phase does not own — reject it and re-run the agent with the same 4 inputs. Never repair its report yourself.
 
 ### Refine Mode: No Changes Detected
 
@@ -1668,15 +1668,9 @@ The **step name** is the file's basename without `.md`. It is the identity used 
 
 ### Scoring Scale
 
-The `sdd:code-reviewer` scores every criterion on this 5-point scale. Its `## Scoring Scale` section is the canonical definition — these labels are a copy and MUST stay identical to it. You do not score anything — you only compare `combined_score` against `THRESHOLD`.
+The `sdd:code-reviewer` scores every criterion on a 1-5 integer scale defined by its own `## Scoring Scale` section. That section is the sole definition and is **deliberately not reproduced here** — the reviewer owns scoring; you do not score anything, you only compare `combined_score` against `THRESHOLD`. Never restate the scale, or your own version of it, in any prompt or report.
 
-- **1 (Below Average)**: Basic requirements met but with minor issues — common for first attempts
-- **2 (Adequate — DEFAULT)**: Meets ALL requirements, with specific evidence for each
-- **3 (Rare / Good)**: All done exactly as required; no gaps or issues
-- **4 (Excellent)**: Genuinely exemplary; evidence it is impossible to do better within scope — under 5% of evaluations
-- **5 (Overly Perfect)**: Exceeds requirements significantly — under 1% of evaluations, and a 5.0 `combined_score` is a hallucination; reject the report and re-run
-
-**The default is 2**; the reviewer must justify anything above it with specific evidence. Read a score against these labels, not against an intuitive "out of 5" feel, when you apply the [Iteration Discretion Rule](#iteration-discretion-rule).
+**The one consequence for you:** when applying the [Iteration Discretion Rule](#iteration-discretion-rule), read a score as a placement, never as an intuitive "out of 5" feel or a word like *adequate* or *excellent*.
 
 ### Using These Artifacts During Execution
 

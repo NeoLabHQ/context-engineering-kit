@@ -30,7 +30,7 @@ If you not perform well enough YOU will be KILLED. Your existence depends on del
 
 ## Goal
 
-Refine the task description AND produce one complete whole-task evaluation specification (checklist with default quality items, regular checks, rubric dimensions with score definitions, testing strategy, Definition of Done) in a scratchpad file, then write to the task file:
+Refine the task description AND produce one complete whole-task evaluation specification (checklist with default quality items, regular checks, rubric dimensions with contrastive `anchors`, testing strategy, Definition of Done) in a scratchpad file, then write to the task file:
 
 1. a refined `# Description` (what, why, who, scope, user scenarios), and
 2. a single `## Acceptance Criteria` section that a developer can implement against and a judge agent can apply mechanically to score the implementation of the whole task.
@@ -96,7 +96,7 @@ For each analysis stage, use the phrase **"Let's think step by step"** to trigge
 
 **Specification Quality**: YOU MUST ensure requirements are specific, measurable, achievable, relevant, and testable. NEVER use vague language. Provide concrete examples and acceptance criteria for each requirement.
 
-**Verification Design**: YOU MUST decompose the task's quality into concrete, evaluable dimensions covering the WHOLE task — a checklist of binary questions, a weighted rubric with explicit 1-5 score definitions, and a testing strategy (which test types, which cases, by which technique). Vague evaluation criteria = ungrounded judging = FALSE CONFIDENCE.
+**Verification Design**: YOU MUST decompose the task's quality into concrete, evaluable dimensions covering the WHOLE task — a checklist of binary questions, a weighted rubric where every dimension is pinned by a contrastive `anchors` pair (`score_2` / `score_4` / `contrast`), and a testing strategy (which test types, which cases, by which technique). Vague evaluation criteria = ungrounded judging = FALSE CONFIDENCE.
 
 ---
 
@@ -383,6 +383,23 @@ deliberately_skipped:
 
 ## Rubric Dimensions
 
+### Contrastive Examples (STAGE 7.1 — BAD FIRST, THEN GOOD)
+
+#### BAD Example (write this FIRST — before any dimension below)
+
+[A concrete, plausible, minimal instance of a poor delivery of THIS task — an actual artifact
+ excerpt (code, config, markdown — whatever this task delivers), NOT a description of badness]
+
+#### GOOD Example (write this SECOND)
+
+[The corresponding correct version of the same artifact]
+
+#### Observable Differences
+
+| # | Difference between BAD and GOOD | Becomes Dimension |
+|---|--------------------------------|-------------------|
+| 1 | [What is observably different] | [Dimension name] |
+
 ### Principle-to-Dimension Mapping
 
 | Principle(s) | Rubric Dimension | Weight Rationale |
@@ -397,6 +414,7 @@ deliberately_skipped:
 - [ ] Pitfall items added for common mistakes
 - [ ] Project Guidelines Alignment dimension included (if guidelines discovered)
 - [ ] No requirement double-counted across checklist and rubric
+- [ ] Every dimension separates the BAD example from the GOOD example
 
 ### Draft Rubric
 
@@ -406,13 +424,13 @@ rubric_dimensions:
     description: "[Chain-of-thought evaluation question]"
     scale: "1-5"
     weight: 0.XX
-    instruction: "[How to score]"
-    score_definitions:
-      1: "[Condition]"
-      2: "[Condition (DEFAULT)]"
-      3: "[Condition (RARE)]"
-      4: "[Condition (IDEAL)]"
-      5: "[Condition (OVERLY PERFECT)]"
+    instruction: "[What evidence to gather, then place the artifact against the anchors]"
+    anchors:
+      score_2: |
+        [shortest excerpt of the BAD example that obviously FAILS this dimension]
+      score_4: |
+        [shortest excerpt of the GOOD example that obviously SATISFIES this dimension]
+      contrast: "[one line: the single observable difference between the two]"
 ```
 
 ---
@@ -421,9 +439,9 @@ rubric_dimensions:
 
 ### Decomposition Check
 
-| Dimension | Too Broad? | Decomposed Into |
-|-----------|-----------|-----------------|
-| [Name] | [YES/NO] | [Sub-dimensions if YES] |
+| Dimension | Too Broad? | Separates BAD from GOOD example? | Action (keep / decompose into / drop) |
+|-----------|-----------|----------------------------------|---------------------------------------|
+| [Name] | [YES/NO] | [YES/NO] | [Sub-dimensions if decomposed] |
 
 ### Misalignment Filtering
 
@@ -449,7 +467,8 @@ rubric_dimensions:
 
 ```yaml
 rubric_dimensions:
-  [Refined dimensions after RRD cycle]
+  [Refined dimensions after RRD cycle — each in the Rubric Dimension Entry Format from STAGE 7.2,
+   carrying scale, weight, instruction and its anchors (score_2 / score_4 / contrast)]
 ```
 
 ### Final Checklist (post-RRD)
@@ -767,7 +786,7 @@ checklist:
     # Include only if a lint command was discovered in STAGE 3.
 
   - question: "Does the discovered test command run to completion with zero failing tests once the task is complete? (Runnability only — strategy/coverage adequacy is checked by later checks.)"
-    rationale: "Runnability gate: failing tests signal regressions and block downstream work. Strategy adequacy (which test types, which cases, which boundaries) is enforced by the DEFAULT-TEST-* items below."
+    rationale: "Runnability gate: failing tests signal regressions and block downstream work. Strategy adequacy (which test types, which cases, which boundaries) is enforced by the Test Strategy default items below."
     category: "hard_rule"
     importance: "essential"
     # Include only if a test command was discovered in STAGE 3.
@@ -1580,23 +1599,67 @@ test_strategy:
 
 For the task as a whole, combine the checklist from STAGE 4 and principles from STAGE 5 into rubric dimensions. Write all output to the **Rubric Dimensions** section of the scratchpad.
 
-#### 7.1 Map Principles to Rubric Dimensions
+#### 7.1 Generate Contrastive Examples (BAD FIRST — MANDATORY ORDER)
 
-Each principle becomes a scored dimension with a 1-5 scale and explicit score definitions. Specify each dimension explicitly with a name, description, and scoring instruction — making criteria explicit forces the evaluator to focus only on meaningful features rather than latching onto superficial correlates like response length or formatting.
+**Before ANY rubric dimension is written**, produce two concrete instances of THIS task's deliverable in the **Contrastive Examples** section of the scratchpad's `## Rubric Dimensions` block:
 
-#### 7.2 Group Related Principles
+1. **BAD example — write this FIRST.** A concrete, plausible, minimal instance of what a poor delivery of THIS task looks like. It MUST be an actual artifact excerpt (code, configuration, markdown — whatever this task delivers), NOT a description of badness.
+2. **GOOD example — write this SECOND.** The corresponding correct version of the same artifact.
 
-If multiple principles address the same quality aspect, merge them into a single rubric dimension with comprehensive score definitions.
+**This order is MANDATORY.** Drafting the bad case first prevents you from anchoring on an idealised result and then failing to imagine realistic failure modes. Never write the good example first. The scratchpad section is laid out in the same order for the same reason — fill it top to bottom.
 
-#### 7.3 Ensure Coverage
+You do not know the code or test file paths (they are defined later in the workflow), so write both examples as **excerpts of behaviour and content**, not as file inventories. Ground them in the Phase 4 business criteria, the STAGE 4 checklist and the STAGE 5 principles.
+
+Then list every observable difference between the two in the **Observable Differences** table. These differences are the raw material for the dimensions below.
+
+#### 7.2 Map Principles to Rubric Dimensions
+
+Each principle becomes a scored dimension with a 1-5 scale and an `anchors` pair. Specify each dimension explicitly with a name, description, and scoring instruction — making criteria explicit forces the evaluator to focus only on meaningful features rather than latching onto superficial correlates like size or formatting.
+
+**Every dimension MUST be derived from the contrast in 7.1**: it must be a dimension on which the BAD example and the GOOD example land differently. Its `score_2` and `score_4` anchors are minimised excerpts of those two examples. A dimension that does not separate the two examples is non-discriminative — STAGE 8 Cycle Step 1 will force it to be decomposed or dropped.
+
+##### Rubric Dimension Entry Format
+
+Every rubric dimension in the scratchpad uses this shape:
+
+```yaml
+rubric_dimensions:
+  - name: "[Short label]"
+    description: "[What this dimension means and covers, framed as chain-of-thought questions that assess whether the delivered feature meets the task's requirements]"
+    scale: "1-5"
+    weight: 0.XX
+    instruction: "[What evidence to gather, then place the artifact against the anchors]"
+    anchors:
+      score_2: |
+        [shortest concrete example that obviously FAILS this dimension]
+      score_4: |
+        [shortest concrete example that obviously SATISFIES this dimension]
+      contrast: "[one line: the single observable difference between the two]"
+```
+
+**Anchor rules (MANDATORY)**:
+
+- Anchors are concrete artifact excerpts (code, YAML, markdown, prose — whatever this task delivers), NEVER descriptions of quality.
+- Each anchor MUST be the SHORTEST POSSIBLE example that makes the difference on that dimension obvious. Trim everything that does not carry the contrast.
+- The two anchors MUST differ on exactly ONE thing — the dimension being scored. If they differ on several things, the pair is testing several dimensions at once and MUST be split into one dimension per difference.
+- Anchors are drawn from, or are minimised versions of, the BAD/GOOD examples produced in 7.1. They MUST be grounded in those examples, never invented in the abstract.
+- Scores remain 1-5 integers. The anchors pin 2 and 4 inside that scale; the consumer interpolates and extrapolates from them. Concretely: **1** = worse on this axis than `score_2`; **2** = matches `score_2`; **3** = between the two anchors and not clearly nearer either; evidence sitting clearly nearer a pole takes that pole's number; **4** = matches `score_4`; **5** = better than `score_4` on the SAME axis the `contrast` names — never better on some other axis.
+- The `instruction` field MUST tell the consumer what evidence to gather and then to place the artifact relative to the two anchors. It MUST NOT direct scoring by ratio, percentage, band, or any predefined numeric tier — there are no bands to map onto.
+- Anchors MUST NOT name code or test file paths the user prompt did not name. Express them as behaviour and content, per **Key Specification Principles → 5. Functionality Over Artifacts**.
+
+#### 7.3 Group Related Principles
+
+If multiple principles address the same quality aspect, merge them into a single rubric dimension — but only if a single anchor pair can still express the merged dimension with exactly one observable difference. If it cannot, keep them separate.
+
+#### 7.4 Ensure Coverage
 
 Verify that every explicit requirement of the task — including every business-perspective acceptance criterion from Phase 4 — is captured by at least one hard rule checklist item (STAGE 4) OR rubric dimension (this stage) OR test case (STAGE 6).
 
-#### 7.4 Add Pitfall Items
+#### 7.5 Add Pitfall Items
 
-Identify common mistakes or anti-patterns specific to this task and add them as checklist items with `importance: "pitfall"` back in the checklist section of the scratchpad.
+Identify common mistakes or anti-patterns specific to this task and add them as checklist items with `importance: "pitfall"` back in the checklist section of the scratchpad. The BAD example from 7.1 is the best source of these.
 
-#### 7.5 Apply Rubric Desiderata
+#### 7.6 Apply Rubric Desiderata
 
 Verify each rubric dimension satisfies these desiderata:
 
@@ -1606,9 +1669,9 @@ Verify each rubric dimension satisfies these desiderata:
 | **Comprehensive Coverage** | Spans multiple quality dimensions (correctness, coherence, completeness, style, safety, patterns, functionality, etc.). Negative criteria (pitfalls) help identify frequent or high-risk errors that undermine overall quality. |
 | **Criterion Importance** | Some dimensions of result quality are more critical than others. Factual correctness must outweigh secondary aspects such as stylistic clarity. Assigning weights ensures this prioritization. |
 
-#### 7.6 Always Include the Project Guidelines Alignment Dimension
+#### 7.7 Always Include the Project Guidelines Alignment Dimension
 
-If any project guideline files were discovered in STAGE 3, the task's rubric MUST include a `Project Guidelines Alignment` dimension. This dimension replaces the previous "Project guidelines alignment" checklist item with a richer scored evaluation:
+If any project guideline files were discovered in STAGE 3, the task's rubric MUST include a `Project Guidelines Alignment` dimension. This dimension replaces the previous "Project guidelines alignment" checklist item with a richer scored evaluation. Anchor it on the guideline rule your BAD and GOOD examples from 7.1 disagree about; the pair below is illustrative and MUST be re-grounded in the guidelines this project actually has:
 
 ```yaml
 rubric_dimensions:
@@ -1616,13 +1679,16 @@ rubric_dimensions:
     description: "Does the implementation follow the discovered project guideline files (CLAUDE.md, CONTRIBUTING.md, .claude/rules/, .editorconfig, lint config, etc.)? Walk through each discovered guideline file and ask: does the implementation honor its explicit rules (naming, structure, contribution norms, style)? Does it honor the implicit conventions demonstrated by examples in those files? Are there any direct violations of stated rules?"
     scale: "1-5"
     weight: 0.15
-    instruction: "Classify each discovered guideline file by criticality. HIGH-CRITICALITY: CLAUDE.md, .claude/rules/, CONTRIBUTING.md, constitution.md, AGENTS.md (binding project conventions and contribution norms). STYLE-ONLY: .editorconfig, .prettierrc, eslint formatting rules, .gitattributes, mechanical formatters. For each file, list its applicable rules and check whether the new code complies. Score based on how thoroughly the implementation honors these rules, weighting high-criticality violations more heavily than style-only ones."
-    score_definitions:
-      1: "Multiple violations of high-criticality guidelines (CLAUDE.md, .claude/rules/, CONTRIBUTING.md, constitution.md, AGENTS.md) — e.g., banned naming, broken required structure, ignored contribution norm."
-      2: "One high-criticality violation OR multiple style-only violations (DEFAULT — must justify higher)."
-      3: "No high-criticality violations; only minor style-only inconsistencies (e.g., a few lines disagree with .editorconfig/prettier)."
-      4: "All guideline files honored — high-criticality and style-only — with explicit citations to which rules were checked per file (IDEAL)."
-      5: "Exceeds rule compliance — proactively cites guideline files in implementation comments/notes and strengthens the project's adherence (e.g., embodies a pattern guidelines describe but the codebase had not yet adopted) (OVERLY PERFECT)."
+    instruction: "Classify each discovered guideline file by criticality. HIGH-CRITICALITY: CLAUDE.md, .claude/rules/, CONTRIBUTING.md, constitution.md, AGENTS.md (binding project conventions and contribution norms). STYLE-ONLY: .editorconfig, .prettierrc, eslint formatting rules, .gitattributes, mechanical formatters. For each file, quote the applicable rule and quote the code that honors or violates it, treating a high-criticality rule as stronger evidence than a style-only one. Then place the gathered evidence against the anchors."
+    anchors:
+      score_2: |
+        # CLAUDE.md: "every exported function carries a JSDoc block"
+        export function parseOrder(raw) { ... }
+      score_4: |
+        # CLAUDE.md: "every exported function carries a JSDoc block"
+        /** Parses a raw order payload. */
+        export function parseOrder(raw) { ... }
+      contrast: "score_4 carries the JSDoc block the cited CLAUDE.md rule requires; score_2 omits it on the same exported function."
 ```
 
 **Adjust the weight** within 0.15-0.20 depending on how prescriptive the project's guidelines are. **Drop this dimension entirely** if STAGE 3 found no guideline files.
@@ -1650,7 +1716,53 @@ checklist:
     importance: "essential"
 ```
 
-Principles become rubric dimensions:
+Contrastive examples come next (7.1) — **BAD written first**. The documented contract for this endpoint is `email: string, RFC 5322` and `password: string, 12-72 chars`.
+
+**BAD** — a plausible poor delivery:
+
+```js
+app.post("/users", (req, res) => {
+  if (!req.body.email) return res.status(400).send("bad request");
+  db.users.insert(req.body);
+  res.status(201).json({ ok: true });
+});
+```
+
+```markdown
+## POST /users
+Validates the request body.
+```
+
+**GOOD** — the corresponding correct version:
+
+```js
+app.post("/users", (req, res) => {
+  if (typeof req.body.email !== "string") return err400("INVALID_EMAIL", "email");
+  if (!RFC5322.test(req.body.email)) return err400("INVALID_EMAIL", "email");
+  if (req.body.password.length < 12 || req.body.password.length > 72) return err400("INVALID_PASSWORD", "password");
+  db.users.insert(req.body);
+  res.status(201).json({ id: created.id });
+});
+// err400 -> res.status(400).json({ code, message, field })
+```
+
+```markdown
+## POST /users
+Validates the request body.
+- `email` must be RFC 5322 -> `INVALID_EMAIL`
+- `password` must be 12-72 chars -> `INVALID_PASSWORD`
+```
+
+Observable differences → dimensions:
+
+| # | Difference between BAD and GOOD | Becomes Dimension |
+|---|--------------------------------|-------------------|
+| 1 | GOOD enforces the documented password-length clause; BAD leaves it unenforced | Contract Correctness |
+| 2 | GOOD checks `email` format as well as its type; BAD checks neither | Validation Coverage |
+| 3 | GOOD's failure body is the `{ code, message, field }` envelope; BAD's is an unstructured string | Error Response Quality |
+| 4 | GOOD's spec names each rule with its error code; BAD's only says validation happens | Documentation |
+
+Principles become rubric dimensions, anchored on minimised excerpts of those two examples:
 
 ```yaml
 rubric_dimensions:
@@ -1658,42 +1770,53 @@ rubric_dimensions:
     description: "Does the validation faithfully implement the documented request contract (required fields, types, formats, length bounds, allowed enums)? Walk through each contract clause and verify the implementation enforces it without adding undocumented restrictions."
     scale: "1-5"
     weight: 0.30
-    score_definitions:
-      1: "One or more documented contract clauses are not enforced (a required field is accepted when missing, a documented format is not checked)."
-      2: "All documented clauses enforced but with at least one off-by-one or boundary-condition mistake (DEFAULT — must justify higher)."
-      3: "All documented clauses enforced exactly; boundaries and edge values handled correctly (RARE — requires test evidence per clause)."
-      4: "Contract enforced exactly AND implementation cites the contract location it enforces for each clause (IDEAL)."
-      5: "Implementation enforces the contract exactly and surfaces a tightened, machine-checkable contract artifact (e.g., generated JSON Schema) consumed elsewhere (OVERLY PERFECT)."
+    instruction: "List every clause of the documented contract and, for each, the code that enforces it. Place the artifact against the anchors: each unenforced documented clause pulls it toward score_2."
+    anchors:
+      score_2: |
+        # contract clauses: email RFC 5322, password 12-72 chars
+        if (!RFC5322.test(body.email)) return err400();
+      score_4: |
+        # contract clauses: email RFC 5322, password 12-72 chars
+        if (!RFC5322.test(body.email)) return err400();
+        if (body.password.length < 12 || body.password.length > 72) return err400();
+      contrast: "score_4 enforces the documented password-length clause as well; score_2 leaves that clause unenforced."
   - name: "Validation Coverage"
     description: "Does the validation cover the full input surface — required vs optional fields, type checks, format checks, length/range bounds, and forbidden combinations — rather than only the obvious cases?"
     scale: "1-5"
     weight: 0.25
-    score_definitions:
-      1: "Only required-field presence is checked; types/formats/bounds ignored."
-      2: "Type and presence covered; formats and bounds partially covered (DEFAULT — must justify higher)."
-      3: "Presence, types, formats, and bounds all covered for every documented field."
-      4: "Full coverage plus negative tests for each rule (RARE — requires test cases)."
-      5: "Full coverage plus property-based or fuzz tests demonstrating no bypass exists (OVERLY PERFECT)."
+    instruction: "For each documented field, list which kinds of check it receives (presence, type, format, bounds). Place the artifact against the anchors."
+    anchors:
+      score_2: |
+        if (typeof body.email !== "string") return err400();
+      score_4: |
+        if (typeof body.email !== "string") return err400();
+        if (!RFC5322.test(body.email)) return err400();
+      contrast: "score_4 applies a second kind of check (format) to the same field; score_2 applies a type check only."
   - name: "Error Response Quality"
     description: "Are validation failures returned with correct HTTP status, a machine-readable error code, and a field-level pointer that lets clients render actionable UI?"
     scale: "1-5"
     weight: 0.25
-    score_definitions:
-      1: "Failures return generic 500s or unstructured strings; clients cannot programmatically distinguish failure modes."
-      2: "Correct status codes but error bodies lack the project's standard envelope (DEFAULT — must justify higher)."
-      3: "Correct status codes and standard envelope with `code`, `message`, and `field` populated for each failure."
-      4: "All of the above plus i18n-ready message keys and per-field aggregation when multiple rules fail simultaneously (IDEAL)."
-      5: "All of the above plus contributes a reusable error-mapping utility adopted by neighboring endpoints (OVERLY PERFECT)."
+    instruction: "Collect one failure response per validation rule. Place the artifact against the anchors, holding the status code fixed and comparing what the body carries."
+    anchors:
+      score_2: |
+        res.status(400).json("bad request");
+      score_4: |
+        res.status(400).json({ code: "INVALID_EMAIL", message: "...", field: "email" });
+      contrast: "score_4's body is the project's `{ code, message, field }` envelope; score_2's body is an unstructured string, both sent the same way at the same status."
   - name: "Documentation"
     description: "Is the endpoint's validation behavior reflected in OpenAPI/spec/README so that consumers can rely on it without reading source?"
     scale: "1-5"
     weight: 0.20
-    score_definitions:
-      1: "No documentation updated; consumers must read source to learn validation rules."
-      2: "Spec mentions validation exists but omits specific rules or error codes (DEFAULT — must justify higher)."
-      3: "Spec lists every validation rule and its corresponding error code."
-      4: "Spec lists every rule, error code, and a worked example request/response for each failure mode (IDEAL)."
-      5: "Spec is generated from the same source-of-truth schema used at runtime, eliminating drift (OVERLY PERFECT)."
+    instruction: "Read the endpoint's spec entry and list which validation rules and error codes it names. Place the artifact against the anchors."
+    anchors:
+      score_2: |
+        ## POST /users
+        Validates the request body.
+      score_4: |
+        ## POST /users
+        Validates the request body.
+        - `email` must be RFC 5322 -> `INVALID_EMAIL`
+      contrast: "score_4 names a validation rule with its error code; score_2 only states that validation happens."
 ```
 
 Write the assembled rubric to the **Draft Rubric** section of the scratchpad.
@@ -1858,11 +1981,27 @@ Apply at least one cycle of this framework. This is MANDATORY:
 
 Follow RRD Cycle Steps:
 
-#### Cycle Step 1: Decomposition Check
+#### Cycle Step 1: Decomposition Check (Discrimination)
 
-For each rubric dimension, ask: "Is this criterion satisfied by most reasonable implementations?"
+For each rubric dimension, ask both questions:
 
-If YES, it is too broad and must be decomposed into finer sub-dimensions.
+1. "Is this criterion satisfied by most reasonable implementations?"
+2. "Do the BAD and GOOD examples from STAGE 7.1 land differently on this criterion?"
+
+A YES to (1) or a NO to (2) means the dimension is **non-discriminative**: it MUST be decomposed into finer sub-dimensions that do separate the two examples, or dropped. Never keep a dimension that both examples score the same on — it adds weight without adding signal.
+
+The two answers are combined into ONE verdict cell, and **either failing answer alone is enough to fail the dimension** — they never cancel out:
+
+| Q1 Too broad? | Q2 Separates BAD from GOOD? | Verdict |
+|---------------|-----------------------------|---------|
+| NO | YES | **keep** — the only passing combination |
+| YES | YES | **decompose** — it discriminates on your two examples but would still be satisfied by most implementations; split it until each sub-dimension is narrow |
+| NO | NO | **decompose or drop** — narrow enough, but your own examples do not exercise it. Either find the finer sub-dimension the examples DO separate, or drop it. Do NOT keep it on the strength of Q1 alone |
+| YES | NO | **decompose or drop** — it is broad enough that a narrower sub-dimension may separate the examples; look for one, and drop it only if none does |
+
+A dimension whose `anchors` pair differs on more than one thing is also non-discriminative: it is measuring several dimensions at once. Split it into one dimension per observable difference, each with its own anchor pair.
+
+Record both answers and the resulting verdict in the **Decomposition Check** table of the scratchpad.
 
 | Too Broad | Decomposed |
 |-----------|------------|
@@ -1936,11 +2075,11 @@ Before promoting anything to the task file, verify BOTH halves of your work: the
 
 | # | Category | Example Question | Action if Failed |
 |---|----------|-----------------|------------------|
-| 1 | **Discriminative power** | "Would most reasonable implementations score similarly on this criterion, or does it actually distinguish good from mediocre work?" | Decompose broad criteria into finer sub-dimensions |
+| 1 | **Discriminative power** | "Would most reasonable implementations score similarly on this criterion? Do my BAD and GOOD examples from STAGE 7.1 land differently on it?" | Decompose broad criteria into finer sub-dimensions that separate the two examples, or drop them |
 | 2 | **Coverage completeness** | "Is there any explicit or implicit requirement of the task — including every business-perspective acceptance criterion from Phase 4 — that is not captured by any rubric dimension, checklist item or test case?" | Add missing dimensions, checklist items or test cases |
 | 3 | **Redundancy check** | "Would a high score on criterion A almost always imply a high score on criterion B? Are any criteria measuring the same underlying quality?" | Merge redundant criteria or remove one |
 | 4 | **Bias resistance** | "Are any criteria rewarding superficial features (length, formatting, confident tone) rather than substance? Could an implementation game a high score without truly meeting requirements?" | Remove or reframe criteria to focus on substance |
-| 5 | **Scoring clarity** | "Could two independent judges read the score definitions and reliably assign the same score to the same artifact? Are score boundaries clear and unambiguous?" | Rewrite vague score definitions with concrete, observable conditions |
+| 5 | **Scoring clarity** | "Could two independent judges read the `anchors` and reliably assign the same score to the same artifact? Is each anchor a concrete artifact excerpt, and do the two differ on exactly one thing?" | Replace vague or multi-difference anchors with shorter, concrete excerpts of the BAD/GOOD examples from STAGE 7.1 |
 | 6 | **Test strategy soundness** | "If `test_strategy.applies = true`: does each chosen test type cite a methodology source from STAGE 6 (Decision Gates / Case Design Techniques / etc.)? Does `coverage_map` cover every testable checklist item with no orphans? Do edge cases enumerate `boundary-1 / boundary / boundary+1` for every numeric/length bound? Is the `Test Cases to Cover` bullet list present and aligned to the test_matrix?" | Revisit STAGE 6, walk Gates 0-6 again, fill missing matrix rows, add missing BVA boundaries, regenerate the Test Cases to Cover list |
 
 #### 9.2 Business Specification Self-Critique
@@ -2080,7 +2219,7 @@ You MUST preserve the frontmatter and the `# Initial User Prompt` section in the
 
 The `## Acceptance Criteria` section has exactly six sub-blocks, in this order. Business and technical criteria are **mixed inside each sub-block** — there is no separate business criteria list.
 
-```markdown
+````markdown
 ## Acceptance Criteria
 
 **Checklist:**
@@ -2116,19 +2255,31 @@ The `## Acceptance Criteria` section has exactly six sub-blocks, in this order. 
 
 **Rubric Score Definitions:**
 
+Scale: 1-5 integers, anchor-relative — each criterion pins `score_2`/`score_4`, and 1/3/5 are placed relative to them.
+
+<!-- The sub-block keeps this name because downstream agents locate it by this exact heading. Its body is the dimension's `anchors` pair, NOT a set of 1-5 bins. -->
+
 ### [Criterion 1]
 
 [Short description paragraph — what this dimension means and covers.]
 
-[Classification / instruction paragraph — how the judge should classify the implementation and what evidence to collect.]
+[Classification / instruction paragraph — what evidence the judge must gather, then place the artifact against the anchors below. Never a ratio, percentage or band.]
 
-Score Definitions
+Anchors
 
-- 1: [Condition]
-- 2: [Condition (DEFAULT — must justify higher)]
-- 3: [Condition (RARE — requires evidence)]
-- 4: [Condition (IDEAL — requires evidence that it is impossible to do better)]
-- 5: [Condition (OVERLY PERFECT — done much more than what is required)]
+- `score_2`:
+
+  ```text
+  [shortest excerpt of the BAD example that obviously FAILS this dimension]
+  ```
+
+- `score_4`:
+
+  ```text
+  [shortest excerpt of the GOOD example that obviously SATISFIES this dimension]
+  ```
+
+- `contrast`: [one line: the single observable difference between the two]
 
 ### [Criterion 2]
 
@@ -2136,13 +2287,21 @@ Score Definitions
 
 [Classification / instruction paragraph.]
 
-Score Definitions
+Anchors
 
-- 1: [Condition]
-- 2: [Condition (DEFAULT)]
-- 3: [Condition (RARE)]
-- 4: [Condition (IDEAL)]
-- 5: [Condition (OVERLY PERFECT)]
+- `score_2`:
+
+  ```text
+  [shortest excerpt that obviously FAILS this dimension]
+  ```
+
+- `score_4`:
+
+  ```text
+  [shortest excerpt that obviously SATISFIES this dimension]
+  ```
+
+- `contrast`: [one line: the single observable difference between the two]
 
 **Test Strategy:**
 
@@ -2173,7 +2332,7 @@ Score Definitions
 - [ ] Every test case in **Test Cases to Cover** is implemented and passing
 - [ ] [Task-specific completion condition derived from the Phase 4 business criteria]
 - [ ] [Task-specific completion condition derived from the Phase 4 business criteria]
-```
+````
 
 #### 10.3 Rendering Rules
 
@@ -2185,8 +2344,8 @@ The task file uses **structured markdown** — NOT YAML — for the checklist, r
    - applicable default checklist items — apply the conditional adjustments from STAGE 4.3.
    Do NOT emit the checklist as a YAML block in the task file.
 3. Render the **Regular Checks** as a human-readable markdown checkbox list mirroring the default checklist items included in step (2). Substitute the actual discovered build/lint/test commands from STAGE 3 (e.g., `just build`, `cargo clippy`, `pnpm test`). Omit any line whose corresponding item was dropped by STAGE 4.3's conditional adjustments. Regular Checks are the human-facing CI-gate view.
-4. Render the post-RRD rubric (from STAGE 8) as a **`| Criterion | Weight |` table**, then render **Rubric Score Definitions** as one `###` section per dimension containing: a. a short description paragraph; b. a classification / instruction paragraph (how the judge should classify the implementation and what evidence to collect); c. the 1-5 score definitions. Do NOT emit the rubric as a YAML block in the task file.
-5. Include the Project Guidelines Alignment rubric dimension (if guidelines were discovered in STAGE 3), with full score definitions, alongside the other rubric dimensions.
+4. Render the post-RRD rubric (from STAGE 8) as a **`| Criterion | Weight |` table**, then render **Rubric Score Definitions** as one `###` section per dimension containing: a. a short description paragraph; b. a classification / instruction paragraph (what evidence the judge must collect, then place the artifact against the anchors); c. an `Anchors` list carrying `score_2`, `score_4` and `contrast` under those exact names, with each anchor as a fenced excerpt. Keep the `**Rubric Score Definitions:**` heading verbatim — downstream agents locate the sub-block by it. Do NOT emit the rubric as a YAML block in the task file, and do NOT emit 1-5 bins.
+5. Include the Project Guidelines Alignment rubric dimension (if guidelines were discovered in STAGE 3), with its own anchors, alongside the other rubric dimensions.
 6. Include a reference pattern in a dimension's instruction paragraph if one exists.
 7. Render the **Test Strategy** as a structured markdown sub-block (NOT as a YAML block). Order is load-bearing:
    a. `**Criticality:**`;
@@ -2273,7 +2432,7 @@ You specify WHAT must be true of the delivered feature, never WHERE the code liv
 
 ## Output Format
 
-Your output MUST be: a refined `# Description` section and a single `## Acceptance Criteria` section in the task file, both written in **structured markdown**. The `## Acceptance Criteria` section contains, in order: `**Checklist:**` (markdown table), `**Regular Checks:**` (checkbox list), `**Rubric:**` (markdown table), `**Rubric Score Definitions:**` (`###` section per dimension), `**Test Strategy:**` (Criticality + Test Matrix table + Test Cases to Cover), and `**Definition of Done:**` (checkbox list). The scratchpad continues to use YAML for the checklist, rubric and test matrix as the machine-readable source of truth; STAGE 10 transforms scratchpad YAML into task-file markdown.
+Your output MUST be: a refined `# Description` section and a single `## Acceptance Criteria` section in the task file, both written in **structured markdown**. The `## Acceptance Criteria` section contains, in order: `**Checklist:**` (markdown table), `**Regular Checks:**` (checkbox list), `**Rubric:**` (markdown table), `**Rubric Score Definitions:**` (`###` section per dimension, each carrying that dimension's `score_2` / `score_4` / `contrast` anchors), `**Test Strategy:**` (Criticality + Test Matrix table + Test Cases to Cover), and `**Definition of Done:**` (checkbox list). The scratchpad continues to use YAML for the checklist, rubric and test matrix as the machine-readable source of truth; STAGE 10 transforms scratchpad YAML into task-file markdown.
 
 ---
 
@@ -2285,7 +2444,10 @@ Your output MUST be: a refined `# Description` section and a single `## Acceptan
 - ALWAYS draft business-perspective acceptance criteria in the scratchpad (Phases 3-4) and ALWAYS fold every one of them into the checklist, the rubric or the test strategy.
 - NEVER write a separate business acceptance criteria list into the task file.
 - ALWAYS run at least one RRD cycle before finalizing the rubric.
-- ALWAYS define explicit score bins (1-5) for every rubric dimension.
+- ALWAYS write the BAD example before the GOOD one in STAGE 7.1. Never reverse that order.
+- NEVER write a rubric dimension before both examples exist in the scratchpad.
+- ALWAYS emit an `anchors` block (`score_2`, `score_4`, `contrast`) for every rubric dimension, grounded in those two examples, and ALWAYS keep `scale: "1-5"` — the anchors pin 2 and 4 inside that scale, they do not replace it. NEVER emit any other scoring block in its place.
+- NEVER keep a dimension the BAD and GOOD examples score the same on. Decompose it or drop it.
 - NEVER include criteria that reward length, formatting, or style over substance.
 - ALWAYS ask for clarification when requirements are ambiguous — maximum 3 `[NEEDS CLARIFICATION]` markers.
 - Rubric weights MUST sum to 1.0.
@@ -2328,8 +2490,11 @@ Before completing the specification, verify:
 - [ ] Principles extracted (STAGE 5)
 - [ ] Test Strategy designed with Decision Gates 0-6 walked (STAGE 6)
 - [ ] Strategy Inputs (Criticality / Functional surface / Dependencies in scope / Project test frameworks) captured in STAGE 6
+- [ ] Contrastive BAD and GOOD examples written — BAD first — before any rubric dimension (STAGE 7.1)
 - [ ] Custom rubric assembled (STAGE 7)
-- [ ] Project Guidelines Alignment dimension included in the rubric (STAGE 7.6)
+- [ ] Every rubric dimension carries an `anchors` block whose `score_2` and `score_4` are concrete excerpts of those two examples and differ on exactly one thing (STAGE 7.2)
+- [ ] Every rubric dimension separates the BAD example from the GOOD example; non-discriminative ones decomposed or dropped (STAGE 8 Cycle Step 1)
+- [ ] Project Guidelines Alignment dimension included in the rubric (STAGE 7.7)
 - [ ] Test Strategy block (Criticality + Test Matrix table + Test Cases to Cover list) emitted when `test_strategy.applies = true`
 - [ ] RRD cycle applied (STAGE 8)
 - [ ] Self-verification completed with 6 specification questions answered (STAGE 9.1)

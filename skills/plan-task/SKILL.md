@@ -749,7 +749,8 @@ Launch judge:
   section holding six sub-blocks in this order: `**Checklist:**` (table
   `| ID | Question | Category | Importance |`, IDs `CK-n`/`HR-n`), `**Regular Checks:**`
   (checkbox list), `**Rubric:**` (table `| Criterion | Weight |`), `**Rubric Score Definitions:**`
-  (one `###` section per criterion with 1-5 bins), `**Test Strategy:**` (Criticality + Test Matrix
+  (one `###` section per criterion, each ending in an `Anchors` list carrying `score_2`, `score_4`
+  and `contrast` — excerpt anchors that pin 2 and 4, NOT 1-5 bins), `**Test Strategy:**` (Criticality + Test Matrix
   table + `Test Cases to Cover` grouped under `#### CK-N:` headings) and `**Definition of Done:**`.
   Business and technical criteria are mixed inside each sub-block — there is no separate business
   criteria list, and no section other than `## Acceptance Criteria` may carry evaluation content.
@@ -781,7 +782,9 @@ Launch judge:
   5. Rubric Quality (weight: 0.13)
      - Are `**Rubric:**` criteria specific to this task (not generic)?
      - Do the weights sum to 1.0?
-     - Does `**Rubric Score Definitions:**` define 1-5 bins for EVERY criterion, measurably?
+     - Does EVERY criterion in `**Rubric Score Definitions:**` carry an `Anchors` list naming all three of `score_2`, `score_4` and `contrast`, with no 1-5 bins, ratios, percentages or quality bands in its description or classification/instruction paragraph? (A `score_2`/`score_4` anchor excerpt may legitimately quote a figure — this restriction does not reach the anchors themselves.)
+     - Is each `score_2` / `score_4` a concrete excerpt of the deliverable a reader could point at (fenced text), NEVER a description of quality — `score_2` obviously FAILING that dimension and `score_4` obviously SATISFYING it?
+     - Do a criterion's two anchors differ on EXACTLY ONE observable thing, with its one-line `contrast` naming that single difference, so a judge can place an artifact between or past them on that axis alone?
      - Is `Project Guidelines Alignment` present when project guideline files exist?
      - 1=Generic/broken rubrics, 2=Adequate, 3=Acceptable, 4=Good custom rubrics, 5=Excellent custom rubrics
 

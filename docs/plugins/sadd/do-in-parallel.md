@@ -208,13 +208,7 @@ Each implementation agent is then verified by an independent `sadd:judge` agent 
 
 ### Scoring Scale
 
-| Score | Meaning | Frequency |
-|-------|---------|-----------|
-| 5 | Excellent - Exceeds requirements | <5% of evaluations |
-| 4 | Good - Meets ALL requirements | Genuinely solid work |
-| 3 | Adequate - Meets basic requirements | Refined work |
-| 2 | Below Average - Multiple issues | Common for first attempts |
-| 1 | Unacceptable - Clear failures | Fundamental failures |
+The scale is 1-5 integers and is **anchor-relative, not banded**: each rubric dimension pins 2 and 4 to two concrete excerpts (`score_2` / `score_4`) that differ on exactly one named axis, and `sadd:judge` places the artifact between or past them on that axis. There is no default score and no expected distribution — see `sadd:judge`'s own `## Scoring Scale` section for the full definition.
 
 ## Quality Enhancement Techniques
 

@@ -55,7 +55,7 @@
     {
       "name": "sadd",
       "description": "Introduces skills for subagent-driven development, dispatches fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.",
-      "version": "3.3.2",
+      "version": "3.4.0",
       "author": {
         "name": "Vlad Goncharov",
         "email": "vlad.goncharov@neolab.finance"

@@ -121,7 +121,7 @@ Each sub-phase is validated by a judge agent. All three must pass before proceed
 | `**Checklist:**` | Table `\| ID \| Question \| Category \| Importance \|` with stable `CK-n` / `HR-n` IDs; every row a boolean YES/NO question |
 | `**Regular Checks:**` | Checkbox list using the project's actual build / lint / test commands |
 | `**Rubric:**` | Table `\| Criterion \| Weight \|`, weights summing to 1.0 |
-| `**Rubric Score Definitions:**` | 1–5 bins for every rubric criterion |
+| `**Rubric Score Definitions:**` | One `###` section per rubric criterion with a contrastive `Anchors` list (`score_2` / `score_4` / `contrast`); no 1-5 bins |
 | `**Test Strategy:**` | Criticality, a Test Matrix table, and `Test Cases to Cover` grouped under `#### CK-N:` headings |
 | `**Definition of Done:**` | Derived from the criteria above; consumed by `/implement-task`'s final verification |
 
