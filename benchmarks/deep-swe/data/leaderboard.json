@@ -1,0 +1,59 @@
+{
+  "_comment": "Vendored snapshot of the official DeepSWE leaderboard. Do not hand-edit -- regenerate by re-fetching source_data_url and re-applying row_selection_rule, then update snapshot_date. See report.py's module docstring for how this file is consumed.",
+
+  "source_url": "https://deepswe.datacurve.ai/",
+  "source_data_url": "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
+  "snapshot_date": "2026-08-09",
+  "leaderboard_generated_at": "2026-08-07T19:41:58.007998+00:00",
+  "data_version": "v1.1",
+  "n_tasks_in_set": 113,
+
+  "harness": "mini-swe-agent",
+  "harness_url": "https://github.com/SWE-agent/mini-swe-agent",
+  "honesty_note": "Every official number below was produced with mini-swe-agent, a minimal single-agent scaffold -- NOT claude-code / the sadd plugin this benchmark harness measures. mini-swe-agent and claude-code differ in tool access, context management, and prompting, so these numbers are context for where a model tier sits on an independent benchmark, not a like-for-like comparison against this harness's own arms.",
+
+  "row_selection_rule": "The DeepSWE site itself runs each model at several 'reasoning_effort' configs (low/medium/high/xhigh/max) and its own live-leaderboard UI collapses them to one displayed row per model by picking the row with the highest available reasoning_effort (verified by reading the compiled `mt()`/`V()` helpers in the site's own assets/live-leaderboard-*.js bundle, and cross-checking that the resulting numbers for claude-opus-5 and claude-sonnet-5 match the human-visible table at https://deepswe.datacurve.ai/). This snapshot reproduces that exact selection so these numbers match what a visitor sees by default.",
+
+  "field_notes": {
+    "pass_at_1": "Fraction (0-1) of scored rollout attempts that passed, at the selected reasoning_effort.",
+    "ci_low / ci_high": "DeepSWE's own 95% CI: run-to-run standard error across repeated whole-benchmark passes (1.96 * std(runs) / sqrt(n_runs)) -- NOT a Wilson interval, so do not plot it interchangeably with this harness's own pass_at_1_ci_low/high without noting the different method.",
+    "avg_cost_usd / avg_output_tokens / avg_n_agent_steps": "Mean over every scored attempt at the selected reasoning_effort (mean_cost_usd / mean_output_tokens / mean_agent_steps in the source JSON)."
+  },
+
+  "tiers": {
+    "haiku": {
+      "model_id": "claude-haiku-4-5-20251001",
+      "present_on_leaderboard": false,
+      "absence_reason": "No claude-haiku-* row exists anywhere in the fetched v1.1 dataset (53 rows spanning 21 distinct models, checked across every reasoning_effort). DeepSWE has not benchmarked a Haiku-tier Claude model as of the snapshot date. Recording this absence explicitly rather than inventing a number.",
+      "reasoning_effort": null,
+      "pass_at_1": null,
+      "ci_low": null,
+      "ci_high": null,
+      "avg_cost_usd": null,
+      "avg_output_tokens": null,
+      "avg_n_agent_steps": null
+    },
+    "sonnet": {
+      "model_id": "claude-sonnet-5",
+      "present_on_leaderboard": true,
+      "reasoning_effort": "max",
+      "pass_at_1": 0.5384615384615384,
+      "ci_low": 0.4960923737597946,
+      "ci_high": 0.5808307031632823,
+      "avg_cost_usd": 26.399858950791852,
+      "avg_output_tokens": 214117.54977375566,
+      "avg_n_agent_steps": 268.4547511312217
+    },
+    "opus": {
+      "model_id": "claude-opus-5",
+      "present_on_leaderboard": true,
+      "reasoning_effort": "max",
+      "pass_at_1": 0.7364864864864865,
+      "ci_low": 0.6977633822227692,
+      "ci_high": 0.7752095907502038,
+      "avg_cost_usd": 11.837583271396396,
+      "avg_output_tokens": 117565.6936936937,
+      "avg_n_agent_steps": 99.0427927927928
+    }
+  }
+}

@@ -152,3 +152,5 @@ vite.config.ts.timestamp-*
 .specs/scratchpad/*.md
 .specs/analysis/*.md
 .specs/reports/*.md
+
+__pycache__/
