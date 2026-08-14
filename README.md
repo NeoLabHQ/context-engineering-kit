@@ -259,15 +259,15 @@ To view all available plugins:
 /plugin
 ```
 
-- [Reflexion](https://neolab.gitbook.io/cek/plugins/reflexion) - Introduces feedback and refinement loops to improve output quality.
-- [Spec-Driven Development](https://neolab.gitbook.io/cek/plugins/sdd) - Introduces commands for specification-driven development, based on Continuous Learning + LLM-as-Judge + Agent Swarm. Achieves **development as compilation** through reliable code generation.
-- [Review](https://neolab.gitbook.io/cek/plugins/review) - Introduces code and PR review commands and skills using multiple specialized agents with impact/confidence filtering.
-- [Git](https://neolab.gitbook.io/cek/plugins/git) - Introduces commands for commit and PR creation.
-- [Test-Driven Development](https://neolab.gitbook.io/cek/plugins/tdd) - Introduces commands for test-driven development and common anti-patterns, plus skills for testing using subagents.
-- [Subagent-Driven Development](https://neolab.gitbook.io/cek/plugins/sadd) - Introduces skills for subagent-driven development, which dispatches a fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
-- [Domain-Driven Development](https://neolab.gitbook.io/cek/plugins/ddd) - Introduces commands to update CLAUDE.md with best practices for domain-driven development, focused on code quality, and includes Clean Architecture, SOLID principles, and other design patterns.
-- [FPF - First Principles Framework](https://neolab.gitbook.io/cek/plugins/fpf) - Introduces structured reasoning using ADI cycle (Abduction-Deduction-Induction) with knowledge layer progression. Uses workflow command pattern with fpf-agent for hypothesis generation, verification, and auditable decision-making.
-- [Kaizen](https://neolab.gitbook.io/cek/plugins/kaizen) - Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Introduces commands for analysis of root causes of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.
+- [Reflexion](https://neolab.gitbook.io/cek/plugins/reflexion) - Feedback and refinement loops to improve output quality.
+- [Spec-Driven Development](https://neolab.gitbook.io/cek/plugins/sdd) - Commands for specification-driven development, based on Continuous Learning + LLM-as-Judge + Agent Swarm. Achieves **development as compilation** through reliable code generation.
+- [Review](https://neolab.gitbook.io/cek/plugins/review) - Open-source and higher quality version of CodeRabbit. Includes code and PR review commands and skills using multiple specialized agents with impact/confidence filtering. [Free Github Actions integration available](https://neolab.gitbook.io/cek/guides/ci-integration)
+- [Git](https://neolab.gitbook.io/cek/plugins/git) - Commands for commit and PR creation.
+- [Test-Driven Development](https://neolab.gitbook.io/cek/plugins/tdd) - Commands for test-driven development and common anti-patterns, plus skills for testing using subagents.
+- [Subagent-Driven Development](https://neolab.gitbook.io/cek/plugins/sadd) - Skills for subagent-driven development, which dispatches a fresh subagent for each task with code review between tasks, enabling fast iteration with quality gates.
+- [Domain-Driven Development](https://neolab.gitbook.io/cek/plugins/ddd) - Commands to update CLAUDE.md with best practices for domain-driven development, focused on code quality, and includes Clean Architecture, SOLID principles, and other design patterns.
+- [FPF - First Principles Framework](https://neolab.gitbook.io/cek/plugins/fpf) - Structured reasoning using ADI cycle (Abduction-Deduction-Induction) with knowledge layer progression. Uses workflow command pattern with fpf-agent for hypothesis generation, verification, and auditable decision-making.
+- [Kaizen](https://neolab.gitbook.io/cek/plugins/kaizen) - Inspired by Japanese continuous improvement philosophy, Agile and Lean development practices. Commands for analysis of root causes of issues and problems, including 5 Whys, Cause and Effect Analysis, and other techniques.
 - [Customaize Agent](https://neolab.gitbook.io/cek/plugins/customaize-agent) - Commands and skills for writing and refining commands, hooks, and skills for Claude Code. Includes Anthropic Best Practices and [Agent Persuasion Principles](https://arxiv.org/abs/2508.00614) that can be useful for sub-agent workflows.
 - [Docs](https://neolab.gitbook.io/cek/plugins/docs) - Commands for analyzing projects, writing and refining documentation.
 - [Tech Stack](https://neolab.gitbook.io/cek/plugins/tech-stack) - Rules for language-specific best practices, automatically applied when working on matching file types.
