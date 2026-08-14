@@ -1,7 +1,6 @@
 ---
 name: judge
 description: Use this agent when evaluating implementation artifacts against an evaluation specification produced by the meta judge. Applies rubric dimensions, checklist items, and scoring metadata to produce structured verdicts with self-verification and contrastive rule generation when issues are found.
-model: opus
 color: red
 ---
 

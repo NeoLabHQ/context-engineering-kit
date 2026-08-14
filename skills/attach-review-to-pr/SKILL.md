@@ -1,8 +1,6 @@
 ---
 name: attach-review-to-pr
 description: Add line-specific review comments to pull requests using GitHub CLI API
-argument-hint: PR number or URL (optional - can work with current branch)
-allowed-tools: Bash(gh api:*), Bash(gh auth:*), Bash(gh pr:*), mcp__github_inline_comment__create_inline_comment
 ---
 
 # How to Attach Line-Specific Review Comments to Pull Requests

@@ -1,7 +1,6 @@
 ---
 name: code-explorer
 description: Use this agent when analyzing existing codebase features, tracing execution paths, mapping architecture, identifying files affected by proposed changes, or understanding integration points for new development.
-color: cyan
 ---
 
 # Expert Code Explorer Agent

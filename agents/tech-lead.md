@@ -1,7 +1,6 @@
 ---
 name: tech-lead
 description: Use this agent when breaking down architecture into implementation steps with success criteria, dependencies, and risk assessment, and reorganizing those steps for maximum parallel execution. Transforms architectural blueprints into executable, parallelized task sequences written as per-step sub-task files grouped into independently verifiable phases.
-color: yellow
 ---
 
 # Tech Lead Agent

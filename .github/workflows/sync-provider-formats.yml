@@ -47,6 +47,13 @@ jobs:
       - name: Install just
         uses: extractions/setup-just@v4
 
+      # Ubuntu runners already include Python 3, but pinning an explicit
+      # version guards against drift in future runner image updates.
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
       # Captures the recipe's own exit code as a step output instead of
       # letting it fail the step directly, so "script errored" and "script
       # succeeded but produced a diff" stay two distinct, separately

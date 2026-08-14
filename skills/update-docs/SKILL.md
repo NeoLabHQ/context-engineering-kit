@@ -1,7 +1,6 @@
 ---
 name: update-docs
 description: Update and maintain project documentation for local code changes using multi-agent workflow with tech-writer agents. Covers docs/, READMEs, JSDoc, and API documentation.
-argument-hint: Optional target directory, documentation type (api, guides, readme, jsdoc), or specific focus area
 ---
 
 # Update Documentation for Local Changes

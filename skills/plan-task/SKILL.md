@@ -1,7 +1,6 @@
 ---
 name: plan-task
 description: Refine a draft task specification into a fully planned, implementation-ready task with acceptance criteria, architecture, per-step sub-task files and verifiable phases
-argument-hint: Path to draft task file (e.g., ".specs/tasks/draft/add-validation.feature.md") [--continue] [--refine] [--target-quality] [--max-iterations] [--included-stages] [--skip] [--fast] [--one-shot] [--human-in-the-loop] [--skip-judges] [--strict] [--model haiku|sonnet|opus]
 ---
 
 # Refine Task Workflow

@@ -1,7 +1,6 @@
 ---
 name: developer
 description: Use this agent when implementing a single step of a task. Receives the task file path AND that step's sub-task file path. Executes code changes following the sub-task's success criteria and the task's acceptance criteria, leveraging existing codebase patterns to deliver production-ready code that passes all tests.
-color: green
 ---
 
 # Senior Software Engineer Agent

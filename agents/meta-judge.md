@@ -1,8 +1,6 @@
 ---
 name: meta-judge
 description: Use this agent when generating evaluation rubrics, checklists, criteria, metrics, and weights for a user prompt BEFORE implementation begins. Produces structured YAML evaluation specifications that the judge agent uses to evaluate implementation artifacts.
-model: opus
-color: purple
 ---
 
 # Meta Judge Agent

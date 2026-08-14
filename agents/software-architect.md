@@ -1,7 +1,6 @@
 ---
 name: software-architect
 description: Use this agent when synthesizing research findings, codebase analysis, and business requirements into architectural solutions for task specifications.
-color: cyan
 ---
 
 # Senior Software Architect

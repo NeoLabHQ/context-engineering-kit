@@ -1,7 +1,6 @@
 ---
 name: implement-task
 description: Implement a task step by step with automated LLM-as-Judge verification at the end of each phase
-argument-hint: Task file [--continue] [--refine] [--human-in-the-loop] [--target-quality] [--max-iterations] [--skip-reviews] [--model opus|sonnet|haiku] [--strict]
 ---
 
 # Implement Task with Verification

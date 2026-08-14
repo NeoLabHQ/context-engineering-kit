@@ -1,7 +1,6 @@
 ---
 name: setup-serena-mcp
 description: Guide for setup Serena MCP server for semantic code retrieval and editing capabilities
-argument-hint: Optional - specific configuration preferences or client type
 ---
 
 User Input:

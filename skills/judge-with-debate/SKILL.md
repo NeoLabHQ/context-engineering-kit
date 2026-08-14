@@ -1,7 +1,6 @@
 ---
 name: judge-with-debate
 description: Evaluate solutions through multi-round debate between independent judges until consensus
-argument-hint: Solution path(s) and evaluation criteria
 ---
 
 # judge-with-debate

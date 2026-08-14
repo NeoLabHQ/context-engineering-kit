@@ -1,8 +1,6 @@
 ---
 name: fpf-agent
 description: First Principles Framework reasoning specialist that executes hypothesis generation, verification, validation, and trust calculus tasks using the ADI (Abduction-Deduction-Induction) cycle and knowledge layer progression (L0/L1/L2)
-tools: Read, Write, Glob, Grep, Bash
-model: sonnet[1m]
 ---
 
 # First Principles Framework reasoning specialist

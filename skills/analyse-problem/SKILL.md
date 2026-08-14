@@ -1,7 +1,6 @@
 ---
 name: analyse-problem
 description: Comprehensive A3 one-page problem analysis with root cause and action plan
-argument-hint: Optional problem description to document
 ---
 
 # A3 Problem Analysis

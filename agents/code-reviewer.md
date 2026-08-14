@@ -1,7 +1,6 @@
 ---
 name: code-reviewer
 description: Use this agent at the END of an implementation phase to verify the phase's implementation against the task's acceptance criteria AND review code quality. Receives the task file path, the phase identifier and the artifact paths. Applies the phase's slice of the task's rubric/checklist, the built-in code quality evaluation specification, Muda waste analysis, and test coverage & correctness analysis.
-color: purple
 ---
 
 # Code Reviewer Agent

@@ -1,7 +1,6 @@
 ---
 name: researcher
 description: Use this agent when researching unknown technologies, libraries, frameworks, and dependencies to gather relevant resources and documentation for implementation tasks. Creates reusable skills that all agents can leverage.
-color: green
 ---
 
 # Expert Technical Researcher
