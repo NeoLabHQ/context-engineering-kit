@@ -47,17 +47,23 @@ checked in this order (first match wins), each verified against pier's real
 | 2 | non-vanilla trial, `sadd` plugin didn't load (system/init event)| errored   |
 | 3 | `TrialResult.exception_info` is set (pier's own infra-failure signal: Docker/environment build failure, agent/verifier timeout, non-zero agent exit code, cancellation -- and transitively, an API 529/rate-limit or budget exhaustion that crashed the `claude` process; see `infra_error_category()` for how the raw exception type is normalized into one of these) | errored |
 | 4 | `verifier_result` missing, or its `rewards` dict is missing/empty (verifier never produced a scalar) | errored |
-| 5 | every value in `rewards` equals `1`                             | resolved   |
-| 6 | otherwise (verifier ran, at least one reward value != 1)        | unresolved |
+| 5 | `rewards["reward"] == 1` -- or, for a bundle carrying no `reward` key, `f2p == 1.0 and p2p == 1.0`, falling back last to every value in `rewards` equalling `1` | resolved |
+| 6 | otherwise (verifier ran and did not report success)            | unresolved |
 
 Rows 1-4 are infrastructure failures, not task attempts: the agent never got
 a fair, uncorrupted shot at the task, or (row 2) we can't trust this trial as
 a measurement of the plugin in the first place. Folding them into
-`unresolved` would silently deflate Pass@1. Row 5 assumes this benchmark's
-verifiers report a single binary reward per rewards key (pier's own
-`compute_pass_at_k_by_evals` makes the same assumption -- see
-`/tmp/pier-repo/src/pier/utils/pass_at_k.py`); if a later dataset step
-introduces partial-credit rewards, this rule needs revisiting.
+`unresolved` would silently deflate Pass@1. Row 5 reads the verdict off the
+scalar `reward` key because this benchmark's verifier reports `rewards` as a
+*metrics bundle* -- test counts, ratios and a `partial` graded-credit score
+alongside the one binary `reward` -- so an all-values-equal-1 rule would call
+a perfect trial unresolved whenever it has more than one fail-to-pass test.
+See `verifier_reports_success()` for the real observed bundle, the arithmetic
+relating its keys, and the two fallbacks used for bundles carrying no
+`reward` key -- recomputing the verdict from `f2p`/`p2p` where those exist,
+and only then the all-ones rule. Note that pier's own `compute_pass_at_k_by_evals` (see
+`/tmp/pier-repo/src/pier/utils/pass_at_k.py`) does assume one binary reward
+per key, so its Pass@k is not interchangeable with this module's.
 
 PASS@1 DENOMINATOR
 -------------------
@@ -130,6 +136,9 @@ class TrialRecord:
     task_name: str | None
     task_checksum: str | None
     resolved: bool
+    # The verifier's own scalar binary verdict (`rewards["reward"]`, 0 or 1),
+    # never a sum over the metrics bundle; None when the bundle has no such
+    # key. See `verifier_reports_success()`.
     reward: float | None
     cost_usd: float | None
     output_tokens: int | None
@@ -283,6 +292,44 @@ def infra_error_category(exception_type: str) -> str:
     return _EXCEPTION_TYPE_CATEGORIES.get(exception_type, _UNMAPPED_EXCEPTION_CATEGORY)
 
 
+def verifier_reports_success(rewards: dict[str, float | int]) -> bool:
+    """Whether a non-empty verifier rewards bundle means the task was solved.
+
+    DeepSWE's verifier emits `rewards` as a *metrics bundle*, not a set of
+    binary rewards. A real observed value (a run that fixed nothing but broke
+    nothing), read verbatim from
+    `runs/_preflight/abs-stepped-slices__HyQJyYy/verifier/reward.json`, is:
+
+        {"reward": 0, "f2p_total": 6, "f2p_passed": 0, "p2p_total": 6,
+         "p2p_passed": 6, "f2p": 0.0, "p2p": 1.0, "partial": 0.5}
+
+    Only `reward` is the binary verdict -- 1 iff `f2p == 1.0 and p2p == 1.0`,
+    i.e. standard SWE-bench "resolved" semantics. The other keys are raw test
+    counts (`*_total`/`*_passed`), their ratios, and `partial` graded credit
+    ((f2p + p2p) / 2). Demanding that *every* value equal 1 therefore marks a
+    perfect trial unresolved the moment it has more than one f2p test, which
+    is why Pass@1 must be read off the scalar instead.
+
+    Three rules are tried in this order, most to least grounded:
+
+    1. `reward` present -- the verifier's own verdict, used verbatim.
+    2. no `reward`, but `f2p`/`p2p` present -- recompute the verdict from the
+       definition above (`f2p == 1.0 and p2p == 1.0`). This is the same
+       arithmetic the verifier itself applies, just done here.
+    3. neither -- fall back to the original all-values-equal-1 rule.
+
+    Rule 3 is deliberately last: it is exactly the rule that misclassified
+    every perfect DeepSWE trial, so it may only decide a bundle that offers
+    no better signal at all. On a genuinely binary bundle (`{"resolved": 1}`)
+    it is correct, which is why it stays rather than raising.
+    """
+    if "reward" in rewards:
+        return rewards["reward"] == 1
+    if {"f2p", "p2p"} <= rewards.keys():
+        return rewards["f2p"] == 1.0 and rewards["p2p"] == 1.0
+    return all(value == 1 for value in rewards.values())
+
+
 def classify_status(
     *,
     exception_type: str | None,
@@ -298,14 +345,14 @@ def classify_status(
     information is lost even though the outcome is always `errored` either
     way. Signal precedence matches the module docstring's table (plugin
     load, then pier's own exception_info, then a missing/empty rewards
-    dict, then the reward values themselves).
+    dict, then the verifier's own success verdict).
 
     Worked example: `claude` crashes mid-task from an Anthropic API 529 (so
     `exception_type="NonZeroAgentExitCodeError"`), but the verifier still
-    happened to run and produced `rewards={"pass": 1}`. exception_info is
-    checked before rewards, so this is still
+    happened to run and scored the trial a success (`rewards["reward"] == 1`).
+    exception_info is checked before rewards, so this is still
     `("errored", "pier_exception:agent_nonzero_exit:NonZeroAgentExitCodeError")`
-    -- never `resolved`, even though every reward value is 1.
+    -- never `resolved`, even though the verifier said the task was solved.
     """
     if plugin_load_error is not None:
         return "errored", plugin_load_error
@@ -314,7 +361,7 @@ def classify_status(
         return "errored", f"pier_exception:{category}:{exception_type}"
     if not rewards:
         return "errored", "missing_verifier_rewards"
-    if all(value == 1 for value in rewards.values()):
+    if verifier_reports_success(rewards):
         return "resolved", None
     return "unresolved", None
 
@@ -498,7 +545,11 @@ def build_trial_record(trial_dir: Path, arm_meta: dict[str, Any]) -> TrialRecord
         task_name=trial.get("task_name"),
         task_checksum=trial.get("task_checksum"),
         resolved=status == "resolved",
-        reward=sum(rewards.values()) if rewards else None,
+        # The verifier's scalar binary verdict, not a sum over the bundle --
+        # summing a metrics bundle produces a meaningless number (28.0 for a
+        # perfect trial). None when the bundle carries no `reward` key; see
+        # `verifier_reports_success` for that fallback.
+        reward=rewards.get("reward") if rewards else None,
         cost_usd=cost,
         output_tokens=n_output,
         input_tokens=n_input,

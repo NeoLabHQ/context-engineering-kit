@@ -160,6 +160,8 @@ python3 collect.py
 # --runs-dir / --out-dir override the defaults (./runs, this directory)
 ```
 
+`results.csv` is one row per trial. Its `reward` column is the verifier's own scalar binary verdict — `0` or `1`, the `reward` key of the `rewards` bundle each trial's verifier writes, blank when a bundle carries no such key. It is **not** a sum or score over that bundle: the verifier reports `rewards` as a metrics bundle (test counts, `f2p`/`p2p` ratios, a `partial` graded-credit score) alongside the one binary `reward`, and only the scalar answers "was this task solved". `resolved`/`status` are derived from the same scalar — see `verifier_reports_success()` in `collect.py`.
+
 Infrastructure failures (Docker build failures, agent/verifier timeouts, budget exhaustion) are classified `errored` and excluded from the Pass@1 denominator and every average — `n_errored` is reported separately per arm so nothing silently disappears. Re-runnable any time; it rebuilds both output files from scratch rather than merging.
 
 ### 6. Generate the report
@@ -177,9 +179,11 @@ python3 report.py
 cd benchmarks/deep-swe && python3 -m unittest discover
 ```
 
-(equivalently, from the repo root: `python3 -m unittest discover -s benchmarks/deep-swe`). No third-party install needed — 102 stdlib-`unittest` tests, runs in well under a second.
+(equivalently, from the repo root: `python3 -m unittest discover -s benchmarks/deep-swe`). No third-party install needed — 127 stdlib-`unittest` tests, runs in well under a second.
 
-**Test coverage is narrower than "the test suite passes" might suggest — don't overclaim it.** All 102 tests cover pure functions in `collect.py` and `report.py` only: Wilson confidence intervals, status classification, chart-geometry math, table formatting. `run.py` and `agent.py`'s actual pier orchestration — building the `pier run` command, checking out the plugin into a container, driving the container lifecycle — is **deliberately not unit-tested**. It's exercised instead by `run.py --dry-run` (prints every command without executing anything) and `run.py --preflight` (actually runs one trial and verifies the plugin loaded and a sub-agent was dispatched). If you change `run.py`'s command-building or `agent.py`'s install steps, `--preflight` — not the test suite — is what tells you whether it still works.
+**Test coverage is narrower than "the test suite passes" might suggest — don't overclaim it.** Nearly all 127 tests cover pure functions in `collect.py` and `report.py`: Wilson confidence intervals, status classification, chart-geometry math, table formatting. The one exception is `tests/test_run_dispatch.py`, which pins `run.py`'s preflight dispatch predicate (`has_subagent_dispatch`) — the tool-name matcher that decides whether a sub-agent was ever dispatched — by stubbing the `agent` module so `run.py` imports without `pier`. It is there because that predicate silently broke on a claude-code tool rename (`Task` → `Agent`) while the whole suite stayed green.
+
+**Everything else in `run.py`, and all of `agent.py`, remains not unit-tested**: building the `pier run` command, checking out the plugin into a container, driving the container lifecycle. Those are exercised instead by `run.py --dry-run` (prints every command without executing anything) and `run.py --preflight` (actually runs one trial and verifies the plugin loaded and a sub-agent was dispatched). If you change `run.py`'s command-building or `agent.py`'s install steps, `--preflight` — not the test suite — is what tells you whether it still works.
 
 ## Regenerating `data/leaderboard.json`
 

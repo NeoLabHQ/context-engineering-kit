@@ -426,20 +426,66 @@ def find_init_event(stream_log: Path) -> dict | None:
     return None
 
 
+# Claude Code renamed the sub-agent dispatch tool `Task` -> `Agent` in 2.1.x
+# (the container pins 2.1.233). Both names are accepted so transcripts from
+# either version are read correctly -- matching only `Task` made a fully
+# correct do-and-judge run fail preflight.
+SUBAGENT_DISPATCH_TOOLS = {"Agent", "Task"}
+
+
+def assistant_tool_use_parts(event: dict) -> list[dict]:
+    """The `tool_use` content parts of one assistant event; `[]` for anything else.
+
+    Every lookup here is shape-checked rather than assumed. `iter_stream_events`
+    yields whatever JSON objects a ~1.2 MB transcript happens to contain, and
+    that file is written live -- a run killed mid-write leaves a truncated or
+    half-formed event behind. Indexing such an event optimistically raises
+    `TypeError`/`AttributeError` out of preflight, replacing the actionable
+    failure message `run_preflight` is built to print with a traceback, which
+    is the opposite of what a preflight is for.
+    """
+    if event.get("type") != "assistant":
+        return []
+
+    message = event.get("message")
+    content = message.get("content") if isinstance(message, dict) else None
+    if not isinstance(content, list):
+        return []
+
+    return [
+        part for part in content
+        if isinstance(part, dict) and part.get("type") == "tool_use"
+    ]
+
+
 def has_subagent_dispatch(stream_log: Path) -> bool:
-    """Whether the orchestrator issued a `Task` tool call anywhere in the run.
+    """Whether the orchestrator dispatched a sub-agent anywhere in the run.
 
     do-and-judge and do-in-steps both work exclusively by dispatching
-    sub-agents via the `Task` tool -- if the transcript never shows one, the
-    skill's instructions were not followed (or the skill never loaded), and a
-    preflight that only checked `plugin_errors` would miss that entirely.
+    sub-agents via the `Agent` tool (`Task` on pre-2.1.x claude-code) -- if
+    the transcript never shows one, the skill's instructions were not
+    followed (or the skill never loaded), and a preflight that only checked
+    `plugin_errors` would miss that entirely.
+
+    A `subagent_type` input is required on top of the tool name because the
+    name alone is ambiguous: the unrelated task-tracking tools (`TaskCreate`,
+    `TaskUpdate`, ...) live in the same namespace, and only a real dispatch
+    names the sub-agent it is launching. That buys immunity to
+    `TaskCreate`/`TaskUpdate`-style false positives, and nothing more: the
+    name must still be in `SUBAGENT_DISPATCH_TOOLS`, so a *third* rename
+    would reproduce the `Task`/`Agent` false negative exactly. Adding the new
+    name to that set is the fix if that happens.
+
+    Pinned by `tests/test_run_dispatch.py` against the recorded transcript at
+    `runs/_preflight/abs-stepped-slices__HyQJyYy/agent/claude-code.txt`.
     """
     for event in iter_stream_events(stream_log):
-        if event.get("type") != "assistant":
-            continue
-        content = event.get("message", {}).get("content", [])
-        if any(part.get("type") == "tool_use" and part.get("name") == "Task" for part in content):
-            return True
+        for part in assistant_tool_use_parts(event):
+            if part.get("name") not in SUBAGENT_DISPATCH_TOOLS:
+                continue
+            tool_input = part.get("input")
+            if isinstance(tool_input, dict) and "subagent_type" in tool_input:
+                return True
     return False
 
 
@@ -493,7 +539,10 @@ def run_preflight(args: argparse.Namespace) -> int:
         fail(f"'sadd' plugin did not load (loaded plugins: {sorted(loaded_plugins)}).")
 
     if not has_subagent_dispatch(stream_log):
-        fail(f"no Task tool call found in {stream_log} -- no sub-agent was ever dispatched.")
+        fail(
+            f"no sub-agent dispatch (tool in {sorted(SUBAGENT_DISPATCH_TOOLS)} with a "
+            f"`subagent_type` input) found in {stream_log} -- no sub-agent was ever dispatched."
+        )
 
     print(
         f"[preflight] PASSED: 'sadd' loaded, sub-agent dispatch observed "

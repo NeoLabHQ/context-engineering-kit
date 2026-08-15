@@ -12,6 +12,7 @@ import unittest
 from pathlib import Path
 
 import collect  # sys.path patched by tests/__init__.py
+from .collect_fixtures import LEGACY_BINARY_REWARDS, RESOLVED_REWARDS, UNRESOLVED_REWARDS
 
 
 class LoadArmRunMetadataTests(unittest.TestCase):
@@ -89,7 +90,7 @@ class BuildTrialRecordTests(unittest.TestCase):
     RESOLVED_RESULT = {
         "task_name": "task-1",
         "task_checksum": "checksum-1",
-        "verifier_result": {"rewards": {"pass": 1}},
+        "verifier_result": {"rewards": RESOLVED_REWARDS},
         "started_at": "2026-01-01T00:00:00+00:00",
         "finished_at": "2026-01-01T00:01:00+00:00",
         "agent_info": {"version": "1.0.0"},
@@ -123,7 +124,7 @@ class BuildTrialRecordTests(unittest.TestCase):
     def test_non_vanilla_trial_without_stream_log_is_errored(self) -> None:
         # Same result.json as above, but a non-vanilla (plugin) arm: no
         # claude-code.txt means plugin_load_error_from_init_event(None) ==
-        # "missing_init_event", which outranks the all-ones rewards.
+        # "missing_init_event", which outranks the verifier's success verdict.
         with tempfile.TemporaryDirectory() as tmp:
             trial_dir = Path(tmp) / "trial-1"
             trial_dir.mkdir()
@@ -133,6 +134,53 @@ class BuildTrialRecordTests(unittest.TestCase):
 
             self.assertEqual(record.status, "errored")
             self.assertEqual(record.error_reason, "missing_init_event")
+
+    def test_reward_field_is_the_scalar_not_the_bundle_sum(self) -> None:
+        # A perfect bundle sums to 28.0 across its counts and ratios, which is
+        # a meaningless figure to publish in results.csv -- the row must carry
+        # the verifier's own binary verdict instead.
+        with tempfile.TemporaryDirectory() as tmp:
+            trial_dir = Path(tmp) / "trial-1"
+            trial_dir.mkdir()
+            (trial_dir / "result.json").write_text(json.dumps(self.RESOLVED_RESULT))
+
+            record = collect.build_trial_record(trial_dir, self.VANILLA_ARM_META)
+
+            self.assertEqual(record.reward, 1)
+            self.assertEqual(sum(RESOLVED_REWARDS.values()), 28.0)
+
+    def test_real_failing_bundle_is_unresolved_with_zero_reward(self) -> None:
+        # The bundle observed in runs/_preflight/abs-stepped-slices__HyQJyYy:
+        # every pass-to-pass test green, no fail-to-pass test fixed.
+        result = {**self.RESOLVED_RESULT, "verifier_result": {"rewards": UNRESOLVED_REWARDS}}
+        with tempfile.TemporaryDirectory() as tmp:
+            trial_dir = Path(tmp) / "trial-1"
+            trial_dir.mkdir()
+            (trial_dir / "result.json").write_text(json.dumps(result))
+
+            record = collect.build_trial_record(trial_dir, self.VANILLA_ARM_META)
+
+            self.assertEqual(record.status, "unresolved")
+            self.assertFalse(record.resolved)
+            self.assertEqual(record.reward, 0)
+
+    def test_bundle_without_reward_key_yields_none_reward_field(self) -> None:
+        # Fallback bundles have no scalar to report; the row records None
+        # rather than inventing one. Classification still succeeds via the
+        # all-ones fallback -- see verifier_reports_success.
+        result = {
+            **self.RESOLVED_RESULT,
+            "verifier_result": {"rewards": LEGACY_BINARY_REWARDS},
+        }
+        with tempfile.TemporaryDirectory() as tmp:
+            trial_dir = Path(tmp) / "trial-1"
+            trial_dir.mkdir()
+            (trial_dir / "result.json").write_text(json.dumps(result))
+
+            record = collect.build_trial_record(trial_dir, self.VANILLA_ARM_META)
+
+            self.assertEqual(record.status, "resolved")
+            self.assertIsNone(record.reward)
 
 
 if __name__ == "__main__":
