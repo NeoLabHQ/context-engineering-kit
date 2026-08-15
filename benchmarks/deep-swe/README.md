@@ -68,7 +68,7 @@ Runs the [DeepSWE](https://deepswe.datacurve.ai/) coding-agent benchmark (113 re
 
 ## How it works, briefly
 
-`run.py` builds a matrix of **10 plugin arms**: 2 skills (`do-and-judge`, `do-in-steps`) × 5 orchestrator/implementation model-tier pairs (haiku/haiku, sonnet/haiku, sonnet/sonnet, opus/sonnet, opus/opus), plus **3 vanilla control arms** (haiku, sonnet, opus orchestrating themselves with no plugin, no slash command) when `--with-vanilla` is passed — 13 arms total. Each arm is one `pier run` invocation. `agent.py` (`ClaudeCodeSadd`) teaches pier how to load this plugin: it checks out this repo's `plugins/sadd` (pinned at `v3.8.1`) into the container and passes `--plugin-dir`, so a preflight failure here almost always means the plugin didn't load, not that a task failed.
+`run.py` builds a matrix of **10 plugin arms**: 2 skills (`do-and-judge`, `do-in-steps`) × 5 orchestrator/implementation model-tier pairs (haiku/haiku, sonnet/haiku, sonnet/sonnet, opus/sonnet, opus/opus), plus **3 vanilla control arms** (haiku, sonnet, opus orchestrating themselves with no plugin, no slash command) when `--with-vanilla` is passed — 13 arms total. Pass `--skill do-and-judge` or `--skill do-in-steps` to restrict `--mode single/sample/full` to that one skill's 5 tier-pair arms instead of both skills' 10 (8 instead of 13 with `--with-vanilla` — vanilla arms aren't tied to a skill, so `--skill` never drops or duplicates them). Each arm is one `pier run` invocation. `agent.py` (`ClaudeCodeSadd`) teaches pier how to load this plugin: it checks out this repo's `plugins/sadd` (pinned at `v3.8.1`) into the container and passes `--plugin-dir`, so a preflight failure here almost always means the plugin didn't load, not that a task failed.
 
 Every arm writes to `runs/<arm-id>/` (job-level `arm.json`/`result.json`/`job.log`, plus one subdirectory per trial). `collect.py` walks that tree into `results.json`/`results.csv`; `report.py` turns those into `report.html`.
 
@@ -78,13 +78,24 @@ Run these from `benchmarks/deep-swe/` (or adjust paths). All `run.py` invocation
 
 ### 1. Preflight
 
-Cheapest possible sanity check: runs one task on the cheapest arm (`do-and-judge`, haiku/haiku) and fails loudly unless the `sadd` plugin actually loaded **and** a sub-agent was actually dispatched (checked against the `claude-code.txt` stream-json transcript, not just exit code).
+Cheapest possible sanity check: runs one task on the cheapest arm of one skill (default `do-and-judge`, haiku/haiku) and fails loudly unless the `sadd` plugin actually loaded **and** a sub-agent was actually dispatched (checked against the `claude-code.txt` stream-json transcript, not just exit code).
 
 ```bash
 uv run python3 run.py --preflight --task <task-name> --dataset-dir /path/to/deep-swe/tasks
 ```
 
-Example: `uv run python3 run.py --preflight --task "abs-stepped-slices" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
+Example: 
+- high complexity: `uv run python3 run.py --preflight --task "abs-stepped-slices" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
+- medium complexity: `uv run python3 run.py --preflight --task "bandit-incremental-cache-control" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
+- low complexity: `uv run python3 run.py --preflight --skill do-in-steps --task "cattrs-partial-structuring-recovery" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
+
+Pass `--skill do-in-steps` to preflight that skill's cheapest arm (haiku/haiku) instead of the default `do-and-judge`:
+
+```bash
+uv run python3 run.py --preflight --skill do-in-steps --task <task-name> --dataset-dir /path/to/deep-swe/tasks
+```
+
+`--skill`'s job directory is `runs/_preflight-<skill>/` for any skill other than the default, so the two skills' preflight runs never collide; the default skill keeps the original `runs/_preflight/` name.
 
 Always run this before anything else — a broken `--plugin-dir` or a misconfigured container silently produces zero measurement, not an error, on every other command.
 
@@ -95,6 +106,8 @@ All 10 (or 13, with `--with-vanilla`) arms against exactly one named task:
 ```bash
 uv run python3 run.py --mode single --task <task-name> --dataset-dir /path/to/deep-swe/tasks
 ```
+
+Add `--skill do-and-judge` or `--skill do-in-steps` to run only that skill's 5 arms (8 with `--with-vanilla`) instead of both skills' 10 (13).
 
 ### 3. Sample run
 
@@ -112,12 +125,16 @@ uv run python3 run.py --mode sample --n-tasks 20 --dataset-dir /path/to/deep-swe
 
 #### Trial count
 
-`data/leaderboard.json`'s own `n_tasks_in_set` field records **113 tasks** in the DeepSWE set — independently confirmed by fetching the live `datacurve-ai/deep-swe` README, which states "113 tasks spanning TypeScript, Go, Python, JavaScript, and Rust." `run.py`'s matrix is 10 plugin arms (2 skills × 5 tier-pair cells), or 13 with `--with-vanilla` (+3 vanilla controls):
+`data/leaderboard.json`'s own `n_tasks_in_set` field records **113 tasks** in the DeepSWE set — independently confirmed by fetching the live `datacurve-ai/deep-swe` README, which states "113 tasks spanning TypeScript, Go, Python, JavaScript, and Rust." `run.py`'s matrix is 10 plugin arms (2 skills × 5 tier-pair cells), or 13 with `--with-vanilla` (+3 vanilla controls). Passing `--skill` restricts this to one skill's 5 tier-pair cells (8 with `--with-vanilla`, since the 3 vanilla controls aren't tied to a skill):
 
 | | Arms | Trials |
 |---|---|---|
 | `--mode full` | 10 | 113 × 10 = **1,130** |
 | `--mode full --with-vanilla` | 13 | 113 × 13 = **1,469** |
+| `--mode full --skill <skill>` | 5 | 113 × 5 = **565** |
+| `--mode full --skill <skill> --with-vanilla` | 8 | 113 × 8 = **904** |
+
+The cost and time figures below are all derived from the unfiltered 10/13-arm counts; a `--skill`-filtered full run's cost and time scale down proportionally with its arm count (565/1,130 or 904/1,469 of the totals below).
 
 #### Cost
 
@@ -147,6 +164,8 @@ Once you've raised `--max-budget-usd` based on a `--mode sample` result:
 ```bash
 uv run python3 run.py --mode full --dataset-dir /path/to/deep-swe/tasks --max-budget-usd 25
 # add --with-vanilla for the 3 no-plugin control arms (13 arms, 1,469 trials, instead of 10/1,130)
+# add --skill do-and-judge (or do-in-steps) to run only that skill's 5 arms, 565 trials
+# (8 arms, 904 trials, with --with-vanilla) instead of both skills' 10/1,130 (13/1,469)
 ```
 
 Useful flags: `--dry-run` prints every arm's `pier` command and the arm count without writing anything or executing anything — sanity-check the matrix before spending money. Resumability isn't specific to `--mode full`: any invocation that isn't `--dry-run` or `--preflight` — `--mode single` and `--mode sample` included — skips an arm whose `runs/<arm-id>/result.json` already has `finished_at` set, unless `--force` is passed.
@@ -179,9 +198,9 @@ python3 report.py
 cd benchmarks/deep-swe && python3 -m unittest discover
 ```
 
-(equivalently, from the repo root: `python3 -m unittest discover -s benchmarks/deep-swe`). No third-party install needed — 127 stdlib-`unittest` tests, runs in well under a second.
+(equivalently, from the repo root: `python3 -m unittest discover -s benchmarks/deep-swe`). No third-party install needed — 144 stdlib-`unittest` tests, runs in well under a second.
 
-**Test coverage is narrower than "the test suite passes" might suggest — don't overclaim it.** Nearly all 127 tests cover pure functions in `collect.py` and `report.py`: Wilson confidence intervals, status classification, chart-geometry math, table formatting. The one exception is `tests/test_run_dispatch.py`, which pins `run.py`'s preflight dispatch predicate (`has_subagent_dispatch`) — the tool-name matcher that decides whether a sub-agent was ever dispatched — by stubbing the `agent` module so `run.py` imports without `pier`. It is there because that predicate silently broke on a claude-code tool rename (`Task` → `Agent`) while the whole suite stayed green.
+**Test coverage is narrower than "the test suite passes" might suggest — don't overclaim it.** Most of the 144 tests cover pure functions in `collect.py` and `report.py`: Wilson confidence intervals, status classification, chart-geometry math, table formatting. Two files are the exception, both covering `run.py` by stubbing the `agent` module so it imports without `pier`: `tests/test_run_dispatch.py` pins the preflight dispatch predicate (`has_subagent_dispatch`) — the tool-name matcher that decides whether a sub-agent was ever dispatched, there because that predicate silently broke on a claude-code tool rename (`Task` → `Agent`) while the whole suite stayed green — and `tests/test_run_arm_matrix.py` pins the `--skill` flag's arm-matrix filtering, preflight arm/job-name selection, and argparse validation.
 
 **Everything else in `run.py`, and all of `agent.py`, remains not unit-tested**: building the `pier run` command, checking out the plugin into a container, driving the container lifecycle. Those are exercised instead by `run.py --dry-run` (prints every command without executing anything) and `run.py --preflight` (actually runs one trial and verifies the plugin loaded and a sub-agent was dispatched). If you change `run.py`'s command-building or `agent.py`'s install steps, `--preflight` — not the test suite — is what tells you whether it still works.
 

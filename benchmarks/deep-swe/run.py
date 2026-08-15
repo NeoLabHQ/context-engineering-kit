@@ -23,7 +23,9 @@ everything downstream reads from it rather than re-deriving pairs.
 
 CELLS x SKILLS = 10 plugin arms. `--with-vanilla` adds 3 no-plugin control
 arms (one per model, orchestrating itself with no slash command at all) for
-13 total.
+13 total. `--skill` restricts the matrix to one skill's 5 CELLS arms (8 with
+`--with-vanilla`); vanilla arms aren't tied to any skill, so `--skill` never
+drops or duplicates them -- only `--with-vanilla` governs their presence.
 
 RUN LAYOUT (see bottom of file / task handoff notes for the authoritative
 version of this -- kept here too so the two can be diffed against drift):
@@ -167,11 +169,20 @@ class Arm:
         return f"{self.skill}__{self.orchestrator}-{self.impl}"
 
 
-def build_arms(*, include_vanilla: bool) -> list[Arm]:
-    """The full arm matrix: SKILLS x CELLS, plus vanilla controls if requested."""
+def build_arms(*, include_vanilla: bool, skill: str | None = None) -> list[Arm]:
+    """The full arm matrix: SKILLS x CELLS, plus vanilla controls if requested.
+
+    `skill`, when given, restricts the plugin arms to that one skill's CELLS
+    (5 arms instead of 10) -- this is `--skill`'s matrix-filtering effect for
+    `--mode single/sample/full`. Vanilla control arms are never filtered by
+    it: they orchestrate themselves with no slash command, so they aren't
+    "of" any skill in the first place -- `include_vanilla` alone governs them,
+    same as before this parameter existed.
+    """
+    skills = SKILLS if skill is None else [skill]
     arms = [
-        Arm(skill=skill, orchestrator=orchestrator, impl=impl)
-        for skill in SKILLS
+        Arm(skill=s, orchestrator=orchestrator, impl=impl)
+        for s in skills
         for orchestrator, impl in CELLS
     ]
     if include_vanilla:
@@ -368,19 +379,46 @@ def is_arm_complete(job_dir: Path) -> bool:
 # Preflight: prove the plugin loaded and a sub-agent was actually dispatched
 # --------------------------------------------------------------------------
 
-# The cheapest way to exercise the full plugin-loading + sub-agent-dispatch
-# path: smallest models on both sides, whichever judged skill happens first.
-#
-# Derived from `build_arms()` rather than hardcoded so CELLS/SKILLS stay the
-# single source of truth: reordering either table automatically keeps this
-# pointed at the actual first (cheapest) arm instead of silently going stale.
-# Relies on the ordering invariant that CELLS[0] is the cheapest tier pair
-# ("haiku", "haiku") and SKILLS[0] is "do-and-judge" -- true today; re-check
-# this comment if that invariant ever changes.
-PREFLIGHT_ARM = build_arms(include_vanilla=False)[0]
 # Leading underscore can never collide with a real arm id (arm ids only ever
 # start with a skill name or "vanilla").
 PREFLIGHT_JOB_NAME = "_preflight"
+
+
+def preflight_arm(skill: str) -> Arm:
+    """The cheapest way to exercise the full plugin-loading + sub-agent-dispatch
+    path for `skill`: smallest models on both sides (`CELLS[0]`).
+
+    Delegates to `build_arms` -- the single source of truth for skill->arm
+    selection -- instead of re-deriving "first cell of this skill" here, so
+    a future change to that selection logic (e.g. reordering CELLS, or
+    changing how `skill` picks arms) only has one call site to update.
+    `build_arms(include_vanilla=False, skill=skill)` yields exactly that
+    skill's CELLS arms in CELLS order, so its first element is this skill's
+    cheapest arm -- true today because `CELLS[0]` is the cheapest tier pair
+    ("haiku", "haiku"); re-check this comment if that invariant ever changes.
+    """
+    return build_arms(include_vanilla=False, skill=skill)[0]
+
+
+def preflight_job_name(skill: str) -> str:
+    """Where `run_preflight` writes `prompt.j2`/`arm.json` (and pier its own
+    `config.json`/`lock.json`/`result.json`) for `skill`.
+
+    Two different skills preflighted back to back must not share a job dir --
+    pier's own state (`config.json`/`lock.json`) and this harness's
+    `prompt.j2` would otherwise mix one skill's template with another's pier
+    job state. But the *default* skill (`SKILLS[0]`, "do-and-judge") keeps the
+    bare `_preflight` name unconditionally: `tests/test_run_dispatch.py` and
+    `tests/collect_fixtures.py` pin a recorded transcript at exactly
+    `runs/_preflight/abs-stepped-slices__HyQJyYy/agent/claude-code.txt`, and
+    every prior `--preflight` invocation (no `--skill` flag existed before
+    this) wrote there -- moving that path would both break the pinned test
+    fixture and orphan the existing recording. Non-default skills get a
+    `-<skill>` suffix instead.
+    """
+    if skill == SKILLS[0]:
+        return PREFLIGHT_JOB_NAME
+    return f"{PREFLIGHT_JOB_NAME}-{skill}"
 
 
 def fail(message: str) -> None:
@@ -490,14 +528,17 @@ def has_subagent_dispatch(stream_log: Path) -> bool:
 
 
 def run_preflight(args: argparse.Namespace) -> int:
-    """Run PREFLIGHT_ARM against one task and verify plugin load + dispatch.
+    """Run the cheapest arm for `args.skill` (default: `SKILLS[0]`) against one
+    task and verify plugin load + dispatch.
 
     A preflight that passes when the plugin silently failed to load is worse
     than no preflight -- so every failure path below prints to stderr and
     exits non-zero rather than returning a boolean an operator could ignore.
     """
-    arm = PREFLIGHT_ARM
-    job_dir = args.jobs_dir / PREFLIGHT_JOB_NAME
+    skill = args.skill or SKILLS[0]
+    arm = preflight_arm(skill)
+    job_name = preflight_job_name(skill)
+    job_dir = args.jobs_dir / job_name
     template_path = write_prompt_template(job_dir, arm)
     orchestrator_model_id = ORCHESTRATOR_MODEL_ID[arm.orchestrator]
     # Preflight always resolves one task via "single" mode -- see the
@@ -512,7 +553,7 @@ def run_preflight(args: argparse.Namespace) -> int:
         pier_bin=args.pier_bin,
         orchestrator_model_id=orchestrator_model_id,
         template_path=template_path,
-        job_name=PREFLIGHT_JOB_NAME,
+        job_name=job_name,
         jobs_dir=args.jobs_dir,
         max_budget_usd=args.max_budget_usd,
         agent_timeout_multiplier=args.agent_timeout_multiplier,
@@ -595,6 +636,16 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "if invoking run.py some other way and pier isn't on PATH).",
     )
     parser.add_argument(
+        "--skill",
+        choices=SKILLS,
+        help="Restrict to one skill's arms (default: all of SKILLS). For --preflight, "
+        "preflights that skill's cheapest arm instead of the default "
+        f"({SKILLS[0]!r}). For --mode single/sample/full, runs only that skill's "
+        "5 CELLS arms (8 with --with-vanilla, which still adds all 3 vanilla "
+        "controls) instead of all 10 (13) -- vanilla arms aren't tied to any "
+        "skill, so --skill never drops or duplicates them.",
+    )
+    parser.add_argument(
         "--with-vanilla",
         action="store_true",
         help="Also run the 3 no-plugin vanilla control arms (13 arms total instead of 10).",
@@ -627,7 +678,8 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "--preflight",
         action="store_true",
         help="Run one task on the cheapest arm, verify the plugin loaded and a sub-agent was "
-        "dispatched, then exit. Overrides --mode.",
+        f"dispatched, then exit. Overrides --mode. Defaults to the cheapest arm of "
+        f"{SKILLS[0]!r}; pass --skill to preflight a different skill instead.",
     )
     return parser
 
@@ -715,11 +767,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.preflight:
         return run_preflight(args)
 
-    arms = build_arms(include_vanilla=args.with_vanilla)
+    arms = build_arms(include_vanilla=args.with_vanilla, skill=args.skill)
     dataset_args = build_dataset_args(
         args.mode, dataset_dir=args.dataset_dir, task=args.task, n_tasks=args.n_tasks
     )
-    print(f"[run] {len(arms)} arms ({'with' if args.with_vanilla else 'without'} vanilla), mode={args.mode}")
+    skill_label = f", skill={args.skill}" if args.skill else ""
+    print(
+        f"[run] {len(arms)} arms ({'with' if args.with_vanilla else 'without'} vanilla), "
+        f"mode={args.mode}{skill_label}"
+    )
 
     if args.dry_run:
         for arm in arms:
