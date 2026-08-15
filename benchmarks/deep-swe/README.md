@@ -8,27 +8,18 @@ Runs the [DeepSWE](https://deepswe.datacurve.ai/) coding-agent benchmark (113 re
 
 1. **Docker** (or a compatible container runtime) running locally — pier provisions a fresh container per trial.
 
-2. **A Python environment where the `pier` package is importable**, not just a shell with the `pier` binary on `PATH`:
+2. **[uv](https://docs.astral.sh/uv/)** — install it with the official standalone installer if you don't already have it (lands in `~/.local/bin`):
 
    ```bash
-   uv tool install git+https://github.com/datacurve-ai/pier
+   curl -LsSf https://astral.sh/uv/install.sh | sh
    ```
 
-   This puts the `pier` CLI on `PATH` (used as `--pier-bin`'s default). It does **not** by itself make `run.py` work: `run.py` imports the `pier` package directly at module load (via `agent.py`, which subclasses pier's own `ClaudeCode`), so a bare `python3 run.py` fails immediately —
-
-   ```
-   ModuleNotFoundError: No module named 'pier'
-   ```
-
-   (verified against this checkout). Run `run.py` itself through an environment that has `pier` installed as a library, e.g.:
+   and a sync environment:
 
    ```bash
-   uv run --with pier python3 run.py --preflight --task <task-name>
+   cd benchmarks/deep-swe
+   uv sync
    ```
-
-   `run.py` also fails fast with a clear message if the `pier` *binary* isn't resolvable via `--pier-bin` (default `pier`) — pass an explicit path (`--pier-bin /path/to/pier`) if it isn't on `PATH` inside whatever environment you use.
-
-   This harness's flags (`--agent-import-path`, `-m`, `--ak`, `--agent-timeout-multiplier`, `--job-name`, `--jobs-dir`, `-p`, `-l`, `--sample-seed`) were verified against `datacurve_pier==0.3.0`. If `pier run --help` disagrees with what's documented below after installing from git `HEAD`, pin the release instead: `uv tool install datacurve-pier==0.3.0`.
 
 3. **Clone the `datacurve-ai/deep-swe` task set** (113 Harbor-format tasks — see [Trial count](#trial-count) for how that number is confirmed):
 
@@ -38,11 +29,42 @@ Runs the [DeepSWE](https://deepswe.datacurve.ai/) coding-agent benchmark (113 re
 
    Pass `--dataset-dir /path/to/deep-swe/tasks` on every `run.py` command below. The default `--dataset-dir` (`benchmarks/deep-swe/data`) is where this repo vendors `data/leaderboard.json` — not the actual task files.
 
-4. **`ANTHROPIC_API_KEY`** — the `claude` process pier launches inside each trial's container needs to authenticate:
+4. **Authentication** for the `claude` process pier launches inside each trial's container. `run.py` does `os.environ.copy()` before shelling out to `pier run`, so whatever you `export` on the host propagates through to pier, then into the container — no harness-level flag is needed for any option below. Pier itself builds the container's `ANTHROPIC_API_KEY`, `ANTHROPIC_AUTH_TOKEN`, `ANTHROPIC_BASE_URL`, and `CLAUDE_CODE_OAUTH_TOKEN` from the host env and then drops whichever ones are empty (`ClaudeCode.run()`, `src/pier/agents/installed/claude_code.py:1261`, comment: "Remove empty auth credentials to allow Claude CLI to prioritize the available method") — so set only the credential for the method you're using and leave the others unset.
 
-   ```bash
-   export ANTHROPIC_API_KEY=sk-ant-...
-   ```
+   - **API key** (pay-per-token, the default most people reach for first):
+
+     ```bash
+     export ANTHROPIC_API_KEY=sk-ant-...
+     ```
+
+   - **Claude subscription, via a long-lived OAuth token** — no code change needed, pier already reads this. Generate a token with `claude setup-token` (requires an active Claude subscription), then:
+
+     ```bash
+     export CLAUDE_CODE_OAUTH_TOKEN=...
+     ```
+
+     Leave `ANTHROPIC_API_KEY` unset so pier's env-stripping picks the OAuth token.
+
+     **Unverified — hedge this before trusting the [Cost and time](#cost-and-time--read-this-before---mode-full) numbers below under this auth mode:** whether `--max-budget-usd` and pier's per-trial cost parsing (`total_cost_usd` from the stream, `claude_code.py:665-691`, method `_parse_total_cost_from_stream_json`) report meaningful, correct dollar figures under subscription/OAuth auth — as opposed to first-party API-key billing — was **not tested** as part of this change. Subscription auth also carries its own rate limits this harness has no visibility into. Run `--mode sample` first and inspect `results.json`'s `avg_cost_usd` yourself before relying on it under OAuth auth.
+
+   - **AWS Bedrock:**
+
+     ```bash
+     export CLAUDE_CODE_USE_BEDROCK=1
+     # plus the standard AWS credential chain (or AWS_BEARER_TOKEN_BEDROCK), and optionally:
+     export AWS_REGION=us-east-1  # pier's default if unset
+     ```
+
+   - **Gateway / proxy routing:**
+
+     ```bash
+     export ANTHROPIC_AUTH_TOKEN=...
+     export ANTHROPIC_BASE_URL=https://your-gateway.example.com
+     ```
+
+     Pier's container network allowlist follows whichever mode is active: `ANTHROPIC_BASE_URL`'s own hostname when set, `*.amazonaws.com` in Bedrock mode, else `api.anthropic.com` (`claude_code.py:177-187`, method `network_allowlist`).
+
+   Pier also has generic `--ae/--agent-env KEY=VALUE` and `--env-file <path>` flags for injecting arbitrary container env (`src/pier/cli/jobs.py:348-354` for `--ae/--agent-env`, `:491-497` for `--env-file`), but `run.py` builds its own fixed `pier run` command with no pass-through for extra flags — for this harness, exporting the variables above on the host before invoking `run.py` is the only route; there is nothing to add to `run.py` itself for any of these modes.
 
 ## How it works, briefly
 
@@ -59,8 +81,10 @@ Run these from `benchmarks/deep-swe/` (or adjust paths). All `run.py` invocation
 Cheapest possible sanity check: runs one task on the cheapest arm (`do-and-judge`, haiku/haiku) and fails loudly unless the `sadd` plugin actually loaded **and** a sub-agent was actually dispatched (checked against the `claude-code.txt` stream-json transcript, not just exit code).
 
 ```bash
-uv run --with pier python3 run.py --preflight --task <task-name> --dataset-dir /path/to/deep-swe/tasks
+uv run python3 run.py --preflight --task <task-name> --dataset-dir /path/to/deep-swe/tasks
 ```
+
+Example: `uv run python3 run.py --preflight --task "abs-stepped-slices" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
 
 Always run this before anything else — a broken `--plugin-dir` or a misconfigured container silently produces zero measurement, not an error, on every other command.
 
@@ -69,7 +93,7 @@ Always run this before anything else — a broken `--plugin-dir` or a misconfigu
 All 10 (or 13, with `--with-vanilla`) arms against exactly one named task:
 
 ```bash
-uv run --with pier python3 run.py --mode single --task <task-name> --dataset-dir /path/to/deep-swe/tasks
+uv run python3 run.py --mode single --task <task-name> --dataset-dir /path/to/deep-swe/tasks
 ```
 
 ### 3. Sample run
@@ -77,7 +101,7 @@ uv run --with pier python3 run.py --mode single --task <task-name> --dataset-dir
 All arms against `--n-tasks` tasks, sampled with a pinned seed (`SAMPLE_SEED = 20260809`, hardcoded in `run.py`, identical across every arm and every invocation — no CLI flag to get it wrong) so every arm sees the same subset:
 
 ```bash
-uv run --with pier python3 run.py --mode sample --n-tasks 20 --dataset-dir /path/to/deep-swe/tasks
+uv run python3 run.py --mode sample --n-tasks 20 --dataset-dir /path/to/deep-swe/tasks
 ```
 
 **Use this to measure your own real per-trial cost and duration before touching `--mode full`.** Everything in the next section is a labeled assumption; a 10–20 task sample gives you real numbers from `results.json` in minutes, not a guess.
@@ -121,7 +145,7 @@ The middle row is the load-bearing fact here, not an estimate: it is real, vendo
 Once you've raised `--max-budget-usd` based on a `--mode sample` result:
 
 ```bash
-uv run --with pier python3 run.py --mode full --dataset-dir /path/to/deep-swe/tasks --max-budget-usd 25
+uv run python3 run.py --mode full --dataset-dir /path/to/deep-swe/tasks --max-budget-usd 25
 # add --with-vanilla for the 3 no-plugin control arms (13 arms, 1,469 trials, instead of 10/1,130)
 ```
 

@@ -1,0 +1,19 @@
+[project]
+name = "deep-swe-benchmark"
+version = "0.1.0"
+description = "Deep-SWE benchmark harness -- runs DeepSWE tasks against claude-code/sadd via pier."
+requires-python = ">=3.12"
+dependencies = [
+    # Pinned to the exact release `run.py`'s flags were verified against (see
+    # README's "Prerequisites" section) -- not a floor, an exact pin, so a
+    # newer pier release can't silently change flag behavior underneath us.
+    "datacurve-pier==0.3.0",
+]
+
+[tool.uv]
+# This directory is a flat collection of scripts (run.py/agent.py/collect.py/
+# report.py), not an installable package -- there is no src/ layout and
+# nothing here defines a Python package to build a wheel from. `package =
+# false` tells uv to manage a dependency-only virtualenv instead of trying
+# (and failing) to build this directory as a distribution.
+package = false

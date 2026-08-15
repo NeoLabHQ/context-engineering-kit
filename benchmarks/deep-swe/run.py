@@ -62,7 +62,8 @@ unless we put this directory on `PYTHONPATH` for the subprocess -- see
 that import works regardless of how `run.py` itself was invoked.
 
 REQUIRES: run.py must itself be executed with a Python that has `pier`
-installed (e.g. `/tmp/pier-venv/bin/python3 run.py ...`) -- `agent.py`
+installed (e.g. `uv run python3 run.py ...` from this directory, using the
+`pyproject.toml`/`uv.lock` checked in here -- see README.md) -- `agent.py`
 subclasses pier's own `ClaudeCode`, so `import agent` transitively needs
 `pier` importable even before any subprocess is spawned. This is inherent to
 subclassing pier's agent hierarchy, not a workaround; there is nothing to fix
@@ -540,8 +541,9 @@ def build_arg_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--pier-bin",
         default="pier",
-        help="pier executable to invoke (default: %(default)s; e.g. /tmp/pier-venv/bin/pier "
-        "if pier is not on PATH).",
+        help="pier executable to invoke (default: %(default)s; resolves automatically to "
+        "this directory's .venv/bin/pier when run via `uv run`; pass an explicit path "
+        "if invoking run.py some other way and pier isn't on PATH).",
     )
     parser.add_argument(
         "--with-vanilla",
@@ -656,8 +658,9 @@ def main(argv: list[str] | None = None) -> int:
     pier_will_run = args.preflight or not args.dry_run
     if pier_will_run and shutil.which(args.pier_bin) is None:
         parser.error(
-            f"pier executable {args.pier_bin!r} not found on PATH -- pass "
-            "--pier-bin with an explicit path (e.g. /tmp/pier-venv/bin/pier)."
+            f"pier executable {args.pier_bin!r} not found on PATH -- run this via "
+            "`uv run python3 run.py ...` (see README.md), or pass --pier-bin with "
+            "an explicit path."
         )
 
     if args.preflight:
