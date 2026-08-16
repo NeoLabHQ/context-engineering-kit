@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Unit tests for `run.py`'s `--skill` flag: arm-matrix filtering, preflight
-arm/job-name selection, and argparse validation.
+"""Unit tests for `run.py`'s `--skill` and `--model` flags: arm-matrix
+filtering, preflight arm/job-name selection, and argparse validation.
 
 Stubs the `agent` module for the same reason `test_run_dispatch.py` does --
 `run.py` does `import agent`, and the real one needs `pier`, which isn't
@@ -98,6 +98,56 @@ class SkillFilteredArmMatrixTests(unittest.TestCase):
         self.assertTrue(all(not arm.is_vanilla for arm in arms))
 
 
+class ModelFilteredArmMatrixTests(unittest.TestCase):
+    """`build_arms(model=...)` restricts CELLS to that one symmetric tier pair
+    (1 CELLS arm per skill in play instead of 5); combined with `skill=...`
+    it yields exactly one arm. Vanilla controls ARE filtered by `model`
+    (unlike `skill`), since they're per-model rather than per-skill.
+    """
+
+    def test_model_filter_yields_one_cell_per_skill(self) -> None:
+        arms = run.build_arms(include_vanilla=False, model="sonnet")
+        self.assertEqual(len(arms), len(run.SKILLS))
+        self.assertTrue(all(arm.orchestrator == "sonnet" and arm.impl == "sonnet" for arm in arms))
+
+    def test_model_filter_selects_the_symmetric_cell(self) -> None:
+        for tier in run.MODEL_CHOICES:
+            arms = run.build_arms(include_vanilla=False, model=tier)
+            for arm in arms:
+                self.assertEqual((arm.orchestrator, arm.impl), (tier, tier))
+
+    def test_model_and_skill_together_yield_exactly_one_arm(self) -> None:
+        # Every skill x tier pairing (2 skills x 3 tiers = 6 combinations) must
+        # each independently collapse the matrix to its own single arm id --
+        # not just the one pairing spot-checked before this was parameterized.
+        for skill in run.SKILLS:
+            for tier in run.MODEL_CHOICES:
+                arms = run.build_arms(include_vanilla=False, skill=skill, model=tier)
+                self.assertEqual(len(arms), 1)
+                [arm] = arms
+                self.assertEqual(arm.id, f"{skill}__{tier}-{tier}")
+
+    def test_model_filter_restricts_vanilla_arms_to_one(self) -> None:
+        # Unlike --skill, --model DOES filter vanilla controls: they're
+        # per-model, so leaving all 3 in would reintroduce the two tiers the
+        # operator asked to exclude.
+        arms = run.build_arms(include_vanilla=True, model="haiku")
+        vanilla_arms = [arm for arm in arms if arm.is_vanilla]
+        self.assertEqual([arm.id for arm in vanilla_arms], ["vanilla__haiku"])
+
+    def test_model_and_skill_and_vanilla_together_yield_two_arms(self) -> None:
+        arms = run.build_arms(include_vanilla=True, skill="do-and-judge", model="sonnet")
+        expected_ids = ["do-and-judge__sonnet-sonnet", "vanilla__sonnet"]
+        self.assertEqual([arm.id for arm in arms], expected_ids)
+
+    def test_model_choices_are_derived_from_symmetric_cells(self) -> None:
+        # MODEL_CHOICES must be exactly the CELLS entries where orchestrator
+        # == impl -- the user's own "haiku,haiku or sonnet,sonnet" framing.
+        expected = [orchestrator for orchestrator, impl in run.CELLS if orchestrator == impl]
+        self.assertEqual(run.MODEL_CHOICES, expected)
+        self.assertEqual(run.MODEL_CHOICES, ["haiku", "sonnet", "opus"])
+
+
 class PreflightArmSelectionTests(unittest.TestCase):
     """`preflight_arm`/`preflight_job_name` pick the cheapest cell (CELLS[0])
     for whichever skill is requested, and keep the default skill's job dir
@@ -165,6 +215,46 @@ class PreflightArmSelectionTests(unittest.TestCase):
                 self.assertEqual(arm_metadata["arm_id"], run.preflight_arm(skill).id)
 
 
+class PreflightModelSelectionTests(unittest.TestCase):
+    """`preflight_arm`/`preflight_job_name` select the requested tier's arm
+    instead of the cheapest cell when `model` is given, and keep the bare
+    `_preflight` job name only for the no-flags-at-all default.
+    """
+
+    def test_preflight_arm_uses_requested_model_instead_of_cheapest(self) -> None:
+        arm = run.preflight_arm(run.SKILLS[0], "opus")
+        self.assertEqual(arm.skill, run.SKILLS[0])
+        self.assertEqual((arm.orchestrator, arm.impl), ("opus", "opus"))
+
+    def test_preflight_arm_model_none_is_unchanged_cheapest_behavior(self) -> None:
+        cheapest_orchestrator, cheapest_impl = run.CELLS[0]
+        arm = run.preflight_arm(run.SKILLS[0], None)
+        self.assertEqual((arm.orchestrator, arm.impl), (cheapest_orchestrator, cheapest_impl))
+
+    def test_default_skill_with_model_gets_a_distinct_job_name(self) -> None:
+        job_name = run.preflight_job_name(run.SKILLS[0], "sonnet")
+        self.assertNotEqual(job_name, run.PREFLIGHT_JOB_NAME)
+        self.assertIn("sonnet", job_name)
+
+    def test_default_skill_no_model_job_name_still_bare(self) -> None:
+        # Backward compatibility: omitting --model entirely must not disturb
+        # the pinned bare `_preflight` name for the default skill.
+        self.assertEqual(run.preflight_job_name(run.SKILLS[0], None), run.PREFLIGHT_JOB_NAME)
+
+    def test_other_skill_with_model_combines_both_in_job_name(self) -> None:
+        other_skill = run.SKILLS[1]
+        job_name = run.preflight_job_name(other_skill, "opus")
+        self.assertIn(other_skill, job_name)
+        self.assertIn("opus", job_name)
+
+    def test_same_skill_different_models_get_distinct_job_names(self) -> None:
+        # Preflighting the same skill at two different tiers back to back
+        # must not collide -- each tier's prompt.j2/arm.json needs its own dir.
+        haiku_job_name = run.preflight_job_name(run.SKILLS[0], "haiku")
+        opus_job_name = run.preflight_job_name(run.SKILLS[0], "opus")
+        self.assertNotEqual(haiku_job_name, opus_job_name)
+
+
 class SkillArgparseTests(unittest.TestCase):
     """`--skill`'s accepted values come from `SKILLS` -- argparse itself
     enforces this via `choices=`, so an unknown value must be rejected before
@@ -188,6 +278,39 @@ class SkillArgparseTests(unittest.TestCase):
             parser.parse_args(
                 ["--preflight", "--task", "some-task", "--skill", "not-a-real-skill"]
             )
+
+
+class ModelArgparseTests(unittest.TestCase):
+    """`--model`'s accepted values come from `MODEL_CHOICES` -- argparse itself
+    enforces this via `choices=`, so an unknown value must be rejected before
+    any arm is built.
+    """
+
+    def test_model_omitted_defaults_to_none(self) -> None:
+        parser = run.build_arg_parser()
+        args = parser.parse_args(["--preflight", "--task", "some-task"])
+        self.assertIsNone(args.model)
+
+    def test_model_accepts_each_known_value(self) -> None:
+        parser = run.build_arg_parser()
+        for tier in run.MODEL_CHOICES:
+            args = parser.parse_args(["--preflight", "--task", "some-task", "--model", tier])
+            self.assertEqual(args.model, tier)
+
+    def test_unknown_model_value_is_rejected(self) -> None:
+        parser = run.build_arg_parser()
+        with self.assertRaises(SystemExit):
+            parser.parse_args(
+                ["--preflight", "--task", "some-task", "--model", "not-a-real-tier"]
+            )
+
+    def test_model_and_skill_flags_combine_in_argparse(self) -> None:
+        parser = run.build_arg_parser()
+        args = parser.parse_args(
+            ["--mode", "single", "--task", "some-task", "--skill", "do-in-steps", "--model", "sonnet"]
+        )
+        self.assertEqual(args.skill, "do-in-steps")
+        self.assertEqual(args.model, "sonnet")
 
 
 if __name__ == "__main__":

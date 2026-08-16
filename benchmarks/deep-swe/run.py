@@ -26,6 +26,11 @@ arms (one per model, orchestrating itself with no slash command at all) for
 13 total. `--skill` restricts the matrix to one skill's 5 CELLS arms (8 with
 `--with-vanilla`); vanilla arms aren't tied to any skill, so `--skill` never
 drops or duplicates them -- only `--with-vanilla` governs their presence.
+`--model` restricts the matrix to one symmetric tier's arm (1 CELLS arm per
+skill in play instead of 5); unlike `--skill`, it also restricts
+`--with-vanilla`'s controls to that one tier (1 instead of 3), since vanilla
+arms are per-model rather than per-skill. `--skill` and `--model` combine to
+select exactly one arm.
 
 RUN LAYOUT (see bottom of file / task handoff notes for the authoritative
 version of this -- kept here too so the two can be diffed against drift):
@@ -106,6 +111,12 @@ CELLS: list[tuple[str, str]] = [
     ("opus", "opus"),
 ]
 
+# The symmetric CELLS entries -- same tier on both sides -- are what `--model
+# <tier>` selects (the task spec's own "haiku,haiku or sonnet,sonnet" framing).
+# Derived from CELLS rather than hardcoded, so this list can never list a tier
+# CELLS itself doesn't contain as a symmetric pair.
+MODEL_CHOICES: list[str] = [orchestrator for orchestrator, impl in CELLS if orchestrator == impl]
+
 # Both live in the sadd plugin with an identical `<task> [--model tier] [--strict]`
 # argument surface (verified against plugins/sadd/skills/{do-and-judge,do-in-steps}/SKILL.md).
 SKILLS: list[str] = ["do-and-judge", "do-in-steps"]
@@ -169,7 +180,9 @@ class Arm:
         return f"{self.skill}__{self.orchestrator}-{self.impl}"
 
 
-def build_arms(*, include_vanilla: bool, skill: str | None = None) -> list[Arm]:
+def build_arms(
+    *, include_vanilla: bool, skill: str | None = None, model: str | None = None
+) -> list[Arm]:
     """The full arm matrix: SKILLS x CELLS, plus vanilla controls if requested.
 
     `skill`, when given, restricts the plugin arms to that one skill's CELLS
@@ -178,15 +191,26 @@ def build_arms(*, include_vanilla: bool, skill: str | None = None) -> list[Arm]:
     it: they orchestrate themselves with no slash command, so they aren't
     "of" any skill in the first place -- `include_vanilla` alone governs them,
     same as before this parameter existed.
+
+    `model`, when given, restricts CELLS to that one symmetric tier pair (1
+    CELLS arm per skill in play instead of 5) -- this is `--model`'s
+    matrix-filtering effect. Unlike `skill`, `model` DOES also restrict the
+    vanilla controls, to just that one tier's control instead of all 3:
+    vanilla arms are per-model (one per `VANILLA_MODELS` entry), so leaving
+    all 3 in would silently reintroduce the other two tiers the operator just
+    asked to exclude, defeating the flag's purpose. `skill` and `model`
+    combine to select exactly one plugin arm.
     """
     skills = SKILLS if skill is None else [skill]
+    cells = CELLS if model is None else [cell for cell in CELLS if cell == (model, model)]
     arms = [
         Arm(skill=s, orchestrator=orchestrator, impl=impl)
         for s in skills
-        for orchestrator, impl in CELLS
+        for orchestrator, impl in cells
     ]
     if include_vanilla:
-        arms += [Arm(skill=None, orchestrator=model, impl=None) for model in VANILLA_MODELS]
+        vanilla_models = VANILLA_MODELS if model is None else [m for m in VANILLA_MODELS if m == model]
+        arms += [Arm(skill=None, orchestrator=m, impl=None) for m in vanilla_models]
     return arms
 
 
@@ -384,41 +408,54 @@ def is_arm_complete(job_dir: Path) -> bool:
 PREFLIGHT_JOB_NAME = "_preflight"
 
 
-def preflight_arm(skill: str) -> Arm:
+def preflight_arm(skill: str, model: str | None = None) -> Arm:
     """The cheapest way to exercise the full plugin-loading + sub-agent-dispatch
-    path for `skill`: smallest models on both sides (`CELLS[0]`).
+    path for `skill`: smallest models on both sides (`CELLS[0]`) -- unless
+    `model` is given, in which case that tier's arm is preflighted instead
+    (an explicit `--model` overrides the "cheapest by default" behavior, same
+    as `--skill` overrides the default skill).
 
-    Delegates to `build_arms` -- the single source of truth for skill->arm
-    selection -- instead of re-deriving "first cell of this skill" here, so
-    a future change to that selection logic (e.g. reordering CELLS, or
-    changing how `skill` picks arms) only has one call site to update.
-    `build_arms(include_vanilla=False, skill=skill)` yields exactly that
-    skill's CELLS arms in CELLS order, so its first element is this skill's
-    cheapest arm -- true today because `CELLS[0]` is the cheapest tier pair
-    ("haiku", "haiku"); re-check this comment if that invariant ever changes.
+    Delegates to `build_arms` -- the single source of truth for skill/model->
+    arm selection -- instead of re-deriving "first cell of this skill" here,
+    so a future change to that selection logic (e.g. reordering CELLS, or
+    changing how `skill`/`model` pick arms) only has one call site to update.
+    `build_arms(include_vanilla=False, skill=skill, model=model)` yields
+    exactly one arm when `model` is given (that symmetric tier's cell for
+    `skill`), so `[0]` is unambiguous; when `model` is `None` it yields that
+    skill's CELLS arms in CELLS order, so `[0]` is this skill's cheapest arm
+    -- true today because `CELLS[0]` is the cheapest tier pair ("haiku",
+    "haiku"); re-check this comment if that invariant ever changes.
     """
-    return build_arms(include_vanilla=False, skill=skill)[0]
+    return build_arms(include_vanilla=False, skill=skill, model=model)[0]
 
 
-def preflight_job_name(skill: str) -> str:
+def preflight_job_name(skill: str, model: str | None = None) -> str:
     """Where `run_preflight` writes `prompt.j2`/`arm.json` (and pier its own
-    `config.json`/`lock.json`/`result.json`) for `skill`.
+    `config.json`/`lock.json`/`result.json`) for `skill`/`model`.
 
-    Two different skills preflighted back to back must not share a job dir --
-    pier's own state (`config.json`/`lock.json`) and this harness's
-    `prompt.j2` would otherwise mix one skill's template with another's pier
-    job state. But the *default* skill (`SKILLS[0]`, "do-and-judge") keeps the
+    Two different skills (or two different models of the same skill)
+    preflighted back to back must not share a job dir -- pier's own state
+    (`config.json`/`lock.json`) and this harness's `prompt.j2` would
+    otherwise mix one arm's template with another's pier job state. But the
+    *default* skill (`SKILLS[0]`, "do-and-judge") with no `--model` keeps the
     bare `_preflight` name unconditionally: `tests/test_run_dispatch.py` and
     `tests/collect_fixtures.py` pin a recorded transcript at exactly
     `runs/_preflight/abs-stepped-slices__HyQJyYy/agent/claude-code.txt`, and
-    every prior `--preflight` invocation (no `--skill` flag existed before
-    this) wrote there -- moving that path would both break the pinned test
-    fixture and orphan the existing recording. Non-default skills get a
-    `-<skill>` suffix instead.
+    every prior `--preflight` invocation (no `--skill`/`--model` flag existed
+    before this) wrote there -- moving that path would both break the pinned
+    test fixture and orphan the existing recording. Any other skill/model
+    combination gets a `-<skill>` and/or `-<model>` suffix instead.
     """
+    # `skill == SKILLS[0]` drops the default skill from the suffix so the
+    # pinned bare name survives; `model` has no such default to compare
+    # against, so it's always included in the suffix when given.
     if skill == SKILLS[0]:
+        suffix_parts = [] if model is None else [model]
+    else:
+        suffix_parts = [skill] if model is None else [skill, model]
+    if not suffix_parts:
         return PREFLIGHT_JOB_NAME
-    return f"{PREFLIGHT_JOB_NAME}-{skill}"
+    return f"{PREFLIGHT_JOB_NAME}-{'-'.join(suffix_parts)}"
 
 
 def fail(message: str) -> None:
@@ -529,15 +566,16 @@ def has_subagent_dispatch(stream_log: Path) -> bool:
 
 def run_preflight(args: argparse.Namespace) -> int:
     """Run the cheapest arm for `args.skill` (default: `SKILLS[0]`) against one
-    task and verify plugin load + dispatch.
+    task and verify plugin load + dispatch -- or, if `args.model` is given,
+    that tier's arm instead of the cheapest one.
 
     A preflight that passes when the plugin silently failed to load is worse
     than no preflight -- so every failure path below prints to stderr and
     exits non-zero rather than returning a boolean an operator could ignore.
     """
     skill = args.skill or SKILLS[0]
-    arm = preflight_arm(skill)
-    job_name = preflight_job_name(skill)
+    arm = preflight_arm(skill, args.model)
+    job_name = preflight_job_name(skill, args.model)
     job_dir = args.jobs_dir / job_name
     template_path = write_prompt_template(job_dir, arm)
     orchestrator_model_id = ORCHESTRATOR_MODEL_ID[arm.orchestrator]
@@ -646,9 +684,21 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "skill, so --skill never drops or duplicates them.",
     )
     parser.add_argument(
+        "--model",
+        choices=MODEL_CHOICES,
+        help="Restrict to one symmetric model tier's arm -- same tier orchestrating and "
+        f"implementing, e.g. {MODEL_CHOICES[0]!r} means CELLS' ({MODEL_CHOICES[0]!r}, "
+        f"{MODEL_CHOICES[0]!r}) cell (default: all of CELLS). For --preflight, preflights "
+        "that tier's arm instead of the cheapest one. For --mode single/sample/full, runs "
+        "only that tier's 1 CELLS arm per skill in play instead of 5; combine with --skill "
+        "to run exactly one arm. Unlike --skill, --model also restricts --with-vanilla to "
+        "that one tier's control (1 instead of 3), since vanilla arms are per-model.",
+    )
+    parser.add_argument(
         "--with-vanilla",
         action="store_true",
-        help="Also run the 3 no-plugin vanilla control arms (13 arms total instead of 10).",
+        help="Also run the 3 no-plugin vanilla control arms (13 arms total instead of 10; "
+        "restricted to 1 with --model).",
     )
     parser.add_argument(
         "--force",
@@ -696,6 +746,10 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
         parser.error("--mode single requires --task")
     if args.mode == "sample" and not args.n_tasks:
         parser.error("--mode sample requires --n-tasks")
+    # --model needs no cross-argument check here: argparse's `choices=MODEL_CHOICES`
+    # (derived from CELLS' symmetric entries, see MODEL_CHOICES's definition) already
+    # guarantees any accepted value selects a non-empty arm set, so it composes freely
+    # with --skill, --with-vanilla, --preflight, and every --mode in any combination.
 
 
 def arm_job_dir(jobs_dir: Path, arm: Arm) -> Path:
@@ -767,14 +821,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.preflight:
         return run_preflight(args)
 
-    arms = build_arms(include_vanilla=args.with_vanilla, skill=args.skill)
+    arms = build_arms(include_vanilla=args.with_vanilla, skill=args.skill, model=args.model)
     dataset_args = build_dataset_args(
         args.mode, dataset_dir=args.dataset_dir, task=args.task, n_tasks=args.n_tasks
     )
     skill_label = f", skill={args.skill}" if args.skill else ""
+    model_label = f", model={args.model}" if args.model else ""
     print(
         f"[run] {len(arms)} arms ({'with' if args.with_vanilla else 'without'} vanilla), "
-        f"mode={args.mode}{skill_label}"
+        f"mode={args.mode}{skill_label}{model_label}"
     )
 
     if args.dry_run:
