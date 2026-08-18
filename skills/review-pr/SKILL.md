@@ -1,7 +1,6 @@
 ---
 name: review-pr
 description: Review an existing GitHub pull request and post inline review comments on its diff. Use when the changes are on an opened PR rather than your local working tree.
-argument-hint: "[review-aspects] [--min-impact critical|high|medium|medium-low|low]"
 ---
 
 # Pull Request Review Instructions

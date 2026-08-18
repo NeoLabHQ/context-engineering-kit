@@ -1,7 +1,6 @@
 ---
 name: do-in-steps
 description: Execute one complex task as ordered, dependent steps run sequentially, passing context from each step to the next, with per-step LLM-as-a-judge verification. Use when later steps depend on the results of earlier ones.
-argument-hint: Task description [--model haiku|sonnet|opus] [--strict] (e.g., "Refactor UserService class and update all consumers")
 ---
 
 # do-in-steps
@@ -243,7 +242,7 @@ For each step, state the three findings, the chosen tier, and a one-line justifi
 - Documentation: API docs, comments, README updates
 - Testing: test generation, test updates
 
-**Specialized Agent:** Specialized agent list depends on project and plugins that are loaded. Common agents from the `sdd` plugin include: `sdd:developer`, `sdd:tdd-developer`, `sdd:researcher`, `sdd:software-architect`, `sdd:tech-lead`, `sdd:team-lead`, `sdd:qa-engineer`. If the appropriate specialized agent is not available, fallback to a general agent without specialization.
+**Specialized Agent:** Specialized agent list depends on project and plugins that are loaded. Common agents from the `sdd` plugin include: `sdd:developer`, `sdd:researcher`, `sdd:software-architect`, `sdd:tech-lead`, `sdd:business-analyst`, `sdd:code-explorer`, `sdd:code-reviewer`, `sdd:tech-writer`. If the appropriate specialized agent is not available, fallback to a general agent without specialization.
 
 **Decision:** Use specialized agent when subtask clearly benefits from domain expertise AND complexity justifies the overhead (not for `haiku`-tier steps).
 
@@ -257,7 +256,7 @@ For each step, state the three findings, the chosen tier, and a one-line justifi
 | 1 | Update interface | opus | sdd:developer | opus is EARNED — shared contract changes across consumers |
 | 2 | Update implementations | sonnet | sdd:developer | Code writing on an established pattern, one module |
 | 3 | Update callers | haiku | - | Mechanical rename, no logic or contract change |
-| 4 | Update tests | sonnet | sdd:tdd-developer | Test writing, established patterns |
+| 4 | Update tests | sonnet | sdd:developer | Test writing, established patterns |
 ```
 
 ### Phase 3: Sequential Execution with Parallel Meta-Judge and Judge Verification

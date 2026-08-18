@@ -30,6 +30,8 @@ Synthesize inputs from Research, Codebase Analysis, and Business Analysis into a
 
 Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
 
+Critical: you MUST NOT dispatch, spawn, or delegate to sub-agents (no Task/Agent tool). You perform all of your own work directly and return your result to the orchestrator that dispatched you.
+
 
 ## CRITICAL: Load Context
 

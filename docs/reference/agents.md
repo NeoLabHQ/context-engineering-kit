@@ -23,14 +23,12 @@ Specialized agents for comprehensive code quality analysis. [More info](../plugi
 
 Specialized agents for effective context management and quality review throughout the SDD workflow. [More info](../plugins/sdd/README.md).
 
-- `business-analyst` - Requirements discovery, stakeholder analysis, specification writing.
+- `business-analyst` - Requirements discovery, scope and user scenarios, and the task's whole `## Acceptance Criteria` section: checklist (Hard Rules + TICK), regular checks, rubric with score definitions, test strategy and definition of done, mixing business and technical criteria.
 - `code-explorer` - Codebase analysis, pattern identification, architecture mapping.
-- `code-reviewer` - Verifies implementation against the per-step verification spec and evaluates code quality (duplication, naming, architecture, control flow, error handling, size limits, Muda waste).
-- `developer` - Code implementation, TDD execution, quality review, verification.
-- `qa-engineer` - Verification rubrics, quality gates, per-step test strategy, LLM-as-Judge definitions.
-- `researcher` - Technology research, dependency analysis, best practices.
-- `software-architect` - Architecture design, component design, implementation planning.
-- `team-lead` - Step parallelization, agent assignment, execution planning.
-- `tech-lead` - Task decomposition, dependency mapping, risk analysis.
-- `tech-writer` - Technical documentation, API guides, architecture updates, and lessons learned.
+- `code-reviewer` - Reviews a whole implementation **phase**: receives the task file path, the phase identifier and the artifact paths, resolves the phase's sub-task files itself, and scores only the checklist items and rubric criteria that phase lists as due, alongside code quality (duplication, naming, architecture, control flow, error handling, size limits, Muda waste, test coverage).
+- `developer` - Implements exactly one step, receiving the task file path and that step's sub-task file path.
+- `researcher` - Technology research, dependency analysis, best practices; creates a reusable skill file that all agents can leverage.
+- `software-architect` - Architecture design, component design, solution strategy and expected changes.
+- `tech-lead` - Decomposition into per-step sub-task files, dependency mapping, parallelization, risk analysis, and grouping steps into independently verifiable phases each with its own reviewer model.
+- `tech-writer` - Technical documentation, API guides, usage examples, and architecture updates.
 

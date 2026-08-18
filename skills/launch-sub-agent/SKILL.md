@@ -1,7 +1,6 @@
 ---
 name: launch-sub-agent
 description: Launch an intelligent sub-agent with automatic model selection based on task complexity, specialized agent matching, Zero-shot CoT reasoning, and mandatory self-critique verification
-argument-hint: Task description (e.g., "Implement user authentication" or "Research caching strategies") [--model opus|sonnet|haiku] [--agent <agent-name>] [--output <path>]
 ---
 
 # launch-sub-agent
@@ -94,7 +93,7 @@ If the task matches a specialized domain, incorporate the relevant agent prompt.
 
 **Decision:** Use specialized agent when task clearly benefits from domain expertise. Skip for trivial tasks where specialization adds unnecessary overhead.
 
-**Agents:** Available specialized agents depends on project and plugins installed. Common agents from the `sdd` plugin include: `sdd:developer`, `sdd:researcher`, `sdd:software-architect`, `sdd:tech-lead`, `sdd:team-lead`, `sdd:qa-engineer`, `sdd:code-explorer`, `sdd:business-analyst`. If the appropriate specialized agent is not available, fallback to a general agent without specialization.
+**Agents:** Available specialized agents depends on project and plugins installed. Common agents from the `sdd` plugin include: `sdd:developer`, `sdd:researcher`, `sdd:software-architect`, `sdd:tech-lead`, `sdd:code-explorer`, `sdd:business-analyst`, `sdd:code-reviewer`, `sdd:tech-writer`. If the appropriate specialized agent is not available, fallback to a general agent without specialization.
 
 **Integration with Model Selection:**
 

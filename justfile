@@ -100,6 +100,9 @@ sync-provider-formats:
         fi; \
     done; \
     echo "  Merged skills/ and agents/ from: {{plugins}}"
+    @echo "  Filtering front matter in the bundle (keeping only name, description)..."; \
+    find skills agents -type f -name "*.md" -print0 | xargs -0 -r python3 scripts/filter-frontmatter.py; \
+    echo "  Front matter filtered."
     @name=$(jq -r '.name' {{marketplace}}); \
     version=$(jq -r '.version' {{marketplace}}); \
     description=$(jq -r '.description' {{marketplace}}); \

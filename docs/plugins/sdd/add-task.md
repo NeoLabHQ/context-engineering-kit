@@ -73,7 +73,10 @@ Creates the full task lifecycle directory structure if it does not exist:
 | `.specs/tasks/todo/` | Tasks ready to implement |
 | `.specs/tasks/in-progress/` | Currently being worked on |
 | `.specs/tasks/done/` | Completed tasks |
+| `.specs/sub-tasks/` | Per-step sub-task files written by `/plan-task` (tracked in git) |
 | `.specs/scratchpad/` | Temporary working files (gitignored) |
+| `.specs/analysis/` | Codebase impact analysis files (gitignored) |
+| `.specs/reports/` | Generated reports (gitignored) |
 
 ### Phase 2: Analyze Input
 
@@ -161,17 +164,20 @@ depends_on: <list of dependency task files>
 
 ```text
 .specs/
-└── tasks/
-    └── draft/
-        └── <name>.<type>.md    # Draft task file (ready for /plan-task)
+├── tasks/
+│   └── draft/
+│       └── <name>.<type>.md    # Draft task file (ready for /plan-task)
+└── sub-tasks/                  # Created empty by Phase 1; filled by /plan-task
 ```
+
+Phase 1 also creates the remaining lifecycle folders listed above (`tasks/todo/`, `tasks/in-progress/`, `tasks/done/`, `scratchpad/`, `analysis/`, `reports/`), each with a `.gitkeep`.
 
 ## What Happens Next
 
 After creating a draft task, proceed with the SDD workflow:
 
-1. **Plan** — Run `/plan-task` to refine the draft into a full specification with architecture, implementation steps, and verification rubrics
-2. **Implement** — Run `/implement-task` to execute the planned steps with quality-gated verification
+1. **Plan** — Run `/plan-task` to refine the draft into a full specification: acceptance criteria, architecture, and a decomposition into per-step sub-task files under `.specs/sub-tasks/<task-name>/` grouped into independently verifiable phases
+2. **Implement** — Run `/implement-task` to execute each step from its sub-task file, with one code review at the end of every phase
 3. **Ship** — Use `/git:commit` and `/git:create-pr` to deliver
 
 ```bash

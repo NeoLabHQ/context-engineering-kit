@@ -31,7 +31,7 @@ The agent incorporates your change and re-runs affected stages.
 
 1. Edit the task file in `.specs/tasks/todo/`
 2. Add `//` comments to lines that need clarification
-3. Run `/plan-task --refine`
+3. Run `/plan-task <task-file-path> --refine`
 
 The agent detects your edits, identifies the earliest modified section, and re-runs all stages from that point onward. Earlier sections remain unchanged.
 
@@ -45,13 +45,17 @@ The agent detects your edits, identifies the earliest modified section, and re-r
 - PostgreSQL with Prisma ORM
 ```
 
-Then run `/plan-task --refine`. The agent re-runs from architecture synthesis onward, producing new implementation steps for GraphQL while preserving the research and business analysis stages.
+Then run `/plan-task <task-file-path> --refine`. The agent re-runs from architecture synthesis onward, producing new implementation steps for GraphQL while preserving the research and business analysis stages.
 
 ### What `--refine` compares
 
-By default, `--refine` diffs local (unstaged) changes against staged changes. Both `/plan-task` and `/implement-task` stage their output at the end, so any manual edits you make afterward appear as unstaged changes.
+The two commands pick their comparison base differently.
 
-To compare against the last commit instead, specify it: `/plan-task --refine compare with last commit`.
+`/plan-task --refine` diffs the **task file** against the last commit (`git diff HEAD`), so both staged and unstaged edits are seen. An untracked task file cannot be diffed and is reported as an error.
+
+`/implement-task --refine` diffs **project files**: when both staged and unstaged changes exist it compares the working directory against the staging area, so only your newest unstaged edits count; when only one of the two exists it compares against the last commit.
+
+`/plan-task` stages its generated artifacts at the end, so manual edits you make afterward show up as unstaged changes. `/implement-task` stages nothing — it only moves the task file between lifecycle folders with `git mv` — so the code it writes is left for you to stage yourself.
 
 ## After Implementation
 
@@ -72,15 +76,15 @@ The agent detects your changes, maps them to implementation steps, and aligns th
 ```bash
 # You fixed a validation bug in the controller — agent updates related tests and error messages
 vi src/controllers/users.ts
-/implement --refine
+/implement-task --refine
 
 # You replaced bcrypt with argon2 in the auth service — agent aligns password checks elsewhere
 vi src/services/auth.ts
-/implement --refine
+/implement-task --refine
 
 # You changed the database column name from `userName` to `username` — agent propagates across migrations, models, and queries
 vi src/models/user.ts
-/implement --refine
+/implement-task --refine
 ```
 
 ### Minor tweaks and polish
@@ -100,7 +104,7 @@ If requirements changed substantially, create a new task:
 
 ```bash
 /sdd:add-task "Refactor authentication implementation"
-/plan-task
+/plan-task <task-file-path>
 # /clear (or re-open Claude Code)
 /implement-task
 ```
@@ -121,14 +125,16 @@ A realistic sequence showing how refinement fits into the workflow:
 ```bash
 # 1. Create and plan the task
 /sdd:add-task "Add JWT authentication middleware"
-/plan-task
+/plan-task .specs/tasks/draft/add-jwt-authentication-middleware.feature.md
 
-# 2. Review the spec — agent chose HS256, but you need RS256
-/plan-task --refine Use RS256 with rotating key pairs instead of HS256
+# 2. Review the spec — agent chose HS256, but you need RS256.
+#    Edit the task file (or leave a `//` comment on the line), then re-plan.
+vi .specs/tasks/todo/add-jwt-authentication-middleware.feature.md
+/plan-task .specs/tasks/todo/add-jwt-authentication-middleware.feature.md --refine
 
 # 3. Clear context, then implement
 /clear
-/implement-task
+/implement-task .specs/tasks/todo/add-jwt-authentication-middleware.feature.md
 
 # 4. Review the code — token expiry is 1 hour, you want 15 minutes
 vi src/config/auth.ts   # change TOKEN_EXPIRY to 900
@@ -137,7 +143,7 @@ vi src/config/auth.ts   # change TOKEN_EXPIRY to 900
 # 5. Product feedback: "Add refresh tokens"
 # This is a significant scope addition — create a new task
 /sdd:add-task "Add refresh token rotation for JWT auth"
-/plan-task
+/plan-task .specs/tasks/draft/add-refresh-token-rotation.feature.md
 /clear
 /implement-task
 ```

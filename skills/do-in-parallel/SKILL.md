@@ -1,7 +1,6 @@
 ---
 name: do-in-parallel
 description: Run independent tasks concurrently across multiple files or targets using parallel sub-agents, with per-task model selection and LLM-as-a-judge verification. Use when tasks do not depend on each other and can run side by side.
-argument-hint: Task description [--files "file1.ts,file2.ts,..."] [--targets "target1,target2,..."] [--model haiku|sonnet|opus] [--output <path>] [--strict]
 ---
 
 # do-in-parallel

@@ -34,7 +34,7 @@ Then run the following commands:
 /add-task "Design and implement authentication middleware with JWT support"
 
 # Write a detailed specification for the task
-/plan-task
+/plan-task .specs/tasks/draft/design-auth-middleware.feature.md
 # Moves the task to the .specs/tasks/todo/ folder
 ```
 
@@ -54,9 +54,9 @@ Run `/clear` (or re-open Claude Code) to clear context and start fresh. Then run
 
 End-to-end task implementation process from initial prompt to pull request, including commands from the [git](../git/README.md) plugin:
 
-- `/add-task` → Creates a `.specs/tasks/draft/<task-name>.<type>.md` file with the initial task description.
-- `/plan-task` → Generates a `.claude/skills/<skill-name>/SKILL.md` file with the skills needed to implement the task (by analyzing the library and framework documentation used in the codebase), then updates the task file with a refined specification and moves it to `.specs/tasks/todo/`.
-- `/implement-task` → Produces a working implementation, verifies it, then moves the task to `.specs/tasks/done/`.
+- `/add-task` → Creates a `.specs/tasks/draft/<name>.<type>.md` file with the initial task description.
+- `/plan-task` → Generates a `.claude/skills/<skill-name>/SKILL.md` file with the skills needed to implement the task (by analyzing the library and framework documentation used in the codebase), then updates the task file with a refined specification, writes one sub-task file per implementation step under `.specs/sub-tasks/<task-name>/`, and moves the task to `.specs/tasks/todo/`.
+- `/implement-task` → Produces a working implementation, reviews it at the end of every implementation phase, then moves the task to `.specs/tasks/done/`.
 - `/commit` → Commits changes.
 - `/create-pr` → Creates a pull request.
 
@@ -75,6 +75,43 @@ End-to-end task implementation process from initial prompt to pull request, incl
  |   *.md   |   |   *.md   |   |     *.md     |   |  *.md   |
  +----------+   +----------+   +--------------+   +---------+
 ```
+
+### Planning Pipeline
+
+`/plan-task` runs four pipeline segments — parallel analysis, architecture synthesis, decomposition, promote:
+
+```
+ 2a research          [sdd:researcher]        --+
+ 2b codebase analysis [sdd:code-explorer]     --+--> 3 architecture synthesis  --> 4 decomposition  --> promote draft/ -> todo/
+ 2c business analysis [sdd:business-analyst]  --+     [sdd:software-architect]      [sdd:tech-lead]
+```
+
+The first segment fans out into three parallel agent phases, so five phases in all are model-assigned — 2a, 2b, 2c, 3 and 4 — and each is followed by its own LLM-as-Judge quality gate (Judges 2a, 2b, 2c, 3 and 4). Promotion is a plain file move — no agent, no model tier, no judge.
+
+- **Phase 2c** writes the task's `# Description` and the single `## Acceptance Criteria` section, which holds six sub-blocks in order: `**Checklist:**`, `**Regular Checks:**`, `**Rubric:**`, `**Rubric Score Definitions:**`, `**Test Strategy:**` and `**Definition of Done:**`. Business and technical criteria are mixed inside each sub-block.
+- **Phase 4** writes only the task file's `## Implementation Process` section — a `### Parallelization Overview` (dependency diagram plus a step table with `Step | Phase | Model | Agent | Depends on | Parallel with | Sub-Task File`) and a `### Phase Overview` that gives each phase its `Steps:`, its `Reviewer model:` and the checklist items and rubrics due at that milestone.
+
+### Sub-Task File Layout
+
+Phase 4 writes every implementation step as its own file, so the agent that executes the step reads only that step:
+
+```
+.specs/
+├── tasks/                           # the task file travels between these four folders
+│   ├── draft/
+│   ├── todo/
+│   │   └── <name>.<type>.md
+│   ├── in-progress/
+│   └── done/
+└── sub-tasks/
+    └── <task-name>/                 # <name>.<type> — created at planning time, NEVER moves
+        ├── 01-<step-slug>.md
+        └── 02a-<step-slug>.md
+```
+
+Each sub-task file carries `**Task File:**` (a back-reference to the parent task), `**Phase:**`, `**Model:**`, `**Agent:**`, `**Depends on:**`, `**Parallel with:**`, `**Note:**`, `**Goal:**`, a step description, `#### Expected Output`, `#### Success Criteria`, `#### Subtasks` and `#### Blockers & Risks`. Because the folder never moves, the paths recorded in the Parallelization Overview stay valid for the whole task lifecycle.
+
+During `/implement-task`, one implementation agent is dispatched per step with the task file path *and* its sub-task file path, at the model named in that step's `Model` column of the Parallelization Overview. A single `sdd:code-reviewer` then runs at the **end of each phase**, at that phase's `Reviewer model`, scoring only the acceptance criteria that phase lists as due.
 
 ## Commands
 
@@ -95,16 +132,14 @@ The SDD plugin uses specialized agents for different phases of development:
 
 | Agent | Description | Used By |
 |-------|-------------|---------|
-| `researcher` | Technology research, dependency analysis, best practices | `/plan-task` (Phase 2a) |
+| `researcher` | Technology research, dependency analysis, best practices; creates a reusable skill file | `/plan-task` (Phase 2a) |
 | `code-explorer` | Codebase analysis, pattern identification, architecture mapping | `/plan-task` (Phase 2b) |
-| `code-reviewer` | Review implementation against the specification and evaluate code quality using Muda waste analysis and DDD rules | `/plan-task` (Phase 2b) |
-| `business-analyst` | Requirements discovery, stakeholder analysis, specification writing | `/plan-task` (Phase 2c) |
-| `software-architect` | Architecture design, component design, implementation planning | `/plan-task` (Phase 3) |
-| `tech-lead` | Task decomposition, dependency mapping, risk analysis | `/plan-task` (Phase 4) |
-| `team-lead` | Step parallelization, agent assignment, execution planning | `/plan-task` (Phase 5) |
-| `qa-engineer` | Verification rubrics, quality gates, LLM-as-Judge definitions | `/plan-task` (Phase 6) |
-| `developer` | Code implementation, TDD execution, quality review, verification | `/implement-task` |
-| `tech-writer` | Technical documentation, API guides, architecture updates, and lessons learned | `/implement-task` |
+| `business-analyst` | Requirements discovery, scope and user scenarios, and the whole `## Acceptance Criteria` section — checklist, regular checks, rubric, score definitions, test strategy and definition of done, mixing business and technical criteria | `/plan-task` (Phase 2c) |
+| `software-architect` | Architecture design, component design, solution strategy and expected changes | `/plan-task` (Phase 3) |
+| `tech-lead` | Decomposition into per-step sub-task files, dependency mapping, parallelization, risk analysis, and grouping steps into independently verifiable phases with a reviewer model each | `/plan-task` (Phase 4) |
+| `developer` | Implements exactly one step, from its own sub-task file, and leaves the tree building and green | `/implement-task` (per step) |
+| `code-reviewer` | Reviews a whole implementation phase against the acceptance criteria that phase lists as due, plus code quality, Muda waste analysis and test coverage | `/implement-task` (end of each phase) |
+| `tech-writer` | Technical documentation, API guides, usage examples, and architecture updates | `/implement-task` |
 
 ## Patterns
 
@@ -115,7 +150,7 @@ Key patterns implemented in this plugin:
 - **Quality gates based on LLM-as-Judge** — Evaluates the quality of each planning and implementation step using evidence-based scoring and predefined verification rubrics. This eliminates cases where an agent produces non-functional or incorrect solutions.
 - **Continuous learning** — Automatically builds specific skills the agent needs to implement a task, which it might otherwise be unable to perform from scratch.
 - **Spec-driven development pattern** — Based on the arc42 specification standard adjusted for LLM capabilities, this pattern eliminates elements of the specification that do not add value to implementation quality.
-- **MAKER** — An agent reliability pattern introduced in [Solving a Million-Step LLM Task with Zero Errors](https://arxiv.org/abs/2511.09030). It minimizes agent mistakes caused by context accumulation and hallucinations by utilizing clean-state agent launches, filesystem-based memory storage, and multi-agent voting during critical decisions.
+- **MAKER** — An agent reliability pattern introduced in [Solving a Million-Step LLM Task with Zero Errors](https://arxiv.org/abs/2511.09030). It minimizes agent mistakes caused by context accumulation and hallucinations by utilizing clean-state agent launches and filesystem-based memory storage.
 
 ## Vibe Coding vs. Specification-Driven Development
 
@@ -160,7 +195,7 @@ The SDD plugin is based on established software engineering methodologies and re
 - [Test-Driven Development](https://www.agilealliance.org/glossary/tdd/) - Writing tests before implementation
 - [Clean Architecture](https://blog.cleancoder.com/uncle-bob/2012/08/13/the-clean-architecture.html) - Separation of concerns and dependency inversion
 - [Vertical Slice Architecture](https://jimmybogard.com/vertical-slice-architecture/) - Feature-based organization for incremental delivery
-- [Verbalized Sampling](https://arxiv.org/abs/2510.01171) - A training-free prompting strategy for diverse idea generation. It achieves a **2-3x diversity improvement** while maintaining quality. Used for the `create-ideas`, `brainstorm`, and `plan` commands.
+- [Verbalized Sampling](https://arxiv.org/abs/2510.01171) - A training-free prompting strategy for diverse idea generation. It achieves a **2-3x diversity improvement** while maintaining quality. Used for the `create-ideas`, `brainstorm`, and `plan-task` commands.
 - [Solving a Million-Step LLM Task with Zero Errors](https://arxiv.org/abs/2511.09030) - Reliability pattern for LLM-based agents that enables solving complex tasks with zero errors.
 - [LLM-as-a-Judge](https://arxiv.org/abs/2306.05685) - Evaluation patterns for grading LLM output.
 - [Multi-Agent Debate](https://arxiv.org/abs/2305.14325) - Leveraging multiple perspectives for higher accuracy.

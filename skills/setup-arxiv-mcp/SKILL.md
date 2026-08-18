@@ -1,7 +1,6 @@
 ---
 name: setup-arxiv-mcp
 description: Guide for setup arXiv paper search MCP server using Docker MCP
-argument-hint: Optional - specific research topics or paper sources to configure
 ---
 
 User Input:

@@ -1,7 +1,6 @@
 ---
 name: review-local-changes
 description: Review your local uncommitted working-tree changes (git diff plus untracked files) and return actionable improvement suggestions. Use before committing, when nothing has been pushed yet.
-argument-hint: "[review-aspects] [--min-impact critical|high|medium|medium-low|low] [--json]"
 ---
 
 # Local Changes Review Instructions

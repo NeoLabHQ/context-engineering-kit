@@ -131,7 +131,7 @@ Unless the user passed `--model`, assess the task on three axes, then read the t
 
 State the three findings, the chosen tier, and a one-line justification before dispatching. Then apply [Role Pairing](#role-pairing) to decide the meta-judge tier — same tier as implementation unless the task is genuinely non-obvious. **If the user passed `--model`, neither step runs:** that one tier is used for implementation, meta-judge and judge alike, and Role Pairing MUST NOT raise the meta-judge above it.
 
-**Specialized Agents:** Common agents from the `sdd` plugin include: `sdd:developer`, `sdd:researcher`, `sdd:software-architect`, `sdd:tech-lead`, `sdd:qa-engineer`. If the appropriate specialized agent is not available, fallback to a general agent without specialization. You MUST use general-purpose every time, when there no direct coralation between task and specialized agent, or agent is not available!
+**Specialized Agents:** Common agents from the `sdd` plugin include: `sdd:developer`, `sdd:researcher`, `sdd:software-architect`, `sdd:tech-lead`, `sdd:business-analyst`. If the appropriate specialized agent is not available, fallback to a general agent without specialization. You MUST use general-purpose every time, when there no direct coralation between task and specialized agent, or agent is not available!
 
 ### Phase 2: Dispatch Meta-Judge and Implementation Agent (IN PARALLEL)
 

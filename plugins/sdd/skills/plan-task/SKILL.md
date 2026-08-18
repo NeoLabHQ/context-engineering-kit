@@ -1,7 +1,7 @@
 ---
 name: plan-task
-description: Refine, parallelize, and verify a draft task specification into a fully planned implementation-ready task
-argument-hint: Path to draft task file (e.g., ".specs/tasks/draft/add-validation.feature.md") [--continue] [--refine] [--target-quality] [--max-iterations] [--included-stages] [--skip] [--fast] [--strict] [--model haiku|sonnet|opus]
+description: Refine a draft task specification into a fully planned, implementation-ready task with acceptance criteria, architecture, per-step sub-task files and verifiable phases
+argument-hint: Path to draft task file (e.g., ".specs/tasks/draft/add-validation.feature.md") [--continue] [--refine] [--target-quality] [--max-iterations] [--included-stages] [--skip] [--fast] [--one-shot] [--human-in-the-loop] [--skip-judges] [--strict] [--model haiku|sonnet|opus]
 ---
 
 # Refine Task Workflow
@@ -14,14 +14,12 @@ You are a task refinement orchestrator. Take a draft task file created by `/add-
 
 This workflow command refines an existing draft task through:
 
-1. **Parallel Analysis** - Research, codebase analysis, and business analysis in parallel
+1. **Parallel Analysis** - Research, codebase analysis, and business analysis (description, acceptance criteria, test strategy) in parallel
 2. **Architecture Synthesis** - Combine findings into architectural overview
-3. **Decomposition** - Break into implementation steps with risks
-4. **Parallelize** - Reorganize steps for maximum parallel execution
-5. **Verify** - Add LLM-as-Judge verification sections
-6. **Promote** - Move refined task from `draft/` to `todo/`
+3. **Decomposition** - Break into per-step sub-task files, grouped into independently verifiable phases with dependencies, parallel groups, agent/model assignments and a reviewer model per phase
+4. **Promote** - Move refined task from `draft/` to `todo/`
 
-All phases include judge validation to prevent error propagation and ensure quality thresholds are met.
+All model-assigned phases include judge validation to prevent error propagation and ensure quality thresholds are met.
 
 ## User Input
 
@@ -45,8 +43,8 @@ Parse the following arguments from `$ARGUMENTS`:
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum implementation + judge retry cycles per phase before moving to next stage (regardless of pass/fail). |
 | `--included-stages` | `--included-stages stage1,stage2,...` | All stages | Comma-separated list of stages to include. |
 | `--skip` | `--skip stage1,stage2,...` | None | Comma-separated list of stages to exclude. |
-| `--fast` | `--fast` | N/A | Alias for `--target-quality 3.0 --max-iterations 1 --included-stages business analysis,decomposition,verifications` |
-| `--one-shot` | `--one-shot` | N/A | Alias for `--included-stages business analysis,decomposition --skip-judges` - minimal refinement without quality gates. |
+| `--fast` | `--fast` | N/A | Alias for `--target-quality 3.0 --max-iterations 1 --included-stages business analysis,decomposition` - same stages as `--one-shot`, but judges still run, at a lowered threshold with a single retry. |
+| `--one-shot` | `--one-shot` | N/A | Alias for `--included-stages business analysis,decomposition --skip-judges` - same stages as `--fast`, but no judge runs at all and no quality gate is applied. |
 | `--human-in-the-loop` | `--human-in-the-loop phase1,phase2,...` | None | Phases after which to pause for human verification. |
 | `--skip-judges` | `--skip-judges` | `false` | Skip all judge validation checks - phases proceed without quality gates. |
 | `--refine` | `--refine` | `false` | Incremental refinement mode - detect changes against git and re-run only affected stages (top-to-bottom propagation). |
@@ -59,11 +57,9 @@ Parse the following arguments from `$ARGUMENTS`:
 |------------|-------|-------------|
 | `research` | 2a | Gather relevant resources, documentation, libraries |
 | `codebase analysis` | 2b | Identify affected files, interfaces, integration points |
-| `business analysis` | 2c | Refine description and create acceptance criteria |
+| `business analysis` | 2c | Refine description and create acceptance criteria (checklist, regular checks, rubric, test strategy, definition of done) |
 | `architecture synthesis` | 3 | Synthesize research and analysis into architecture |
-| `decomposition` | 4 | Break into implementation steps with risks |
-| `parallelize` | 5 | Reorganize steps for parallel execution |
-| `verifications` | 6 | Add LLM-as-Judge verification rubrics |
+| `decomposition` | 4 | Break into per-step sub-task files grouped into verifiable phases, with dependencies, parallel groups and agent/model assignments |
 
 ### Configuration Resolution
 
@@ -78,7 +74,7 @@ TASK_FILE = first argument that is a file path (must exist in .specs/tasks/draft
 if --fast present:
     THRESHOLD = 3.0
     MAX_ITERATIONS = 1
-    INCLUDED_STAGES = ["business analysis", "decomposition", "verifications"]
+    INCLUDED_STAGES = ["business analysis", "decomposition"]
 
 if --one-shot present:
     INCLUDED_STAGES = ["business analysis", "decomposition"]
@@ -87,7 +83,7 @@ if --one-shot present:
 # Initialize defaults
 THRESHOLD ?= --target-quality || 3.5
 MAX_ITERATIONS ?= --max-iterations || 3
-INCLUDED_STAGES ?= --included-stages || ["research", "codebase analysis", "business analysis", "architecture synthesis", "decomposition", "parallelize", "verifications"]
+INCLUDED_STAGES ?= --included-stages || ["research", "codebase analysis", "business analysis", "architecture synthesis", "decomposition"]
 SKIP_STAGES = --skip || []
 HUMAN_IN_THE_LOOP_PHASES = --human-in-the-loop || []
 SKIP_JUDGES = --skip-judges || false
@@ -137,11 +133,11 @@ When `--refine` is used:
 
    | Modified Section | Re-run From Stage |
    |------------------|-------------------|
-   | Description / Acceptance Criteria | `business analysis` (Phase 2c) |
+   | Description / Acceptance Criteria (checklist, regular checks, rubric, test strategy, definition of done) | `business analysis` (Phase 2c) |
    | Architecture Overview | `architecture synthesis` (Phase 3) |
-   | Implementation Process / Steps | `decomposition` (Phase 4) |
-   | Parallelization / Dependencies | `parallelize` (Phase 5) |
-   | Verification sections | `verifications` (Phase 6) |
+   | Implementation Process (Parallelization Overview / Phase Overview), or any sub-task file under `.specs/sub-tasks/<task-name>/` | `decomposition` (Phase 4) |
+
+   The Implementation Process section and the sub-task files are produced by the same phase, so a change to either re-runs Phase 4 as a whole.
 
 4. **Refine Execution:**
    - Skip research (2a) and codebase analysis (2b) unless explicitly requested
@@ -156,7 +152,7 @@ When `--refine` is used:
    
    # Detects Architecture section changed → re-runs from Phase 3 onwards
    # Skips: research, codebase analysis, business analysis
-   # Runs: architecture synthesis, decomposition, parallelize, verifications
+   # Runs: architecture synthesis, decomposition
    ```
 
 ### Human-in-the-Loop Behavior
@@ -213,7 +209,7 @@ Human verification checkpoints occur:
 /plan .specs/tasks/draft/complex-feature.feature.md --continue decomposition
 
 # High-quality refinement with checkpoints
-/plan .specs/tasks/draft/critical-api.feature.md --target-quality 4.5 --human-in-the-loop 2,3,4,5,6
+/plan .specs/tasks/draft/critical-api.feature.md --target-quality 4.5 --human-in-the-loop 2,3,4
 
 # Incremental refinement after user edits (re-runs only affected stages)
 /plan .specs/tasks/todo/my-task.feature.md --refine
@@ -294,12 +290,8 @@ Before starting workflow:
        {"content": "Judge 2c: PASS business analysis (> {THRESHOLD})", "status": "pending", "activeForm": "Validating business analysis"},
        {"content": "Phase 3: Architecture synthesis from research and analysis", "status": "pending", "activeForm": "Synthesizing architecture"},
        {"content": "Judge 3: PASS architecture synthesis (> {THRESHOLD})", "status": "pending", "activeForm": "Validating architecture"},
-       {"content": "Phase 4: Decompose into implementation steps", "status": "pending", "activeForm": "Decomposing into steps"},
+       {"content": "Phase 4: Decompose into sub-task files and verifiable phases", "status": "pending", "activeForm": "Decomposing into steps and phases"},
        {"content": "Judge 4: PASS decomposition (> {THRESHOLD})", "status": "pending", "activeForm": "Validating decomposition"},
-       {"content": "Phase 5: Parallelize implementation steps", "status": "pending", "activeForm": "Parallelizing steps"},
-       {"content": "Judge 5: PASS parallelization (> {THRESHOLD})", "status": "pending", "activeForm": "Validating parallelization"},
-       {"content": "Phase 6: Define verification rubrics", "status": "pending", "activeForm": "Defining verifications"},
-       {"content": "Judge 6: PASS verifications (> {THRESHOLD})", "status": "pending", "activeForm": "Validating verifications"},
        {"content": "Move task to todo folder", "status": "pending", "activeForm": "Promoting task"},
        {"content": "Human checkpoint reviews", "status": "pending", "activeForm": "Awaiting human review"}
      ]
@@ -307,14 +299,12 @@ Before starting workflow:
    ```
 
    **Note:** Filter todos based on configuration:
-   - If `SKIP_JUDGES` is true, omit ALL Judge todos (Judge 2a, 2b, 2c, 3, 4, 5, 6)
+   - If `SKIP_JUDGES` is true, omit ALL Judge todos (Judge 2a, 2b, 2c, 3, 4)
    - If `research` not in `ACTIVE_STAGES`, omit Phase 2a and Judge 2a todos
    - If `codebase analysis` not in `ACTIVE_STAGES`, omit Phase 2b and Judge 2b todos
    - If `business analysis` not in `ACTIVE_STAGES`, omit Phase 2c and Judge 2c todos
    - If `architecture synthesis` not in `ACTIVE_STAGES`, omit Phase 3 and Judge 3 todos
    - If `decomposition` not in `ACTIVE_STAGES`, omit Phase 4 and Judge 4 todos
-   - If `parallelize` not in `ACTIVE_STAGES`, omit Phase 5 and Judge 5 todos
-   - If `verifications` not in `ACTIVE_STAGES`, omit Phase 6 and Judge 6 todos
    - If `HUMAN_IN_THE_LOOP_PHASES` is empty, omit human checkpoint todo
 
 7. **Ensure directories exist**:
@@ -331,6 +321,7 @@ Before starting workflow:
    - `.specs/tasks/todo/` - Tasks ready to implement
    - `.specs/tasks/in-progress/` - Currently being worked on
    - `.specs/tasks/done/` - Completed tasks
+   - `.specs/sub-tasks/` - Per-step sub-task files written by Phase 4 (tracked in git)
    - `.specs/scratchpad/` - Temporary working files (gitignored)
    - `.specs/analysis/` - Codebase impact analysis files
    - `.claude/skills/` - Reusable skill documents
@@ -386,7 +377,7 @@ Picking the model is the **single highest-leverage decision** you make — more 
 
 ### Selection Rules
 
-Assess the **overall task being planned** — the draft task file's title and type plus the user's input — against this table. The matching row is the run's `BASELINE_TIER`. (The same table also tiers a *single unit of work*, which is how Judge 5 grades the per-step model assignments produced by Phase 5.)
+Assess the **overall task being planned** — the draft task file's title and type plus the user's input — against this table. The matching row is the run's `BASELINE_TIER`. (The same table also tiers a *single unit of work*, which is why Phase 4 receives it verbatim to assign a model per implementation step, and how Judge 4 grades those assignments.)
 
 | Task shape | Tier | Examples |
 |---|---|---|
@@ -405,9 +396,11 @@ Assess the **overall task being planned** — the draft task file's title and ty
 | Phase | Weight | Tier |
 |---|---|---|
 | Phase 3: Architecture Synthesis | **Heavy** — the only phase that makes open design decisions rather than applying settled ones; three inputs are synthesized here and every later phase, plus the implementation itself, inherits the result | **one tier above `BASELINE_TIER`**, capped at `opus` |
-| Phases 2a, 2b, 2c, 4, 5, 6 | Standard | `BASELINE_TIER` |
+| Phases 2a, 2b, 2c, 4 | Standard | `BASELINE_TIER` |
 
-Every model-assigned phase appears in exactly ONE row, so each resolves to exactly ONE tier. The cap means an `opus` baseline leaves all phases at `opus`. Phase 7 (Promote) is a file move you perform yourself — no sub-agent, no tier. See [Role Pairing](#role-pairing) for the `--model` override.
+Every model-assigned phase appears in exactly ONE row, so each resolves to exactly ONE tier. The cap means an `opus` baseline leaves all phases at `opus`. [Promotion](#promote-task) is a file move you perform yourself — no sub-agent, no tier. See [Role Pairing](#role-pairing) for the `--model` override.
+
+**Not to be confused with the per-step tiers inside the plan.** The tiers above govern the *planning* agents you launch. The `Model:` recorded in each sub-task file and the `Reviewer model:` recorded for each phase are decided by Phase 4 for the *implementation* run, from the per-step policy Phase 4's launch prompt carries — they are independent of `BASELINE_TIER`.
 
 ### Role Pairing
 
@@ -486,17 +479,9 @@ Judge 2a              Judge 2b              Judge 2c
                           ▼
                     Phase 4: Decomposition
                     [sdd:tech-lead] baseline
+                    → task file: ## Implementation Process
+                    → .specs/sub-tasks/<task-name>/NN-<step-slug>.md
                     Judge 4 (pass: >THRESHOLD)
-                          │
-                          ▼
-                    Phase 5: Parallelize
-                    [sdd:team-lead] baseline
-                    Judge 5 (pass: >THRESHOLD)
-                          │
-                          ▼
-                    Phase 6: Verifications
-                    [sdd:qa-engineer] baseline
-                    Judge 6 (pass: >THRESHOLD)
                           │
                           ▼
                     Move task: draft/ → todo/
@@ -585,10 +570,10 @@ CRITICAL: If expected files not created, launch the agent again with the same pr
 
 #### Phase 2c: Business Analysis
 
-**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: structured elicitation driven end-to-end by `analyse-business-requirements.md`, not open-ended synthesis — the procedure, not the model, carries the rigour here.
+**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: structured elicitation and checklist/rubric/test-strategy derivation driven end-to-end by the agent's own STAGES 1-10, not open-ended synthesis — the procedure, not the model, carries the rigour here.
 **Agent:** `sdd:business-analyst`
 **Depends on:** Task file exists
-**Purpose:** Refine description and create acceptance criteria
+**Purpose:** Refine the description and produce the single `## Acceptance Criteria` section — checklist, regular checks, rubric, rubric score definitions, test strategy and definition of done, mixing business and technical criteria
 
 Launch agent:
 
@@ -598,20 +583,26 @@ Launch agent:
   ```
   CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
 
-  Read ${CLAUDE_PLUGIN_ROOT}/skills/plan-task/analyse-business-requirements.md and execute it exactly as is!
-
   Task File: <TASK_FILE>
   Task Title: <title from task file>
 
-  CRITICAL: DO NOT OUTPUT YOUR BUSINESS ANALYSIS, ONLY CREATE THE SCRATCHPAD AND UPDATE THE TASK FILE.
+  Execute your own Core Process (STAGES 1-10) in full. Its STAGE 2 dispatches ${CLAUDE_PLUGIN_ROOT}/skills/plan-task/analyse-business-requirements.md STAGES 1-4 internally; that procedure writes ONLY to the scratchpad.
+
+  CRITICAL: DO NOT OUTPUT YOUR BUSINESS ANALYSIS. Create the scratchpad, then write the task file's `# Description` and the single `## Acceptance Criteria` section at your STAGE 10.
   ```
 
 **Capture:**
 
 - Scratchpad file path (e.g., `.specs/scratchpad/<hex-id>.md`)
-- Acceptance criteria count
 - Scope defined (yes/no)
 - User scenarios documented
+- Checklist items count (essential / important / optional / pitfall)
+- Regular checks count
+- Rubric dimensions count (weights sum: 1.0)
+- Test strategy applies (true/false) and test types selected
+- Quality gates and project guidelines discovered
+
+CRITICAL: If the task file's `# Description` or `## Acceptance Criteria` section was not written, launch the agent again with the same prompt.
 
 ---
 
@@ -736,7 +727,8 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 **Model:** Phase 2c's tier — see [Role Pairing](#role-pairing)
 **Agent:** `sdd:business-analyst`
 **Depends on:** Phase 2c completion
-**Purpose:** Validate acceptance criteria quality and scope definition
+**Purpose:** Validate the refined description and the whole `## Acceptance Criteria` section — checklist, regular checks, rubric, score definitions, test strategy and definition of done
+**Weight derivation:** criteria 1-4 are the original business-analysis criteria at their former proportions (0.30/0.35/0.20/0.15) scaled by 0.60, with the 0.01 rounding remainder given to the highest-weighted of them, totalling 0.61; criteria 5-7 — imported when rubric and test-strategy review folded into this judge — split the remaining 0.39 evenly at 0.13 each. Preserve that 0.61/0.39 split when adding or dropping a criterion, so the weights still sum to 1.00.
 
 Launch judge:
 
@@ -752,28 +744,63 @@ Launch judge:
   {path to task file from Phase 2c}
 
   ### Context
-  This is business analysis output. Evaluate description clarity and acceptance criteria quality.
+  This is business analysis output. The task file should contain a refined `# Description`
+  (with Scope Included/Excluded and User Scenarios) and exactly one `## Acceptance Criteria`
+  section holding six sub-blocks in this order: `**Checklist:**` (table
+  `| ID | Question | Category | Importance |`, IDs `CK-n`/`HR-n`), `**Regular Checks:**`
+  (checkbox list), `**Rubric:**` (table `| Criterion | Weight |`), `**Rubric Score Definitions:**`
+  (one `###` section per criterion, each ending in an `Anchors` list carrying `score_2`, `score_4`
+  and `contrast` — excerpt anchors that pin 2 and 4, NOT 1-5 bins), `**Test Strategy:**` (Criticality + Test Matrix
+  table + `Test Cases to Cover` grouped under `#### CK-N:` headings) and `**Definition of Done:**`.
+  Business and technical criteria are mixed inside each sub-block — there is no separate business
+  criteria list, and no section other than `## Acceptance Criteria` may carry evaluation content.
 
   ### Rubric
-  1. Description Clarity (weight: 0.30)
-     - What/Why clearly explained?
-     - Scope boundaries defined?
+  1. Description Clarity (weight: 0.18)
+     - What/Why/Who clearly explained?
+     - Business value stated, constraints named?
      - 1=Vague, 2=Basic, 3=Adequate, 4=Clear, 5=Excellent
 
-  2. Acceptance Criteria Quality (weight: 0.35)
-     - Criteria specific and testable?
-     - Given/When/Then format for complex criteria?
+  2. Criteria Quality (weight: 0.22)
+     - Is every `**Checklist:**` row a boolean YES/NO question that is specific and testable?
+     - Are Category (`hard_rule`/`principle`) and Importance filled for every row, with stable `CK-n`/`HR-n` IDs?
+     - Do business and technical criteria appear mixed, rather than as a separate business list?
+     - Is `**Definition of Done:**` present and derived from those criteria?
      - 1=Missing/vague, 2=Basic, 3=Adequate, 4=Good, 5=Excellent
 
-  3. Scenario Coverage (weight: 0.20)
-     - Primary flow documented?
-     - Error scenarios considered?
+  3. Scenario Coverage (weight: 0.12)
+     - Primary, alternative and error flows documented under **User Scenarios**?
+     - Are the error and edge scenarios actually represented by checklist items or test cases?
      - 1=Missing, 2=Basic, 3=Adequate, 4=Good, 5=Comprehensive
 
-  4. Scope Definition (weight: 0.15)
+  4. Scope Definition (weight: 0.09)
      - In-scope/out-of-scope explicit?
-     - No implementation details in description?
+     - No implementation details in the description?
+     - No invented file paths — artifacts cited only where the user prompt named them?
      - 1=Missing, 2=Partial, 3=Adequate, 4=Good, 5=Clear
+
+  5. Rubric Quality (weight: 0.13)
+     - Are `**Rubric:**` criteria specific to this task (not generic)?
+     - Do the weights sum to 1.0?
+     - Does EVERY criterion in `**Rubric Score Definitions:**` carry an `Anchors` list naming all three of `score_2`, `score_4` and `contrast`, with no 1-5 bins, ratios, percentages or quality bands in its description or classification/instruction paragraph? (A `score_2`/`score_4` anchor excerpt may legitimately quote a figure — this restriction does not reach the anchors themselves.)
+     - Is each `score_2` / `score_4` a concrete excerpt of the deliverable a reader could point at (fenced text), NEVER a description of quality — `score_2` obviously FAILING that dimension and `score_4` obviously SATISFYING it?
+     - Do a criterion's two anchors differ on EXACTLY ONE observable thing, with its one-line `contrast` naming that single difference, so a judge can place an artifact between or past them on that axis alone?
+     - Is `Project Guidelines Alignment` present when project guideline files exist?
+     - 1=Generic/broken rubrics, 2=Adequate, 3=Acceptable, 4=Good custom rubrics, 5=Excellent custom rubrics
+
+  6. Coverage Completeness (weight: 0.13)
+     - Are all six sub-blocks present, in order, under a single `## Acceptance Criteria`?
+     - Does `**Regular Checks:**` use the project's actual discovered build/lint/test commands rather than placeholders?
+     - Is every checklist item carried by at least one rubric criterion, regular check or test case — no orphans?
+     - Is the task file free of scoring configuration (threshold values, judge counts, evaluation modes) and of any evaluation section other than `## Acceptance Criteria`?
+     - 1=Missing sub-blocks or orphans, 2=Most covered, 3=Acceptable, 4=Good, 5=100% coverage
+
+  7. Test Strategy Coverage (weight: 0.13)
+     - When the task carries testable behaviour, is `**Test Strategy:**` present with Criticality, a Test Matrix table (`| Type | Size | Framework | Dependencies | Gate |`) and a `Test Cases to Cover` list?
+     - Is every group headed `#### CK-N:` naming a checklist item that exists, with cases in `- [type] description` form?
+     - Does every testable checklist item have at least one test case (no orphans), and every Test Matrix row a corresponding case?
+     - If the strategy does not apply, is that stated with a reason rather than silently omitted?
+     - 1=Missing/empty Test Strategy, 2=Present but orphaned or unheaded groups, 3=All blocks present, 4=Full coverage of testable items, 5=Ideal coverage with boundary cases enumerated
   ```
 
 CRITICAL: use prompt exactly as is, do not add anything else. Including output of implementation agent!!!
@@ -886,14 +913,14 @@ CRITICAL: use prompt exactly as is, do not add anything else. Including output o
 
 ## Phase 4: Decomposition
 
-**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: it applies an architecture Phase 3 already settled rather than making open design decisions, but still demands genuine per-step judgment — risks and mitigations specific to this task's own steps, not a generic checklist (see Judge 4's Risk Coverage criterion).
+**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: it applies an architecture Phase 3 already settled rather than making open design decisions, but still demands genuine per-step judgment — risks and mitigations specific to this task's own steps, a dependency graph that is neither over- nor under-constrained, and phase boundaries that each land on a working, verifiable milestone (see Judge 4's Risk Coverage, Dependency Accuracy and Phase Design criteria).
 **Agent:** `sdd:tech-lead`
 **Depends on:** Phase 3 + Judge 3 PASS
-**Purpose:** Break architecture into implementation steps with success criteria and risks
+**Purpose:** Break the architecture into implementation steps, write each step as its own sub-task file, and group them into independently verifiable phases with dependencies, parallel groups, per-step agent/model assignments and a reviewer model per phase
 
 Launch agent:
 
-- **Description**: "Decompose into implementation steps"
+- **Description**: "Decompose into sub-task files and phases"
 - **Prompt**:
 
   ```
@@ -901,16 +928,27 @@ Launch agent:
 
   Task File: <TASK_FILE>
 
-  CRITICAL: DO NOT OUTPUT YOUR DECOMPOSITION, ONLY CREATE THE SCRATCHPAD AND UPDATE THE TASK FILE.
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
+
+  Assign each step's model tier per this policy:
+  {paste the Selection Rules table plus its Precedence and Tie-breaker paragraphs from the orchestrator's Model Selection Policy verbatim, applied per implementation step; drop the cross-reference links, which do not resolve outside that file}
+
+  CRITICAL: DO NOT OUTPUT YOUR DECOMPOSITION. Create the scratchpad, write ONLY the `## Implementation Process` section (Parallelization Overview + Phase Overview) into the task file, and write every step as its own file under `.specs/sub-tasks/<task-name>/`.
   ```
 
 **Capture:**
 
 - Scratchpad file path (e.g., `.specs/scratchpad/<hex-id>.md`)
-- Implementation steps count
+- Sub-task directory (`.specs/sub-tasks/<task-name>/`) and the sub-task files written
+- Implementation steps count (and how many were merged)
 - Total subtasks count
+- Phases count, with each phase's steps and reviewer model
 - Critical path steps
+- Max parallel width (peak concurrent steps — MUST be 1–5)
+- Agent/model distribution
 - High priority risks count
+
+CRITICAL: If the `## Implementation Process` section or any sub-task file listed in the Parallelization Overview is missing, launch the agent again with the same prompt.
 
 ---
 
@@ -919,7 +957,7 @@ Launch agent:
 **Model:** Phase 4's tier — see [Role Pairing](#role-pairing)
 **Agent:** `sdd:tech-lead`
 **Depends on:** Phase 4 completion
-**Purpose:** Validate implementation steps quality and completeness
+**Purpose:** Validate step quality, sub-task file completeness, dependency and parallelization accuracy, agent/model assignment and phase design
 
 Launch judge:
 
@@ -933,243 +971,97 @@ Launch judge:
 
   ### Artifact Path
   {path to task file after Phase 4}
+  {path to the sub-task directory from Phase 4, e.g. .specs/sub-tasks/<task-name>/} — evaluate EVERY file in it
 
   ### Context
-  This is decomposition output. The Implementation Process section should contain
-  ordered steps with success criteria, subtasks, blockers, and risks.
+  This is decomposition output, written across two places. The task file carries ONLY the
+  `## Implementation Process` section: the sub-agent execution directive that governs how each step
+  is launched and how each phase is reviewed (its required content is spelled out under Completeness
+  below), a `### Parallelization Overview` (ASCII diagram with phase boundaries plus a step table
+  with columns `Step | Phase | Model | Agent | Depends on | Parallel with | Sub-Task File`) and a
+  `### Phase Overview` (per phase: `#### Phase N`, `Steps:`, `Reviewer model:`,
+  `Acceptance Criteria that should be fulfiled:`, a `Checklist items:` list citing `CK-n`/`HR-n` IDs from
+  the task file's `**Checklist:**` table, and a `Rubrics:` list citing criterion names from its
+  `**Rubric:**` table). Every step body lives in its own sub-task file at
+  `.specs/sub-tasks/<task-name>/<NN>-<step-slug>.md` with the fields `**Task File:**`, `**Phase:**`,
+  `**Model:**`, `**Agent:**`, `**Depends on:**`, `**Parallel with:**`, `**Note:**`, `**Goal:**`, a step
+  description, `#### Expected Output`, `#### Success Criteria`, `#### Subtasks` and `#### Blockers & Risks`.
+
+  By design these do NOT belong in the task file and MUST NOT be scored as missing: `### Implementation
+  Strategy`, a least-to-most decomposition chain, `### Step N:` bodies, `## Implementation Summary`,
+  `## Risks & Blockers Summary`, and a task-level Definition of Done (the Definition of Done lives in
+  `## Acceptance Criteria`, written by an earlier phase). Verification is PHASE-level: each phase names
+  one reviewer model; there are no per-step verification sections.
+
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
 
   ### Rubric
-  1. Step Quality (weight: 0.30)
-     - Each step has clear goal, output, success criteria?
-     - Steps ordered by dependency?
-     - No step too large (>Large estimate)?
-     - 1=Vague/missing, 2=Basic, 3=Adequate, 4=Good, 5=Excellent
+  1. Step Quality (weight: 0.15)
+     - Does every sub-task file carry ALL required fields, with `None` written rather than a field omitted?
+     - Does each have a clear `**Goal:**`, a real step description, and `#### Expected Output`?
+     - Is each step meaningfully sized — neither so large it hides risk nor so small it wastes an agent run?
+     - Is each sub-task file standalone-readable, naming every path, symbol and decision it builds on rather than relying on a neighbouring step?
+     - 1=Vague/missing fields, 2=Basic, 3=Adequate, 4=Good, 5=Excellent
 
-  2. Success Criteria Testability (weight: 0.25)
-     - Criteria specific and verifiable?
-     - Use actual file paths, function names?
-     - Subtasks clearly defined with actionable descriptions?
+  2. Success Criteria Testability (weight: 0.12)
+     - Are `#### Success Criteria` specific and verifiable, using actual file paths and function names?
+     - Are `#### Subtasks` actionable, each naming what it changes and where?
+     - Does every step include writing its own tests as a subtask?
      - 1=Vague, 2=Partially testable, 3=Adequate, 4=Good, 5=All testable
 
-  3. Risk Coverage (weight: 0.25)
-     - Blockers identified with resolutions?
-     - Risks identified with mitigations?
-     - High-risk tasks identified with decomposition recommendations?
+  3. Risk Coverage (weight: 0.10)
+     - Does each sub-task file's `#### Blockers & Risks` table name blockers with resolutions and risks with mitigations, rated for Impact and Likelihood?
+     - Are they specific to this step rather than a generic checklist restated per file?
      - 1=None, 2=Basic, 3=Adequate, 4=Good, 5=Comprehensive
 
-  4. Completeness (weight: 0.20)
-     - All architecture components have corresponding steps?
-     - Implementation summary table present?
-     - Definition of Done included?
-     - Phases organized: Setup → Foundational → User Stories → Polish?
+  4. Completeness (weight: 0.15)
+     - Does every architecture component and expected change have a corresponding step?
+     - Does every row of the Parallelization Overview table have a sub-task file at the recorded path, and every sub-task file a row — no orphans either way?
+     - Is the sub-agent execution directive present in `## Implementation Process` — launch one agent per step, parallel steps in parallel, pass the task file path AND the step's sub-task file path, use the step's own Model and Agent, implement exactly that step, and run the code reviewer ONCE per phase at that phase's reviewer model?
+     - Is the task file free of the sections listed as out of scope in the Context above?
      - 1=Incomplete, 2=Partial, 3=Adequate, 4=Good, 5=Complete
+
+  5. Dependency Accuracy (weight: 0.15)
+     - Are `**Depends on:**` values correct — no false dependencies (steps sequenced that need not be), no missing ones (steps that truly need an earlier artifact)?
+     - Do the sub-task files, the Parallelization Overview table and the diagram agree on every dependency?
+     - Does each step's dependencies resolve to steps in the same or an earlier phase?
+     - 1=Major dependency errors, 2=Mostly correct, 3=Acceptable, 4=Accurate, 5=Precise dependencies
+
+  6. Parallelization Maximized (weight: 0.10)
+     - Are genuinely independent steps marked with `**Parallel with:**` rather than left sequential?
+     - Is the ASCII diagram logical and does it show the phase boundaries?
+     - Is peak concurrent width within 1–5 (target ~3) rather than unbounded?
+     - 1=No parallelization/wrong, 2=Some optimization, 3=Acceptable, 4=Well optimized, 5=Maximum parallelization within the width bound
+
+  7. Agent/Model Selection Correctness (weight: 0.08)
+     - Are agent types appropriate for what each step OUTPUTS, and drawn only from the provided available agents list?
+     - Does each step's `**Model:**` follow the per-step model policy — `opus` earned by a breadth, critical-domain or open-design trigger rather than picked to be safe, `haiku` only for mechanical work?
+     - 1=Wrong agents/tiers, 2=Mostly appropriate, 3=Acceptable, 4=Optimal selection, 5=Perfect selection
+
+  8. Phase Design (weight: 0.15)
+     - Does EACH phase leave an independently verifiable milestone — a working application/service/solution that could be committed and run, PLUS the tests or other verification artifacts that let a reviewer judge it against the criteria listed for that phase?
+     - Is EACH phase's `Reviewer model:` appropriate — never below the highest implementation tier used in that phase, and one tier above it unless the phase is small, uniform and mechanical?
+     - Are phase sizes sensible — not one step per phase (review churn), not so many steps that a reviewer's findings force rewriting the whole phase? A single phase for the whole task is acceptable ONLY when no earlier point yields a working, verifiable state.
+     - Does every checklist item and every rubric criterion in `## Acceptance Criteria` appear against at least one phase, and does each phase list only criteria genuinely due at that checkpoint rather than end-of-task criteria?
+     - Is the task file free of threshold values, scores and judge configuration, which belong to the orchestrator?
+     - 1=Phases are arbitrary cuts or leave a broken state, 2=Milestones partly hold or reviewer tiers are off, 3=Acceptable, 4=Well-designed milestones with justified reviewer tiers, 5=Every phase a clean, self-contained, correctly reviewed milestone
   ```
 
 CRITICAL: use prompt exactly as is, do not add anything else. Including output of implementation agent!!!
 
 **Decision Logic:**
 
-- **PASS** (score >= `THRESHOLD`): Decomposition complete, proceed to Phase 5
+- **PASS** (score >= `THRESHOLD`): Decomposition complete, workflow done — promote the task
 - **FAIL** (score < `THRESHOLD`): Re-launch Phase 4 with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
-- **MAX_ITERATIONS reached**: Proceed to Phase 5 regardless of score (log warning)
+- **MAX_ITERATIONS reached**: Promote the task regardless of score (log warning)
 
-**Wait for PASS before Phase 5.**
-
----
-
-## Phase 5: Parallelize Steps
-
-**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: dependency-graph bookkeeping over steps that already declare their dependencies, plus agent/model assignment from a supplied list.
-**Agent:** `sdd:team-lead`
-**Depends on:** Phase 4 + Judge 4 PASS
-**Purpose:** Reorganize implementation steps for maximum parallel execution
-
-Launch agent:
-
-- **Description**: "Parallelize implementation steps"
-- **Prompt**:
-
-  ```
-  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
-
-  Task File: <TASK_FILE>
-
-  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
-
-  Assign each step's model tier per this policy:
-  {paste the Selection Rules table plus its Precedence and Tie-breaker paragraphs from the orchestrator's Model Selection Policy verbatim, applied per implementation step; drop the cross-reference links, which do not resolve outside that file}
-
-  CRITICAL: DO NOT OUTPUT YOUR PARALLELIZATION, ONLY CREATE THE SCRATCHPAD AND UPDATE THE TASK FILE.
-  ```
-
-**Capture:**
-
-- Scratchpad file path (e.g., `.specs/scratchpad/<hex-id>.md`)
-- Number of steps reorganized
-- Maximum parallelization depth
-- Agent distribution summary
+**Wait for PASS before promoting the task.**
 
 ---
 
-### Judge 5: Validate Parallelization
+## Promote Task
 
-**Model:** Phase 5's tier — see [Role Pairing](#role-pairing)
-**Agent:** `sdd:team-lead`
-**Depends on:** Phase 5 completion
-**Purpose:** Validate dependency accuracy and parallelization optimization
-
-Launch judge:
-
-- **Description**: "Judge parallelization quality"
-- **Prompt**:
-
-  ```
-  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
-
-  Read @${CLAUDE_PLUGIN_ROOT}/prompts/judge.md for evaluation methodology and execute.
-
-  ### Artifact Path
-  {path to parallelized task file from Phase 5}
-
-  ### Context
-  This is the output of Phase 5: Parallelize Steps. The artifact should contain implementation steps
-  reorganized for maximum parallel execution with explicit dependencies, agent assignments, and
-  parallelization diagram.
-
-  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
-
-  ### Rubric
-  1. Dependency Accuracy (weight: 0.35)
-     - Are step dependencies correctly identified?
-     - No false dependencies (steps marked dependent when they're not)?
-     - No missing dependencies (steps that actually depend on others)?
-     - 1=Major dependency errors, 2=Mostly correct, 3=Acceptable, 5=Precise dependencies
-
-  2. Parallelization Maximized (weight: 0.30)
-     - Are parallelizable steps correctly marked with "Parallel with:"?
-     - Is the parallelization diagram logical?
-     - 1=No parallelization/wrong, 2=Some optimization, 3=Acceptable, 5=Maximum parallelization
-
-  3. Agent Selection Correctness (weight: 0.20)
-     - Are agent types appropriate for outputs?
-     - Does selection follow the Agent Selection Guide?
-     - Are only agents from the provided available agents list used?
-     - 1=Wrong agents, 2=Mostly appropriate, 3=Acceptable, 4=Optimal selection, 5=Perfect selection
-
-  4. Execution Directive Present (weight: 0.15)
-     - Is the sub-agent execution directive present?
-     - Are "MUST" requirements for parallel execution clear?
-     - 1=Missing directive, 2=Partial, 3=Acceptable, 4=Complete directive, 5=Perfect directive
-  ```
-
-CRITICAL: use prompt exactly as is, do not add anything else. Including output of implementation agent!!!
-
-**Decision Logic:**
-
-- **PASS** (score >= `THRESHOLD`): Proceed to Phase 6
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 5 with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
-- **MAX_ITERATIONS reached**: Proceed to Phase 6 regardless of score (log warning)
-
-**Wait for PASS before Phase 6.**
-
----
-
-## Phase 6: Define Verifications
-
-**Model:** `BASELINE_TIER` per [Phase Weighting](#phase-weighting) — standard weight: it derives rubrics and test strategies from acceptance criteria already settled rather than making open design decisions, but still demands genuine per-artifact judgment — criteria and test cases tailored to each artifact, not a generic template (see Judge 6's Rubric Quality and Test Strategy Coverage criteria, which reject generic output).
-**Agent:** `sdd:qa-engineer`
-**Depends on:** Phase 5 + Judge 5 PASS
-**Purpose:** Add LLM-as-Judge verification sections with rubrics
-
-Launch agent:
-
-- **Description**: "Define verification rubrics"
-- **Prompt**:
-
-  ```
-  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
-
-  Task File: <TASK_FILE>
-
-  CRITICAL: DO NOT OUTPUT YOUR VERIFICATIONS, ONLY CREATE THE SCRATCHPAD AND UPDATE THE TASK FILE.
-  ```
-
-**Capture:**
-
-- Scratchpad file path (e.g., `.specs/scratchpad/<hex-id>.md`)
-- Number of steps with verification
-- Total evaluations defined
-- Verification breakdown (Panel/Per-Item/None)
-
----
-
-### Judge 6: Validate Verifications
-
-**Model:** Phase 6's tier — see [Role Pairing](#role-pairing)
-**Agent:** `sdd:qa-engineer`
-**Depends on:** Phase 6 completion
-**Purpose:** Validate verification rubrics and thresholds
-
-Launch judge:
-
-- **Description**: "Judge verification quality"
-- **Prompt**:
-
-  ```
-  CLAUDE_PLUGIN_ROOT=${CLAUDE_PLUGIN_ROOT}
-
-  Read @${CLAUDE_PLUGIN_ROOT}/prompts/judge.md for evaluation methodology and execute.
-
-  ### Artifact Path
-  {path to task file with verifications from Phase 6}
-
-  ### Context
-  This is the output of Phase 6: Define Verifications. The artifact should contain LLM-as-Judge
-  verification sections for each implementation step, including verification levels, custom rubrics,
-  thresholds, and a verification summary table.
-
-  ### Rubric
-  1. Verification Level Appropriateness (weight: 0.25)
-     - Do verification levels match artifact criticality?
-     - HIGH criticality → Panel, MEDIUM → Single/Per-Item, LOW/NONE → None?
-     - 1=Mismatched levels, 2=Mostly appropriate, 3=Acceptable, 5=Precisely calibrated
-
-  2. Rubric Quality (weight: 0.20)
-     - Are criteria specific to the artifact type (not generic)?
-     - Do weights sum to 1.0?
-     - Are descriptions clear and measurable?
-     - 1=Generic/broken rubrics, 2=Adequate, 3=Acceptable, 5=Excellent custom rubrics
-
-  3. Threshold Appropriateness (weight: 0.15)
-     - Are thresholds reasonable (typically 4.0/5.0)?
-     - Higher for critical, lower for experimental?
-     - 1=Wrong thresholds, 2=Standard applied, 3=Acceptable, 5=Context-appropriate
-
-  4. Coverage Completeness (weight: 0.20)
-     - Does every step have a Verification section?
-     - Is the Verification Summary table present?
-     - 1=Missing verifications, 2=Most covered, 3=Acceptable, 5=100% coverage
-
-  5. Test Strategy Coverage (weight: 0.20)
-     - Does every applicable step (test_strategy.applies = true) have a `**Test Strategy:**` block (Test Matrix table + Test Cases to Cover bullet list)?
-     - Does each `Test Cases to Cover` cover every acceptance criterion (no orphans)?
-     - Does the **Test Cases to Cover** list appear under every applicable step and use the format `- [type] description` under each acceptance criterion?
-     - 1=Missing/empty Test Strategy blocks, 2=Present but Test Cases to Cover orphans or no Test Cases to Cover list, 3=All blocks present, 5=Ideal coverage with full BVA boundaries, and matched bullet list per step
-  ```
-
-CRITICAL: use prompt exactly as is, do not add anything else. Including output of implementation agent!!!
-
-**Decision Logic:**
-
-- **PASS** (score >= `THRESHOLD`): Workflow complete, promote task
-- **FAIL** (score < `THRESHOLD`): Re-launch Phase 6 with feedback, at the tier per the [Escalation Rule](#escalation-rule) (unless accepted per the [Iteration Discretion Rule](#iteration-discretion-rule))
-- **MAX_ITERATIONS reached**: Complete workflow regardless of score (log warning)
-
----
-
-## Phase 7: Promote Task
-
-**Purpose:** Move the refined task from draft to todo folder
+**Purpose:** Move the refined task from draft to todo folder. This is a file move you perform yourself — no sub-agent, no model tier, no judge.
 
 After all phases complete:
 
@@ -1180,7 +1072,9 @@ After all phases complete:
    # Fallback if git not available: mv <TASK_FILE> .specs/tasks/todo/
    ```
 
-2. **Update any references** in research and analysis files if needed
+2. **Do NOT move `.specs/sub-tasks/<task-name>/`.** The sub-task folder is created at planning time and stays put while the task file travels `draft/` → `todo/` → `in-progress/` → `done/`, so the paths recorded in the Parallelization Overview never go stale.
+
+3. **Update any references** in research and analysis files if needed
 
 ---
 
@@ -1188,7 +1082,7 @@ After all phases complete:
 
 After all executed phases and judges complete:
 
-1. Use git tool to stage the task file, skill file, analysis file, and scratchpad files (only those that were created)
+1. Use git tool to stage the task file, the sub-task files under `.specs/sub-tasks/<task-name>/`, skill file, analysis file, and scratchpad files (only those that were created)
 2. Summarize the workflow results and output to user:
 
 ```markdown
@@ -1205,8 +1099,9 @@ After all executed phases and judges complete:
 | **Analysis** | `<analysis file path or "Skipped">` |
 | **Scratchpad** | `<scratchpad file path>` |
 | **Implementation Steps** | `<count or "N/A">` |
-| **Parallelization Depth** | `<max parallel agents or "N/A">` |
-| **Total Verifications** | `<count or "N/A">` |
+| **Phases** | `<count, each with its reviewer model, or "N/A">` |
+| **Max Parallel Width** | `<peak concurrent steps, 1–5, or "N/A">` |
+| **Sub-Task Files** | `.specs/sub-tasks/<task-name>/ — <count> files` or `"N/A"` |
 
 ### Configuration Used
 
@@ -1230,8 +1125,6 @@ After all executed phases and judges complete:
 | Phase 2c: Business Analysis | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
 | Phase 3: Architecture Synthesis | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
 | Phase 4: Decomposition | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
-| Phase 5: Parallelize | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
-| Phase 6: Verify | X.X/5.0 | ✅ PASS / ☑️ ACCEPTED / ⚠️ PROCEEDED (max iter) / ⏭️ SKIPPED |
 
 **Threshold Used:** {THRESHOLD}/5.0 (or N/A if SKIP_JUDGES)
 
@@ -1261,6 +1154,10 @@ After all executed phases and judges complete:
 │   │   └── <name>.<type>.md     # Complete task specification (ready for implementation)
 │   ├── in-progress/             # Tasks being implemented (empty)
 │   └── done/                    # Completed tasks (empty)
+├── sub-tasks/
+│   └── <task-name>/             # One folder per task — NEVER moves with the task file
+│       ├── 01-<step-slug>.md    # One sub-task file per implementation step
+│       └── 02a-<step-slug>.md
 ├── analysis/
 │   └── analysis-<name>.md       # Codebase impact analysis (if codebase analysis stage ran)
 └── scratchpad/

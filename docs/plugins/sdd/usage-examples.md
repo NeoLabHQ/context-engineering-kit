@@ -12,7 +12,7 @@ Real-world scenarios demonstrating the effective use of the Spec-Driven Developm
 # Step 1: Create draft task
 /add-task "Add user profile view and edit functionality with name, email, and avatar"
 
-# Step 2: Plan — research, analyze, decompose, parallelize, verify
+# Step 2: Plan — research, analyze, define acceptance criteria, architect, decompose
 /plan-task @.specs/tasks/draft/add-user-profile.feature.md
 
 # Step 3: Review specification (optional but recommended)
@@ -30,20 +30,20 @@ Real-world scenarios demonstrating the effective use of the Spec-Driven Developm
 
 **What happens during `/plan-task`**:
 
-1. `researcher` agent gathers relevant resources and creates a skill file
-2. `code-explorer` agent identifies affected files and integration points
-3. `business-analyst` agent refines description and creates acceptance criteria
-4. `software-architect` agent synthesizes architecture overview
-5. `tech-lead` agent decomposes into implementation steps with risks
-6. `team-lead` agent parallelizes steps for efficient execution
-7. `qa-engineer` agent defines verification rubrics for each step
-8. Task file moved from `draft/` to `todo/`
+Phases 2a, 2b and 2c run in parallel; Phase 3 and Phase 4 follow in order. Each is gated by its own judge.
+
+1. **Phase 2a** — `researcher` agent gathers relevant resources and creates a skill file
+2. **Phase 2b** — `code-explorer` agent identifies affected files and integration points
+3. **Phase 2c** — `business-analyst` agent refines the description and writes the single `## Acceptance Criteria` section: checklist, regular checks, rubric, score definitions, test strategy and definition of done
+4. **Phase 3** — `software-architect` agent synthesizes the architecture overview
+5. **Phase 4** — `tech-lead` agent decomposes the work into per-step sub-task files under `.specs/sub-tasks/add-user-profile.feature/`, and groups them into independently verifiable phases with dependencies, parallel groups and a reviewer model per phase
+6. Task file moved from `draft/` to `todo/` — the sub-task folder stays where it was written
 
 **What happens during `/implement-task`**:
 
 1. Task moved from `todo/` to `in-progress/`
-2. Each step executed by `sdd:developer` agent
-3. Critical steps verified by judge agents (panel of 2 for critical artifacts)
+2. Each step executed by its assigned agent, given the task file path and its own sub-task file path
+3. At the end of every implementation phase, ONE `sdd:code-reviewer` reviews the whole phase at that phase's reviewer model, scoring only the criteria that phase lists as due
 4. Definition of Done items verified
 5. Task moved from `in-progress/` to `done/`
 
@@ -60,11 +60,11 @@ Real-world scenarios demonstrating the effective use of the Spec-Driven Developm
 # Fast planning — only business analysis + decomposition, lower quality bar
 /plan-task @.specs/tasks/draft/fix-null-pointer-user-service.bug.md --fast
 
-# Implement without judge verification for speed
-/implement-task @.specs/tasks/todo/fix-null-pointer-user-service.bug.md --skip-judges
+# Implement without phase reviews for speed
+/implement-task @.specs/tasks/todo/fix-null-pointer-user-service.bug.md --skip-reviews
 ```
 
-The `--fast` flag sets `--target-quality 3.0 --max-iterations 1 --included-stages "business analysis,decomposition,verifications"`, skipping research, codebase analysis, architecture synthesis, and parallelization.
+The `--fast` flag sets `--target-quality 3.0 --max-iterations 1 --included-stages "business analysis,decomposition"`, skipping research, codebase analysis and architecture synthesis. Judges still run, at the lowered threshold with a single retry. Use `--one-shot` for the same stage list with no judges at all.
 
 ---
 
@@ -80,7 +80,7 @@ The `--fast` flag sets `--target-quality 3.0 --max-iterations 1 --included-stage
 /add-task "Implement multi-tenant billing with hybrid pricing and Stripe integration"
 
 # High-quality planning with human review at each phase
-/plan-task @.specs/tasks/draft/implement-billing-stripe.feature.md --target-quality 4.5 --human-in-the-loop 2,3,4,5,6
+/plan-task @.specs/tasks/draft/implement-billing-stripe.feature.md --target-quality 4.5 --human-in-the-loop 2,3,4
 ```
 
 **Expected planning flow with human-in-the-loop**:
@@ -101,15 +101,22 @@ Review architecture decisions...
 > Continue? [Y/n/feedback]: Use Stripe as source of truth, option A from research
 
 Phase 4: Decomposition → Judge 4: 4.5/5.0 ✅ PASS
-...continues...
+
+🔍 Human Review Checkpoint - Phase 4
+Review the sub-task files and the phase boundaries...
+> Continue? [Y/n/feedback]: Y
+
+Promote: draft/ → todo/
 ```
 
 After reviewing and refining the specification:
 
 ```bash
-# Implement with stricter thresholds and human review on critical steps
-/implement-task @.specs/tasks/todo/implement-billing-stripe.feature.md --target-quality 4.5 --human-in-the-loop 2,4,6
+# Implement with a stricter threshold and human review on the critical milestones
+/implement-task @.specs/tasks/todo/implement-billing-stripe.feature.md --target-quality 4.5 --human-in-the-loop "Phase 2,Phase 4"
 ```
+
+Note that `--human-in-the-loop` takes **implementation phase identifiers** here, not step numbers — the phase is the review unit.
 
 ---
 
@@ -131,7 +138,7 @@ After reviewing and refining the specification:
 
 # Detects: Architecture Overview section changed
 # Skips: research, codebase analysis, business analysis
-# Runs: architecture synthesis, decomposition, parallelize, verifications
+# Runs: architecture synthesis, decomposition
 ```
 
 The `--refine` flag uses git diff to detect which sections were modified and only re-runs stages from the earliest changed section onward (top-to-bottom propagation).
@@ -146,16 +153,21 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 # Initial implementation starts
 /implement-task @.specs/tasks/todo/add-validation.feature.md
 
-# ... interrupted after Step 3 ...
+# ... interrupted midway through Phase 2 ...
 
 # Resume from where it left off
 /implement-task add-validation.feature.md --continue
 
 # Output:
-# Found: Step 1 [DONE], Step 2 [DONE], Step 3 [DONE]
-# Verifying Step 3 artifacts... Judge: 4.3/5.0 PASS ✅
-# Resuming from Step 4...
+# Phase 1 [REVIEWED] — skipping
+# Phase 2: 03-validation-service [DONE], 04-controller not started
+# Resuming Phase 2 at step 04-controller...
+# All Phase 2 steps complete → launching sdd:code-reviewer for Phase 2 (sonnet)
+# Phase 2 combined_score: 4.3/5.0 PASS ✅ → marked [REVIEWED]
+# Continuing with Phase 3...
 ```
+
+`--continue` resolves state by **implementation phase, then step**: it resumes at the first phase marked neither `[REVIEWED]` nor `[REVIEWED-SKIPPED]`, finishes that phase's outstanding steps, then reviews it.
 
 ---
 
@@ -173,12 +185,15 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 # Output:
 # Detecting changed project files...
 # Changed: src/validation/validation.service.ts (modified)
-# Maps to: Step 2 (Create ValidationService)
-# Step 2: Judge PASS ✅ — The user's fix is good
-# Step 3: Judge PASS ✅ — no cascading issues
-# Step 4: Judge FAIL — Launching the implementation agent to align...
-# Step 4: Judge PASS ✅ (after fix)
+# Maps to: step 02-validation-service → Phase 1
+# Phase 1: reviewer 4.4/5.0 PASS ✅ — The user's fix is good
+# Phase 2: reviewer 4.2/5.0 PASS ✅ — no cascading issues
+# Phase 3: reviewer 3.1/5.0 FAIL — blast radius: 1 step, local defect,
+#          re-dispatching only 05-error-messages at its own model...
+# Phase 3: reviewer 4.3/5.0 PASS ✅ (after fix)
 ```
+
+`--refine` re-verifies at **phase** granularity: it maps the changed files to steps, finds the earliest implementation phase that owns one, and re-reviews that phase and every phase after it.
 
 ---
 
@@ -231,7 +246,7 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 /plan-task @.specs/tasks/draft/implement-realtime-stock-updates.feature.md
 
 /clear
-/implement-task @.specs/tasks/draft/implement-realtime-stock-updates.feature.md
+/implement-task @.specs/tasks/todo/implement-realtime-stock-updates.feature.md
 ```
 
 ---
@@ -269,11 +284,9 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 # Quick prototype — minimum viable quality
 /plan-task @.specs/tasks/draft/poc-feature.feature.md --fast
 /implement-task --target-quality 3.5 --max-iterations 1
-
-# Different thresholds for standard vs critical components
-/implement-task --target-quality 3.5,4.5
-# Standard components verified at 3.5, critical at 4.5
 ```
+
+`/implement-task` has exactly **one** threshold. There is no separate standard/critical value and no comma-separated form — `--target-quality X.X` applies to every implementation phase review, and the task file never carries a threshold of its own.
 
 ---
 
@@ -319,7 +332,7 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 /plan-task @.specs/tasks/draft/add-realtime-collaboration.feature.md
 
 /clear
-/implement-task @.specs/tasks/draft/add-realtime-collaboration.feature.md
+/implement-task @.specs/tasks/todo/add-realtime-collaboration.feature.md
 ```
 
 ---
@@ -336,7 +349,7 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 ### When to Use Abbreviated Workflow
 
-- Simple bug fixes: use `--fast` for planning, `--skip-judges` for implementation
+- Simple bug fixes: use `--fast` for planning, `--skip-reviews` for implementation
 - Well-understood features: use `--skip research` if tech stack is familiar
 - Quick prototypes: use `--one-shot` for minimal planning
 
@@ -352,6 +365,6 @@ The `--refine` flag uses git diff to detect which sections were modified and onl
 
 1. Skipping specification reviews for complex features
 2. Ignoring high-risk task warnings in decomposition
-3. Using `--skip-judges` for production-critical code
+3. Using `--skip-judges` (planning) or `--skip-reviews` (implementation) for production-critical code
 4. Creating tasks that are too large — decompose into smaller dependent tasks
 5. Not using `--refine` after editing specifications (re-running a full plan is wasteful)

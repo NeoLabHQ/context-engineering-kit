@@ -38,8 +38,8 @@ Complete Spec-Driven Development workflow commands. [More info](../plugins/sdd/R
 
 - `/brainstorm` - Refines rough ideas into fully-formed designs through collaborative questioning and exploration
 - `/add-task` - Create task template file with initial prompt
-- `/plan-task` - Analyze prompt, generate required skills and refine task specification
-- `/implement-task` - Execute feature implementation following task list with TDD approach and quality review
+- `/plan-task` - Analyze prompt, generate required skills, refine the task specification and decompose it into per-step sub-task files grouped into verifiable phases
+- `/implement-task` - Execute each step from its sub-task file, with one code review at the end of every implementation phase and a final Definition of Done check
 
 ### Kaizen
 

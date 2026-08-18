@@ -39,6 +39,10 @@ touch "$REPO_ROOT/.specs/tasks/todo/.gitkeep"
 touch "$REPO_ROOT/.specs/tasks/in-progress/.gitkeep"
 touch "$REPO_ROOT/.specs/tasks/done/.gitkeep"
 
+# Create sub-tasks directory (tracked in git — sub-task files are spec artifacts, like task files)
+mkdir -p "$REPO_ROOT/.specs/sub-tasks"
+touch "$REPO_ROOT/.specs/sub-tasks/.gitkeep"
+
 # Create directories (folders tracked via .gitkeep, *.md contents gitignored)
 mkdir -p "$REPO_ROOT/.specs/scratchpad"
 mkdir -p "$REPO_ROOT/.specs/analysis"
@@ -58,6 +62,7 @@ echo "  .specs/tasks/draft/"
 echo "  .specs/tasks/todo/"
 echo "  .specs/tasks/in-progress/"
 echo "  .specs/tasks/done/"
+echo "  .specs/sub-tasks/"
 echo "  .specs/scratchpad/"
 echo "  .specs/analysis/"
 echo "  .specs/reports/"

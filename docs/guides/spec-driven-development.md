@@ -42,7 +42,7 @@ You can adjust the task file to incorporate additional details and criteria at t
 Run the planning process:
 
 ```bash
-/plan 
+/plan-task .specs/tasks/draft/design-implement-authentication-middleware-with-jwt-support.feature.md
 ```
 
 It will perform the following refinement process to update the task file with a more detailed specification:
@@ -60,12 +60,12 @@ It will perform the following refinement process to update the task file with a 
 | +----------------+  +------------------+  +-------------+|
 | | Research       |  | Codebase         |  | Business    ||
 | | researcher     |  | Analysis         |  | Analysis    ||
-| | (sonnet)       |  | code-explorer    |  | business-   ||
-| |      |         |  | (sonnet)         |  | analyst     ||
-| |      v         |  |       |          |  | (opus)      ||
-| |  Judge 2a      |  |   Judge 2b       |  |      |      ||
+| |                |  | code-explorer    |  | business-   ||
+| |      |         |  |                  |  | analyst     ||
+| |      v         |  |       |          |  |      |      ||
+| |  Judge 2a      |  |   Judge 2b       |  |   Judge 2c  ||
 | +------+---------+  +--------+---------+  +------+------+|
-|        |                     |                    |       |
+|        |    all three at the baseline tier   |           |
 +----------------------------------------------------------+
          |                     |                    |
          +----------+----------+--------------------+
@@ -73,7 +73,8 @@ It will perform the following refinement process to update the task file with a 
                     v
          +-----------------------------+
          | Phase 3: Architecture       |
-         | software-architect (opus)   |
+         | software-architect          |
+         | (baseline + 1, cap opus)    |
          |            |                |
          |            v                |
          |        Judge 3              |
@@ -82,7 +83,13 @@ It will perform the following refinement process to update the task file with a 
                         v
          +-----------------------------+
          | Phase 4: Decomposition      |
-         | tech-lead (opus)            |
+         | tech-lead (baseline)        |
+         |                             |
+         | -> task file:               |
+         |    ## Implementation Process|
+         | -> .specs/sub-tasks/        |
+         |    <task-name>/             |
+         |      <NN>-<step-slug>.md    |
          |            |                |
          |            v                |
          |        Judge 4              |
@@ -90,48 +97,38 @@ It will perform the following refinement process to update the task file with a 
                         |
                         v
          +-----------------------------+
-         | Phase 5: Parallelize        |
-         | team-lead (opus)            |
-         |            |                |
-         |            v                |
-         |        Judge 5              |
+         | Promote: draft/ -> todo/    |
+         | (file move, no agent)       |
          +--------------+--------------+
                         |
-                        v
-         +-----------------------------+
-         | Phase 6: Verifications      |
-         | qa-engineer (opus)          |
-         |            |                |
-         |            v                |
-         |        Judge 6              |
-         +--------------+--------------+
-                        |
-      +-----------------+-----------------+
-      |                 |                 |
-      v                 v                 v
-+--------------+ +--------------+ +---------------+
-| Refined Task | | Skill File   | | Analysis File |
-| todo/*.md    | | SKILL.md     | | analysis-*.md |
-+--------------+ +--------------+ +---------------+
+      +-----------------+-----------------+-----------------+
+      |                 |                 |                 |
+      v                 v                 v                 v
++--------------+ +--------------+ +---------------+ +----------------+
+| Refined Task | | Skill File   | | Analysis File | | Sub-Task Files |
+| todo/*.md    | | SKILL.md     | | analysis-*.md | | sub-tasks/**   |
++--------------+ +--------------+ +---------------+ +----------------+
 ```
 
-It will output the updated task file to `.specs/tasks/todo/design-implement-authentication-middleware-with-jwt-support.feature.md` and create new skills if needed. It also produces scratchpads and verification reports along the way to properly evaluate each step of the process. You can safely ignore all of them.
+It will output the updated task file to `.specs/tasks/todo/design-implement-authentication-middleware-with-jwt-support.feature.md`, write one sub-task file per implementation step under `.specs/sub-tasks/design-implement-authentication-middleware-with-jwt-support.feature/`, and create new skills if needed. It also produces scratchpads and judge reports along the way to properly evaluate each phase of the process. You can safely ignore all of them.
 
-At this point you can verify and adjust the specification, then run the `/plan --refine` command again for agents to update the rest of the specification where it doesn't align with your changes. It uses a top-to-bottom approach, meaning all sections below your changes will be rethought and updated accordingly. See the [Refining Specifications and Code](../plugins/sdd/refine.md) guide for details.
+The task file ends up with four sections: `# Description` and `## Acceptance Criteria` (Phase 2c), `## Architecture Overview` (Phase 3) and `## Implementation Process` (Phase 4). The last one groups the steps into **phases** — milestones that each leave a working, independently verifiable state — and names a reviewer model for each. The sub-task folder is created at planning time and never moves, so its recorded paths stay valid for the whole task lifecycle.
+
+At this point you can verify and adjust the specification, then run the `/plan-task --refine` command again for agents to update the rest of the specification where it doesn't align with your changes. It uses a top-to-bottom approach, meaning all sections below your changes will be rethought and updated accordingly. See the [Refining Specifications and Code](../plugins/sdd/refine.md) guide for details.
 
 ### Code Generation
 
 Once you are happy with the specification, run `/clear` (or re-open Claude Code) to clear context. Then you can start the implementation process:
 
 ```bash
-/implement
+/implement-task
 ```
 
 It will perform the following actions:
 
 ```
 +--------------------------------------+
-| Phase 0: Select Task                 |
+| Workflow Phase 0: Select Task        |
 |  Task from todo/ or in-progress/     |
 |              |                       |
 |              v                       |
@@ -140,62 +137,77 @@ It will perform the following actions:
                    |
                    v
 +--------------------------------------+
-| Phase 1: Load Task                   |
-|  Parse Implementation Steps          |
-|  & Verification Requirements         |
+| Workflow Phase 1: Load Task          |
+|  Parse ### Parallelization Overview  |
+|   (steps, models, agents, sub-task   |
+|    file paths)                       |
+|  Parse ### Phase Overview            |
+|   (phases, steps, reviewer models,   |
+|    criteria due)                     |
 +------------------+-------------------+
                    |
                    v
 +------------------------------------------------------+
-| Phase 2: Execute Steps                               |
+| Workflow Phase 2: Execute Implementation Phases      |
 |                                                      |
-|  For Each Step:                                      |
+|  For Each Implementation Phase, in order:            |
 |                                                      |
-|    Developer Agent: Implement Step  <--+             |
-|                |                       |             |
-|                v                       |             |
-|       Verification Level?              |             |
-|        |       |       |       |       |             |
-|      None   Single   Panel  Per-Item   |             |
-|        |    (4.0)   (4.5)  (Parallel)  |             |
-|        |       |       |       |       |             |
-|        |       +---+---+-------+       |             |
-|        |           |                   |             |
-|        |           v                   |             |
-|        |        PASS? --No--> Fix & Retry            |
-|        |           |                                 |
-|        |          Yes                                |
-|        +-----+-----+                                |
-|              |                                       |
-|              v                                       |
-|       Mark Step DONE                                 |
+|   +----------------------------------------------+   |
+|   | For each step of the phase, in dependency    |   |
+|   | order (Parallel with: groups together):      |   |
+|   |   Launch its Agent at its Model with         |   |
+|   |   task file path + sub-task file path        |   |
+|   +---------------------+------------------------+   |
+|                         | all steps reported done    |
+|                         v                            |
+|   +----------------------------------------------+   |
+|   | Launch ONE sdd:code-reviewer for the PHASE   |   |
+|   | at the phase's Reviewer model                |   |
+|   +---------------------+------------------------+   |
+|                         |                            |
+|                         v                            |
+|   +----------------------------------------------+   |
+|   | Apply THRESHOLD to combined_score:           |   |
+|   |  PASS -> mark phase [REVIEWED], next phase   |   |
+|   |  FAIL -> reason about BLAST RADIUS, pick     |   |
+|   |          fix model + scope + re-review model,|   |
+|   |          re-review (up to max-iterations)    |   |
+|   +----------------------------------------------+   |
 +----------------------+-------------------------------+
                        |
                        v
 +--------------------------------------+
-| Phase 3: Final Verification          |
+| Workflow Phase 3: Final Verification |
 |                                      |
 |  Verify Definition of Done  <--+     |
-|              |                  |     |
-|              v                  |     |
-|      All DoD PASS?              |     |
-|         /       \               |     |
-|       Yes       No              |     |
-|        |         \              |     |
-|        |     Fix Failing Items--+     |
+|              |                 |     |
+|              v                 |     |
+|      All DoD PASS?             |     |
+|         /       \              |     |
+|       Yes       No             |     |
+|        |         \             |     |
+|        |    Fix Failing Items--+     |
 +--------+-----------------------------+
          |
          v
 +--------------------------------------+
-| Phase 4: Complete                    |
+| Workflow Phase 4: Move Task to Done  |
 |  Move to done/                       |
++------------------+-------------------+
+                   |
+                   v
++--------------------------------------+
+| Workflow Phase 5: Aggregation and    |
+| Reporting                            |
 |  Final Report                        |
 +--------------------------------------+
 ```
 
+Code review happens once per **implementation phase**, not once per step — a phase is a milestone that leaves a working, independently verifiable state, so the reviewer sees a coherent slice of work rather than an isolated edit. It scores only the acceptance criteria that phase lists as due; criteria belonging to later phases are not yet expected.
+
 It will automatically write tests, verify them, build the solution, and confirm it works as expected.
 
-Once implementation is complete, you can review and adjust it, then run `/implement --refine` again for the agent to update the rest of the implementation if it doesn't align with your changes or feedback.
+Once implementation is complete, you can review and adjust it, then run `/implement-task --refine` again for the agent to update the rest of the implementation if it doesn't align with your changes or feedback.
 
 ### Commit and Push
 

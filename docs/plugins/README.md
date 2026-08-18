@@ -108,9 +108,11 @@ Comprehensive Spec-Driven Development workflow using specialized agents for each
 
 **Key Features:**
 
-* Complete workflow: setup → specify → plan → tasks → implement → document
-* Multiple specialized agents (architect, explorer, reviewer, etc.)
-* Constitution-based development
+* Complete workflow: `/add-task` → `/plan-task` → `/implement-task`
+* Eight specialized agents: `researcher`, `code-explorer`, `business-analyst`, `software-architect`, `tech-lead`, `developer`, `code-reviewer`, `tech-writer`
+* Five model-assigned planning phases — research, codebase analysis and business analysis in parallel, then architecture synthesis, then decomposition — each behind an LLM-as-Judge quality gate, then a plain file move to promote the task
+* Per-step sub-task files under `.specs/sub-tasks/<task-name>/`, so each implementation agent reads only its own step
+* Steps grouped into independently verifiable phases, each reviewed once, at its own reviewer model
 
 **When to use:** For complex features requiring detailed specifications and planning.
 

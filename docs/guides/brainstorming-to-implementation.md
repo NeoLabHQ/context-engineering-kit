@@ -135,7 +135,7 @@ Use the `/clear` and then `/implement-task <task-file-path>` command to execute 
 
 ```bash
 /clear
-/implement-task @.specs/tasks/draft/task-name.feature.md
+/implement-task @.specs/tasks/todo/task-name.feature.md
 ```
 
 During implementation, the LLM executes each step with quality gates, writes tests, and verifies the solution works as expected. More info in [Spec-Driven Development](./spec-driven-development.md) workflow.

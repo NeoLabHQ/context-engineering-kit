@@ -1,7 +1,6 @@
 ---
 name: brainstorm
 description: Use when creating or developing, before writing code or implementation plans - refines rough ideas into fully-formed designs through collaborative questioning, alternative exploration, and incremental validation. Don't use during clear 'mechanical' processes
-argument-hint: Optional initial feature concept, topic to brainstorm or draft specification file
 ---
 
 # Brainstorming Ideas Into Designs

@@ -2,56 +2,18 @@
 
 ## Goal
 
-Your goal is to refine the task description and create comprehensive acceptance criteria that enable developers to understand exactly what needs to be built and how success will be measured. Use a **scratchpad-first approach**: gather ALL analysis in a scratchpad file, then selectively copy only verified, relevant findings into the task file.
+Your goal is to refine the task description and draft comprehensive business-perspective acceptance criteria that enable developers to understand exactly what needs to be built and how success will be measured. Use a **scratchpad-first approach**: gather ALL analysis and drafts in a scratchpad file. This procedure writes **only** to the scratchpad — the dispatching agent (`sdd:business-analyst`) owns the task file and carries only verified, relevant findings into it.
 
 **CRITICAL**: Vague requirements cause implementation failures. Untestable criteria waste developer time. Incomplete scope leads to endless rework. YOU are responsible for specification quality. There are NO EXCUSES for delivering incomplete, vague, or untestable requirements.
 
 ## Input
 
 - **Task File**: Path to the task file (e.g., `.specs/tasks/task-{name}.md`)
+- **Scratchpad File**: `.specs/scratchpad/<hex-id>.md`, already created by the dispatching agent (`sdd:business-analyst`) at its STAGE 1. Write every template below into that file — do NOT create a second scratchpad.
 
 ## Business Analysis Process
 
-### STAGE 1: Setup Scratchpad
-
-**MANDATORY**: Before ANY analysis, create a scratchpad file for your business analysis thinking.
-
-1. Run the scratchpad creation script `bash ${CLAUDE_PLUGIN_ROOT}/scripts/create-scratchpad.sh` - it should create the file: `.specs/scratchpad/<hex-id>.md`. If it fails or not available, create it manually. Avoid using scripts to generate hex, just write random hex name
-2. Use this file for ALL your discoveries, analysis, and draft sections
-3. The scratchpad is your workspace - dump EVERYTHING there first
-
-```markdown
-# Business Analysis Scratchpad: [Task Title]
-
-Task: [task file path]
-Created: [date]
-
----
-
-## Phase 1: Requirements Discovery
-
-[Stage 2 content...]
-
-## Phase 2: Concept Extraction
-
-[Stage 3 findings...]
-
-## Phase 3: Requirements Analysis
-
-[Stage 4 analysis...]
-
-## Phase 4: Draft Output
-
-[Stage 5 synthesis...]
-
-## Self-Critique
-
-[Stage 7 verification...]
-```
-
----
-
-### STAGE 2: Requirements Discovery
+### STAGE 1: Requirements Discovery
 
 YOU MUST elicit the true business need behind the request. Probe beyond surface-level descriptions to uncover underlying problems, stakeholder motivations, and success criteria. NEVER accept the first description at face value.
 
@@ -172,7 +134,7 @@ Therefore, the root problem requires investigation: "Users cannot reliably acces
 
 ---
 
-### STAGE 3: Concept Extraction (in scratchpad)
+### STAGE 2: Concept Extraction (in scratchpad)
 
 #### Template for Your Analysis
 
@@ -266,7 +228,7 @@ Therefore, the key concepts are: multi-actor payment flow with strict compliance
 
 ---
 
-### STAGE 4: Requirements Analysis (in scratchpad)
+### STAGE 3: Requirements Analysis (in scratchpad)
 
 YOU MUST define functional and non-functional requirements with absolute precision. Vague requirements are WORTHLESS. Establish clear acceptance criteria, success metrics, constraints, and assumptions. Structure requirements hierarchically from high-level goals to specific features.
 
@@ -274,7 +236,7 @@ YOU MUST define functional and non-functional requirements with absolute precisi
 
 Use this template to write in scratchpad file:
 
-**4.1: User Scenarios**
+**3.1: User Scenarios**
 
 ```markdown
 ## Phase 3: Requirements Analysis
@@ -389,7 +351,7 @@ Step 5: How do we verify "quickly"?
 
 Therefore, testable criteria include: "Search by order ID returns exact match within 500ms", "Search by customer name returns partial matches within 2 seconds", "No results displays 'No orders found' with suggestion to adjust filters", "Results paginated at 20 items per page".
 
-**4.2: Acceptance Criteria Draft**
+**3.2: Acceptance Criteria Draft**
 
 For each criterion, write this in scratchpad file:
 
@@ -417,10 +379,12 @@ Then write summary in the scratchpad file:
 ```markdown
 ### Acceptance Criteria Draft
 
-| # | Criterion | Given | When | Then | Testable? |
-|---|-----------|-------|------|------|-----------|
-| 1 | [Description] | [Condition] | [Action] | [Outcome] | [Yes/No + reason] |
-| 2 | [Description] | [Condition] | [Action] | [Outcome] | [Yes/No + reason] |
+Assign every row a stable ID of the form `BC-N` (business criterion), numbered from `BC-1`. These IDs are the ONLY handle other sections use to cite a business criterion — never renumber them once assigned.
+
+| ID | Criterion | Given | When | Then | Testable? |
+|----|-----------|-------|------|------|-----------|
+| BC-1 | [Description] | [Condition] | [Action] | [Outcome] | [Yes/No + reason] |
+| BC-2 | [Description] | [Condition] | [Action] | [Outcome] | [Yes/No + reason] |
 
 ### Non-Functional Requirements
 - **Performance**: [Specific metric if applicable]
@@ -454,7 +418,7 @@ Additional criterion needed:
 
 Therefore, original criterion needs to be split into 2-3 specific, testable criteria covering: request reset, receive link, complete reset, and edge cases (expired link, invalid email).
 
-**4.3: Ambiguity Resolution**
+**3.3: Ambiguity Resolution**
 
 ```markdown
 ### Ambiguity Resolution
@@ -478,7 +442,7 @@ For unclear aspects, apply industry standards and reasonable defaults
 
 ---
 
-### STAGE 5: Synthesis
+### STAGE 4: Synthesis
 
 #### Guidance
 
@@ -548,7 +512,7 @@ Therefore, my refined description will: [Summary]
 3. **Error Handling**: [One sentence]
 
 ### Acceptance Criteria (Final)
-[Only criteria that passed testability check]
+[Only criteria that passed testability check — carry each one over under its original `BC-N` ID from Phase 3, do not renumber]
 ```
 
 #### Example: Synthesizing Step-by-Step Analysis
@@ -583,199 +547,15 @@ Therefore, my refined description will: (1) State the engagement retention probl
 
 ---
 
-### STAGE 6: Update Task File
+## Output
 
-**CRITICAL**: Read the current task file, then use Write tool to update with enhanced content, based on your analysis in scratchpad.
+This procedure produces **only** the scratchpad. When STAGES 1-4 are complete, the dispatching agent's scratchpad `.specs/scratchpad/<hex-id>.md` MUST contain:
 
-You MUST preserve frontmatter and initial user prompt in the task file. Only update the `# Description` section and add the `## Acceptance Criteria` section.
+| Scratchpad section | Produced by |
+|--------------------|-------------|
+| `## Phase 1: Requirements Discovery` | STAGE 1 |
+| `## Phase 2: Concept Extraction` | STAGE 2 |
+| `## Phase 3: Requirements Analysis` (incl. the business-perspective Acceptance Criteria Draft, whose rows mint the `BC-N` IDs) | STAGE 3 |
+| `## Phase 4: Draft Output` (refined description, scope summary, user scenarios, `Acceptance Criteria (Final)`) | STAGE 4 |
 
-#### Template for Updated Sections
-
-```markdown
-# Description
-
-[Refined description that answers:]
-- What is being built/changed/fixed
-- Why this is needed (business value)
-- Who will use/benefit from this
-- Key constraints or considerations
-
-**Scope**:
-- Included: [What's in scope]
-- Excluded: [What's explicitly out of scope]
-
-**User Scenarios**:
-1. **Primary Flow**: [Main use case]
-2. **Alternative Flow**: [Secondary use case, if applicable]
-3. **Error Handling**: [What happens when things go wrong]
-
-## Acceptance Criteria
-
-Clear, testable criteria using Given/When/Then or checkbox format:
-
-### Functional Requirements
-
-- [ ] **[Criterion 1]**: [Specific, testable requirement]
-  - Given: [Initial condition]
-  - When: [Action taken]
-  - Then: [Expected outcome]
-
-- [ ] **[Criterion 2]**: [Specific, testable requirement]
-  - Given: [Initial condition]
-  - When: [Action taken]
-  - Then: [Expected outcome]
-
-### Non-Functional Requirements (if applicable)
-
-- [ ] **Performance**: [Specific metric, e.g., "Response time < 200ms"]
-- [ ] **Security**: [Specific requirement, e.g., "Input sanitized against XSS"]
-- [ ] **Compatibility**: [Specific requirement, e.g., "Works in Node 18+"]
-
-### Definition of Done
-
-- [ ] All acceptance criteria pass
-- [ ] Tests written and passing
-- [ ] Documentation updated
-- [ ] Code reviewed
-```
-
----
-
-### STAGE 7: Self-Critique Loop (in scratchpad)
-
-**YOU MUST complete this self-critique AFTER drafting output.** NO EXCEPTIONS.
-
-#### Step 7.1: Verification Cycle
-
-Use this template to write in scratchpad file:
-
-```markdown
-## Self-Critique
-
-Let's think step by step about whether this specification meets quality standards...
-
-Step 1: Requirements Completeness
-[Your reasoning]
-
-Step 2: Scope Clarity
-[Your reasoning]
-
-[continue for all verification questions...]
-
-Conclusion: [Your conclusion]
-
-### Verification Results
-
-
-| # | Verification Question | Reasoning | Evidence | Rating |
-|---|----------------------|-----------|----------|--------|
-| 1 | **Requirements Completeness**: Have I captured all functional requirements, including edge cases and error scenarios, with testable acceptance criteria? | [Your step-by-step reasoning] | [Specific evidence] | COMPLETE/PARTIAL/MISSING |
-| 2 | **Scope Clarity**: Are the boundaries explicitly defined, with clear 'Out of Scope' items that prevent scope creep? | [Your step-by-step reasoning] | [Specific evidence] | COMPLETE/PARTIAL/MISSING |
-| 3 | **Acceptance Criteria Testability**: Can a QA engineer write test cases directly from each criterion without asking clarifying questions? | [Your step-by-step reasoning] | [Specific evidence] | COMPLETE/PARTIAL/MISSING |
-| 4 | **Business Value Traceability**: Does every requirement trace back to a stated business goal or user need? | [Your step-by-step reasoning] | [Specific evidence] | COMPLETE/PARTIAL/MISSING |
-| 5 | **No Implementation Details**: Is the spec free of HOW (tech stack, APIs, code structure)? | [Your step-by-step reasoning] | [Specific evidence] | COMPLETE/PARTIAL/MISSING |
-```
-
-#### Example: Self-Critique Reasoning
-
-Let's think step by step about whether this specification meets quality standards...
-
-Step 1: Requirements Completeness
-Looking at my functional requirements... I have 5 criteria covering the happy path. But wait - what about the error case when the user enters an invalid file type? I mentioned it in analysis but didn't create a criterion. This is a gap.
-
-Step 2: Scope Clarity
-My "Out of Scope" section says "future enhancements" - that's too vague. A developer might think feature X is in scope when I intended it out. I need to list specific features that are excluded.
-
-Step 3: Acceptance Criteria Testability
-Criterion #3 says "System responds quickly" - this is not testable. I need to specify "System responds within 2 seconds" with specific conditions.
-
-Step 4: Business Value Traceability
-Criterion #4 is about audit logging. But I never mentioned compliance or audit requirements in my business context. Either remove this criterion or add the business justification.
-
-Step 5: Implementation Independence
-Criterion #2 mentions "using Redis cache" - this is an implementation detail that doesn't belong in acceptance criteria. I should rewrite as "System caches results for improved performance" without specifying the technology.
-
-Conclusion:Therefore, I have 3 gaps to fix: (1) Add error handling criterion, (2) Make scope exclusions specific, (3) Remove Redis mention from criteria.
-
-#### Step 7.2: Gap Analysis
-
-Use this template to write in scratchpad file:
-
-```markdown
-### Gaps Found
-
-| Gap | Analysis | Action Needed | Priority |
-|-----|----------|---------------|----------|
-| [Weakness] | [What root cause of the gap is] | [Specific fix] | Critical/High/Med/Low |
-```
-
-#### Step 7.3: Revision Cycle
-
-YOU MUST address all Critical/High priority gaps BEFORE proceeding.
-After addressing the gap, write this in scratchpad file:
-
-```markdown
-### Revisions Made
-
-For each gap:
-- Gap: [X]
-- Action: [What I did]
-- Result: [Evidence of resolution]
-```
-
-**Common Failure Modes** (check against these):
-
-| Failure Mode | How to Detect | Required Fix |
-|--------------|---------------|--------------|
-| Vague acceptance criteria | Contains words like "quickly", "properly", "correctly" without metrics | Add specific conditions and measurable outcomes |
-| Missing error scenarios | Only happy path documented | Add at least 2 error cases with expected behavior |
-| Implementation details present | Mentions specific tech, APIs, frameworks | Remove all tech stack, API, code references |
-| Untestable criteria | Can't write a test case from the criterion | Rewrite with Given/When/Then format |
-| Scope boundaries unclear | "Out of Scope" is empty or says "TBD" | Add explicit In Scope/Out of Scope lists |
-
----
-
-#### File Structure After Update
-
-The task file should have this structure after your update:
-
-```markdown
----
-title: [KEEP EXISTING]
-status: [KEEP EXISTING]
-issue_type: [KEEP EXISTING]
-complexity: [KEEP EXISTING]
----
-
-# Initial User Prompt
-
-[PRESERVE ORIGINAL - NEVER DELETE]
-
-# Description
-
-[YOUR REFINED DESCRIPTION]
-
----
-
-## Acceptance Criteria
-
-[YOUR ACCEPTANCE CRITERIA]
-```
-
----
-
-## Expected Output
-
-CRITICAL: ONLY after completing analysis in scratchpad, updating the task file and self-critique loop, respond with this template:
-
-```
-Business Analysis Complete: [task file path]
-
-Scratchpad: .specs/scratchpad/<hex-id>.md
-Acceptance Criteria Added: X criteria
-Scope Defined: [Yes/No]
-User Scenarios: [Count] documented
-Complexity Validation: [Confirmed/Suggest adjustment to X]
-Self-Critique: 5 verification questions checked
-Gaps Addressed: [Count]
-```
+**Write NOTHING to the task file here.** The dispatching agent (`sdd:business-analyst`) owns the task file's `# Description` and `## Acceptance Criteria` sections, runs the self-critique over this output, and reports the result in its own `Expected Output` format.

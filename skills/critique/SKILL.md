@@ -1,7 +1,6 @@
 ---
 name: critique
 description: Comprehensive multi-perspective review using specialized judges with debate and consensus building
-argument-hint: Optional file paths, commits, or context to review (defaults to recent changes)
 ---
 
 # Work Critique Command

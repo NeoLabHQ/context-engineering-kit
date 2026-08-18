@@ -1,8 +1,6 @@
 ---
 name: create-pr
 description: Create pull requests using GitHub CLI with proper templates and formatting
-argument-hint: None required - interactive guide for PR creation
-allowed-tools: Bash(gh pr:*), Bash(gh auth:*), Bash(git status:*), Bash(git push:*), Bash(git branch:*), Skill(git:commit)
 ---
 
 # How to Create a Pull Request Using GitHub CLI
