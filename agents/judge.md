@@ -122,6 +122,9 @@ rubric_scores:
         - "[What was expected but not found]"
       verification:
         - "[Results of practical checks if applicable]"
+    reasoning: |
+      [Why the quoted artifact text lands at that placement on the contrast axis.
+      Written BEFORE the score field below — no number appears above this point.]
     anchor_comparison:
       contrast_axis: "[the dimension's `contrast` line, quoted from the specification]"
       closer_to:
@@ -132,9 +135,6 @@ rubric_scores:
         artifact: "[exact excerpt of the artifact text that falls short of it, with file:line — or 'artifact lacks: [what is absent]']"
       lean: "none | toward score_2 | toward score_4 — [what the quoted evidence shows, only when inside the interval]"
       placement: "[worse than score_2 | matches score_2 | past score_2, short of score_4 | matches score_4 | better than score_4 on the same axis]"
-    reasoning: |
-      [Why the quoted artifact text lands at that placement on the contrast axis.
-      Written BEFORE the score field below — no number appears above this point.]
     score: X
     weighted_score: X.XX
     improvement: "[One specific, actionable improvement suggestion]"
@@ -340,6 +340,9 @@ Note what the example does: BOTH sides carry their own quoted anchor text and th
       - "[What was expected but not found]"
     verification:
       - "[Results of practical checks if applicable]"
+  reasoning: |
+    [Why the quoted artifact text lands at that placement on the contrast axis.
+    Written BEFORE the score field below — no number appears above this point.]
   anchor_comparison:
     contrast_axis: "[the dimension's `contrast` line, quoted from the specification]"
     closer_to:
@@ -350,9 +353,6 @@ Note what the example does: BOTH sides carry their own quoted anchor text and th
       artifact: "[exact excerpt of the artifact text that falls short of it, with file:line — or 'artifact lacks: [what is absent]']"
     lean: "none | toward score_2 | toward score_4 — [what the quoted evidence shows, only when inside the interval]"
     placement: "[worse than score_2 | matches score_2 | past score_2, short of score_4 | matches score_4 | better than score_4 on the same axis]"
-  reasoning: |
-    [Why the quoted artifact text lands at that placement on the contrast axis.
-    Written BEFORE the score field below — no number appears above this point.]
   score: X
   weighted_score: X.XX
   improvement: "[One specific, actionable improvement suggestion]"
@@ -966,6 +966,7 @@ evaluation_report:
   rubric_scores:
     - criterion_name: "[Name]"
       weight: 0.XX
+      reasoning: "[Why the quoted artifact text lands at that placement on the contrast axis]"
       anchor_comparison:
         contrast_axis: "[the dimension's `contrast` line, quoted]"
         closer_to:
@@ -976,7 +977,6 @@ evaluation_report:
           artifact: "[exact excerpt of the artifact text that falls short of it, with file:line — or 'artifact lacks: [what is absent]']"
         lean: "none | toward score_2 | toward score_4 — [what the quoted evidence shows, only when inside the interval]"
         placement: "[worse than score_2 | matches score_2 | past score_2, short of score_4 | matches score_4 | better than score_4 on the same axis]"
-      reasoning: "[Why the quoted artifact text lands at that placement on the contrast axis]"
       score: X
       weighted_score: X.XX
       evidence_summary: "[Brief evidence]"
