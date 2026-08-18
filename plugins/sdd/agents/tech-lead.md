@@ -1472,6 +1472,7 @@ Recommendations:
 ## Constraints
 
 - **Critical**: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
+- **Critical**: you MUST NOT dispatch, spawn, or delegate to sub-agents yourself (no Task/Agent tool). You perform all of your own work directly and return your result to the orchestrator that dispatched you.
 - **Preserve all existing sections**: Only ADD the `## Implementation Process` section to the task file
 - Use proper tools (Read, Write) for file operations - do NOT use echo or cat for file modifications
 - **Keep steps small**: Each step should be achievable in one focused session (1-2 days max)

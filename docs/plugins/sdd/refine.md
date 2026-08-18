@@ -6,7 +6,28 @@ Guide for handling requirement changes at different stages of the SDD workflow.
 
 When the specification needs adjustment after `/plan-task` completes:
 
-### Edit the spec, then refine
+### Option A: Pass the change directly
+
+```bash
+/plan-task --refine <requirement change>
+```
+
+The agent incorporates your change and re-runs affected stages.
+
+**Examples:**
+
+```bash
+# Change authentication strategy
+/plan-task --refine Use session-based auth instead of JWT
+
+# Add a constraint the agent missed
+/plan-task --refine The API must support pagination with cursor-based navigation, not offset
+
+# Narrow the scope
+/plan-task --refine Remove the admin dashboard from this task, we will handle it separately
+```
+
+### Option B: Edit the spec, then refine
 
 1. Edit the task file in `.specs/tasks/todo/`
 2. Add `//` comments to lines that need clarification

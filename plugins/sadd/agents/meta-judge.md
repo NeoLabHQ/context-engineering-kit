@@ -37,6 +37,8 @@ You will receive:
 
 Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
 
+Critical: you MUST NOT dispatch, spawn, or delegate to sub-agents (no Task/Agent tool). You perform all of your own work directly and return your result to the orchestrator that dispatched you.
+
 
 ## Output Format
 
@@ -52,11 +54,11 @@ rubric_dimensions:
     weight: 0.XX
     instruction: "Instructions for the judge on how to score this dimension"
     anchors:
+      contrast: "[one line: the single observable difference between the two]"
       score_2: |
         [shortest concrete example that obviously FAILS this dimension]
       score_4: |
         [shortest concrete example that obviously SATISFIES this dimension]
-      contrast: "[one line: the single observable difference between the two]"
 ```
 
 **Anchor rules (MANDATORY)**:
@@ -206,11 +208,11 @@ rubric_dimensions:
     weight: 0.XX
     instruction: “[How to score]”
     anchors:
+      contrast: “[the single observable difference between the two]”
       score_2: |
         [shortest excerpt of the BAD example that fails this dimension]
       score_4: |
         [shortest excerpt of the GOOD example that satisfies this dimension]
-      contrast: “[the single observable difference between the two]”
 ```
 
 ---
@@ -293,11 +295,11 @@ evaluation_specification:
       weight: 0.XX
       instruction: "[Instructions for the judge on how to score this dimension]"
       anchors:
+        contrast: "[one line: the single observable difference between the two]"
         score_2: |
           [shortest concrete example that obviously FAILS this dimension]
         score_4: |
           [shortest concrete example that obviously SATISFIES this dimension]
-        contrast: "[one line: the single observable difference between the two]"
 ```
 
 #### Reasoning Framework: Chain-of-Thought
@@ -504,31 +506,31 @@ rubric_dimensions:
     scale: “1-5”
     weight: 0.35
     anchors:
+      contrast: “Engages a sense beyond sight, not just a visible attribute of the same feature.”
       score_2: |
         a woman with brown hair
       score_4: |
         a woman whose hair smelled of woodsmoke
-      contrast: “score_4 engages a sense beyond sight; score_2 names only a visible attribute of the same feature.”
   - name: “Originality and Distinctiveness”
     description: “Does the description present distinctive, memorable traits while avoiding clichés?”
     scale: “1-5”
     weight: 0.35
     anchors:
+      contrast: “Belongs to no stock character, not just a stock phrase.”
       score_2: |
         she had a heart of gold under it all
       score_4: |
         she kept a ledger of every promise she had broken
-      contrast: “score_4's trait belongs to no stock character; score_2's is a stock phrase.”
   - name: “Conciseness and Balance”
     description: “Does the description balance detail with brevity, avoiding unnecessary verbosity?”
     scale: “1-5”
     weight: 0.30
     anchors:
+      contrast: “States the trait once, not restates the same trait a second time.”
       score_2: |
         She was a serious woman, quite serious indeed.
       score_4: |
         She was a serious woman.
-      contrast: “score_4 states the trait once; score_2 restates the same trait a second time.”
 ```
 
 Write the assembled rubric to the **Draft Rubric** section of the scratchpad.
@@ -736,13 +738,13 @@ rubric_dimensions:
     weight: 0.30
     instruction: "List the endpoints the service exposes and the endpoints that have a test. Place the artifact against the anchors: every untested endpoint pulls it toward score_2."
     anchors:
+      contrast: "Tests every endpoint the service exposes, not only some of them."
       score_2: |
         # endpoints: GET /users, POST /users, GET /users/:id
         test("GET /users", ...)
       score_4: |
         # endpoints: GET /users, POST /users, GET /users/:id
         test("GET /users", ...); test("POST /users", ...); test("GET /users/:id", ...)
-      contrast: "score_4 tests every endpoint the service exposes; score_2 tests only some of them."
 
   - name: "Assertion Quality"
     description: "Do the assertions verify the specific contract of the response, or only that something returned?"
@@ -750,12 +752,12 @@ rubric_dimensions:
     weight: 0.25
     instruction: "Examine each assertion. Are they testing meaningful behavior or just that 'something returned'? Place the artifact against the anchors."
     anchors:
+      contrast: "Asserts the response body as well, not only the status."
       score_2: |
         expect(res.status).toBe(200);
       score_4: |
         expect(res.status).toBe(200);
         expect(res.body).toEqual([{ id: expect.any(String), email: "a@b.c" }]);
-      contrast: "score_4 asserts the response body as well; score_2 asserts only the status."
 
   - name: "Test Independence"
     description: "Can each test run on its own, without shared state or a required ordering?"
@@ -763,12 +765,12 @@ rubric_dimensions:
     weight: 0.20
     instruction: "Check for shared mutable state, test ordering dependencies, and global setup that couples tests. Place the artifact against the anchors."
     anchors:
+      contrast: "Creates the data it reads, not fails unless a previous test ran first."
       score_2: |
         let userId;  // set by an earlier test
         test("reads the user", ... => { await api.get(`/users/${userId}`); });
       score_4: |
         test("reads the user", ... => { const { id } = (await api.post("/users", newUser)).body; await api.get(`/users/${id}`); });
-      contrast: "score_4's test creates the data it reads; score_2's test fails unless a previous test ran first."
 
   - name: "Error Path Coverage"
     description: "Do the tests exercise the documented failure responses, not only the success path?"
@@ -776,12 +778,12 @@ rubric_dimensions:
     weight: 0.15
     instruction: "Check if tests include invalid inputs, missing auth, malformed requests. Place the artifact against the anchors."
     anchors:
+      contrast: "Exercises the endpoint's failure responses as well, not only its success response."
       score_2: |
         test("GET /users/:id returns 200", ...)
       score_4: |
         test("GET /users/:id returns 200", ...)
         test("GET /users/:id with an unknown id returns 404", ...)
-      contrast: "score_4 exercises the endpoint's failure responses as well; score_2 exercises only its success response."
 
   - name: "Code Clarity"
     description: "Does each test name state the behaviour under test?"
@@ -789,11 +791,11 @@ rubric_dimensions:
     weight: 0.10
     instruction: "Are test names descriptive? Is setup code clear? Can a new developer understand each test's purpose? Place the artifact against the anchors."
     anchors:
+      contrast: "Names the behaviour under test, not identifies nothing."
       score_2: |
         test("test1", ...)
       score_4: |
         test("GET /users returns the seeded user list", ...)
-      contrast: "score_4's name states the behaviour under test; score_2's name identifies nothing."
 
 scoring:
   aggregation: "weighted_sum"
@@ -842,9 +844,9 @@ evaluation_specification:
       weight: 0.XX
       instruction: "[Instructions for the judge on how to score this dimension]"
       anchors:
+        contrast: "[one line: the single observable difference between the two]"
         score_2: |
           [shortest concrete example that obviously FAILS this dimension]
         score_4: |
           [shortest concrete example that obviously SATISFIES this dimension]
-        contrast: "[one line: the single observable difference between the two]"
 ```

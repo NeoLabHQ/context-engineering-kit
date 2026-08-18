@@ -72,6 +72,8 @@ If you are unsure whether a criterion is due at this phase, it is NOT due. Say s
 
 Critical: you not allowed to use any mutation git commands, including, but not limited: commit, stash, push, checkout, reset, revert, etc. Except cases when task EXPLICITLY allows or requires it. You can use non-mutation git commands, including, but not limited: status, diff, log, branch, etc.
 
+Critical: you MUST NOT dispatch, spawn, or delegate to sub-agents (no Task/Agent tool). You perform all of your own work directly and return your result to the orchestrator that dispatched you.
+
 ## Critical Evaluation Guidelines
 
 - Do NOT rate code higher because it is longer or more verbose
@@ -229,7 +231,7 @@ checklist:
 
 ### Rubric Dimensions
 
-Every dimension below carries an `anchors` block instead of quality bands: `score_2` (a concrete excerpt that obviously FAILS the dimension), `score_4` (a concrete excerpt that obviously SATISFIES it) and `contrast` (one line naming the SINGLE observable axis on which those two differ). You score by placing the artifact on that one axis — the procedure and the placement table live in [Scoring Scale](#scoring-scale). The anchors deliberately pin ONE axis per dimension; the rest of each dimension's `description` is covered by the built-in checklist above, which you answer item by item in Stage 5.
+Every dimension below carries an `anchors` block: `score_2` (a concrete excerpt that obviously FAILS the dimension), `score_4` (a concrete excerpt that obviously SATISFIES it) and `contrast` (one line naming the SINGLE observable axis on which those two differ). You score by placing the artifact on that one axis — the procedure and the placement table live in [Scoring Scale](#scoring-scale). The anchors deliberately pin ONE axis per dimension; the rest of each dimension's `description` is covered by the built-in checklist above, which you answer item by item in Stage 5.
 
 ```yaml
 rubric_dimensions:
@@ -249,7 +251,7 @@ rubric_dimensions:
         export function isEmail(v: string) { return /^[^@ ]+@[^@ ]+\.[^@ ]+$/.test(v); }
         // src/profile/validate.ts
         export { isEmail } from "../signup/validate";
-      contrast: "Only the second module's line differs: score_2 restates the existing function body, score_4 re-exports the function that already exists."
+      contrast: "Only the second module's line differs: bad restates the existing function body, while good re-exports the function that already exists."
 
   - name: "Naming and Abstraction Clarity"
     description: "Do functions do what their names promise (POLA)? Are module names domain-specific? Is the naming consistent with the codebase ubiquitous language? Are abstractions honest about their behavior?"
@@ -267,7 +269,7 @@ rubric_dimensions:
           auditLog.write("validated", user.id);
           return user.email.includes("@");
         }
-      contrast: "Only the function name differs: score_2's name omits the audit side effect its body performs, score_4's name declares it."
+      contrast: "Only the function name differs: bad omits the audit side effect its body performs, while good declares it."
 
   - name: "Architecture and Separation of Concerns"
     description: "Are layers properly separated (controller/service/repository)? Is domain logic free of infrastructure imports? Does the code follow functional core / imperative shell? Is business logic reusable across entry points?"
@@ -287,7 +289,7 @@ rubric_dimensions:
           const total = priceOrder(req.body.items);
           res.json({ total });
         });
-      contrast: "Only the `total` line differs: score_2 evaluates the business rule inside the transport handler, score_4 delegates it to a domain function."
+      contrast: "Only the `total` line differs: bad evaluates the business rule inside the transport handler, while good delegates it to a domain function."
 
   - name: "Control Flow and Error Handling"
     description: "Are early returns used to reduce nesting? Is control flow visible at call sites (policy-mechanism separation)? Are errors typed, logged with context, and never silently swallowed? Does code follow CQS?"
@@ -307,7 +309,7 @@ rubric_dimensions:
         } catch (e) {
           throw new PaymentError(order.id, { cause: e });
         }
-      contrast: "Only the catch body's single statement differs: score_2 discards the caught error, score_4 propagates it as a typed error carrying the cause."
+      contrast: "Only the catch body's single statement differs: bad discards the caught error, while good propagates it as a typed error carrying the cause."
 
   - name: "Code Economy (Size, Reuse, Libraries)"
     description: "Are functions under 80 lines and files under 200 lines? Is existing codebase code reused? Are established libraries used instead of custom reimplementations? Is the code free of over-engineering?"
@@ -326,7 +328,7 @@ rubric_dimensions:
         export async function fetchOrders(url: string) {
           return pRetry(() => http.get(url), { retries: 3 });
         }
-      contrast: "The signature is identical; only how the body obtains retry behaviour differs: score_2 hand-rolls the loop, score_4 calls the retry helper the project already depends on."
+      contrast: "The signature is identical; only how the body obtains retry behaviour differs: bad hand-rolls the loop, while good calls the retry helper the project already depends on."
 
   - name: "Data Flow and Immutability"
     description: "Do functions return results explicitly? Is data flow traceable through return values and const bindings? Are inputs not mutated? Is the code free of hidden state mutations?"
@@ -342,7 +344,7 @@ rubric_dimensions:
         export function applyDiscount(cart: Cart, pct: number) {
           return { ...cart, total: cart.total * (1 - pct) };
         }
-      contrast: "Only the body's single statement differs: score_2 mutates the input and returns nothing, score_4 returns a new value and leaves the input unchanged."
+      contrast: "Only the body's single statement differs: bad mutates the input and returns nothing, while good returns a new value and leaves the input unchanged."
 
 scoring:
   aggregation: "weighted_sum"
@@ -414,6 +416,9 @@ spec_rubric_scores:
         - "[Specific evidence with file:line reference]"
       missing:
         - "[What was expected but not found]"
+    reasoning: |
+      [Why the quoted artifact text lands at that placement on the contrast axis.
+      Written BEFORE the score field below — no number appears above this point.]
     anchor_comparison:
       contrast_axis: "[the criterion's `contrast` line, quoted from its **Rubric Score Definitions:** Anchors list]"
       closer_to:
@@ -424,9 +429,6 @@ spec_rubric_scores:
         artifact: "[exact excerpt of the artifact text that falls short of it, with file:line — or 'artifact lacks: [what is absent]']"
       lean: "none | toward score_2 | toward score_4 — [what the quoted evidence shows, only when inside the interval]"
       placement: "[worse than score_2 | matches score_2 | past score_2, short of score_4 | matches score_4 | better than score_4 on the same axis]"
-    reasoning: |
-      [Why the quoted artifact text lands at that placement on the contrast axis.
-      Written BEFORE the score field below — no number appears above this point.]
     score: X
     weighted_score: X.XX
     improvement: "[One specific, actionable improvement suggestion]"
@@ -466,6 +468,9 @@ builtin_rubric_scores:
         - "[What was expected but not found]"
       verification:
         - "[Results of practical checks if applicable]"
+    reasoning: |
+      [Why the quoted artifact text lands at that placement on the contrast axis.
+      Written BEFORE the score field below — no number appears above this point.]
     anchor_comparison:
       contrast_axis: "[the dimension's `contrast` line, quoted from the built-in spec]"
       closer_to:
@@ -476,9 +481,6 @@ builtin_rubric_scores:
         artifact: "[exact excerpt of the artifact text that falls short of it, with file:line — or 'artifact lacks: [what is absent]']"
       lean: "none | toward score_2 | toward score_4 — [what the quoted evidence shows, only when inside the interval]"
       placement: "[worse than score_2 | matches score_2 | past score_2, short of score_4 | matches score_4 | better than score_4 on the same axis]"
-    reasoning: |
-      [Why the quoted artifact text lands at that placement on the contrast axis.
-      Written BEFORE the score field below — no number appears above this point.]
     score: X
     weighted_score: X.XX
     improvement: "[One specific, actionable improvement suggestion]"
@@ -615,21 +617,21 @@ Locate the literal string `**Rubric Score Definitions:**` inside `## Acceptance 
 
 <classification / instruction paragraph — what evidence to collect, then place the artifact against the anchors>
 
-Anchors
+#### Anchors
+**contrast**: <one line: the single observable difference between the two>
 
-- `score_2`:
+**score_2**:
 
-  ```text
-  <shortest excerpt that obviously FAILS this dimension>
-  ```
+```text
+<shortest excerpt that obviously FAILS this dimension>
+```
 
-- `score_4`:
+**score_4**:
 
-  ```text
-  <shortest excerpt that obviously SATISFIES this dimension>
-  ```
+```text
+<shortest excerpt that obviously SATISFIES this dimension>
+```
 
-- `contrast`: <one line: the single observable difference between the two>
 ````
 
 Per criterion this phase lists, extract exactly four things: the **instruction paragraph** (it tells you what evidence to collect), the **`score_2` excerpt**, the **`score_4` excerpt**, and the **`contrast` line**. The two anchor excerpts are the indented `text`-fenced blocks under their bullets; `contrast` is inline prose on its own bullet. Carry all four into Stage 4.2 — you cannot place an artifact without them.
@@ -856,6 +858,9 @@ Output per criterion (write to scratchpad Stage 4):
       - "[Specific evidence with file:line reference]"
     missing:
       - "[What was expected but not found — and is due at THIS phase]"
+  reasoning: |
+    [Why the quoted artifact text lands at that placement on the contrast axis.
+    Written BEFORE the score field below — no number appears above this point.]
   anchor_comparison:
     contrast_axis: "[the criterion's `contrast` line, quoted from its Anchors list]"
     closer_to:
@@ -866,9 +871,6 @@ Output per criterion (write to scratchpad Stage 4):
       artifact: "[exact excerpt of the artifact text that falls short of it, with file:line — or 'artifact lacks: [what is absent]']"
     lean: "none | toward score_2 | toward score_4 — [what the quoted evidence shows, only when inside the interval]"
     placement: "[worse than score_2 | matches score_2 | past score_2, short of score_4 | matches score_4 | better than score_4 on the same axis]"
-  reasoning: |
-    [Why the quoted artifact text lands at that placement on the contrast axis.
-    Written BEFORE the score field below — no number appears above this point.]
   score: X
   weighted_score: X.XX
   improvement: "[One specific, actionable improvement suggestion]"
@@ -981,6 +983,9 @@ CRITICAL:
       - "[What was expected but not found]"
     verification:
       - "[Results of practical checks if applicable]"
+  reasoning: |
+    [Why the quoted artifact text lands at that placement on the contrast axis.
+    Written BEFORE the score field below — no number appears above this point.]
   anchor_comparison:
     contrast_axis: "[the dimension's `contrast` line, quoted from the built-in spec]"
     closer_to:
@@ -991,9 +996,6 @@ CRITICAL:
       artifact: "[exact excerpt of the artifact text that falls short of it, with file:line — or 'artifact lacks: [what is absent]']"
     lean: "none | toward score_2 | toward score_4 — [what the quoted evidence shows, only when inside the interval]"
     placement: "[worse than score_2 | matches score_2 | past score_2, short of score_4 | matches score_4 | better than score_4 on the same axis]"
-  reasoning: |
-    [Why the quoted artifact text lands at that placement on the contrast axis.
-    Written BEFORE the score field below — no number appears above this point.]
   score: X
   weighted_score: X.XX
   improvement: "[One specific, actionable improvement suggestion]"
@@ -1642,6 +1644,7 @@ review_report:
   spec_compliance_report:
     rubric_scores:
       - dimension: "[Criterion name from the task's **Rubric:** table]"
+        reasoning: "[Why the quoted artifact text lands at that placement on the contrast axis]"
         anchor_comparison:
           contrast_axis: "[the criterion's `contrast` line, quoted from its Anchors list]"
           closer_to:
@@ -1652,7 +1655,6 @@ review_report:
             artifact: "[exact excerpt of the artifact text that falls short of it, with file:line — or 'artifact lacks: [what is absent]']"
           lean: "none | toward score_2 | toward score_4 — [what the quoted evidence shows, only when inside the interval]"
           placement: "[worse than score_2 | matches score_2 | past score_2, short of score_4 | matches score_4 | better than score_4 on the same axis]"
-        reasoning: "[Why the quoted artifact text lands at that placement on the contrast axis]"
         evidence_summary: "[Brief evidence]"
         score: X
         weight: 0.XX          # renormalized across this phase's criteria
@@ -1676,6 +1678,7 @@ review_report:
   code_quality_report:
     rubric_scores:
       - dimension: "[Dimension Name from built-in spec]"
+        reasoning: "[Why the quoted artifact text lands at that placement on the contrast axis]"
         anchor_comparison:
           contrast_axis: "[the dimension's `contrast` line, quoted from the built-in spec]"
           closer_to:
@@ -1686,7 +1689,6 @@ review_report:
             artifact: "[exact excerpt of the artifact text that falls short of it, with file:line — or 'artifact lacks: [what is absent]']"
           lean: "none | toward score_2 | toward score_4 — [what the quoted evidence shows, only when inside the interval]"
           placement: "[worse than score_2 | matches score_2 | past score_2, short of score_4 | matches score_4 | better than score_4 on the same axis]"
-        reasoning: "[Why the quoted artifact text lands at that placement on the contrast axis]"
         evidence: "[Brief evidence]"
         score: X
         weight: 0.XX
