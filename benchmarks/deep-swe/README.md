@@ -45,7 +45,7 @@ Runs the [DeepSWE](https://deepswe.datacurve.ai/) coding-agent benchmark (113 re
 
      Leave `ANTHROPIC_API_KEY` unset so pier's env-stripping picks the OAuth token.
 
-     **Unverified — hedge this before trusting the [Cost and time](#cost-and-time--read-this-before---mode-full) numbers below under this auth mode:** whether `--max-budget-usd` and pier's per-trial cost parsing (`total_cost_usd` from the stream, `claude_code.py:665-691`, method `_parse_total_cost_from_stream_json`) report meaningful, correct dollar figures under subscription/OAuth auth — as opposed to first-party API-key billing — was **not tested** as part of this change. Subscription auth also carries its own rate limits this harness has no visibility into. Run `--mode sample` first and inspect `results.json`'s `avg_cost_usd` yourself before relying on it under OAuth auth.
+     **Unverified — hedge this before trusting the [Cost and time](#cost-and-time--read-this-before---mode-full) numbers below under this auth mode:** whether pier's per-trial cost parsing (`total_cost_usd` from the stream, `claude_code.py:665-691`, method `_parse_total_cost_from_stream_json`) reports meaningful, correct dollar figures under subscription/OAuth auth — as opposed to first-party API-key billing — was **not tested** as part of this change. Subscription auth also carries its own rate limits this harness has no visibility into. Run `--mode sample` first and inspect `results.json`'s `avg_cost_usd` yourself before relying on it under OAuth auth.
 
    - **AWS Bedrock:**
 
@@ -158,11 +158,10 @@ The cost and time figures below are all derived from the unfiltered 10/13-arm co
 
 | Basis | Per-trial | 1,130 trials | 1,469 trials |
 |---|---:|---:|---:|
-| **Fact** — `run.py`'s own hard cap, `--max-budget-usd` default (source: `build_arg_parser`) | $3.00 | $3,390 | $4,407 |
 | **Fact** — official leaderboard's real measured cost for a *bare, non-judged* single agent on these same 113 tasks (`data/leaderboard.json.tiers.{sonnet,opus}.avg_cost_usd` — mini-swe-agent, not this harness) | $11.84 (opus) – $26.40 (sonnet) | $13,379 – $29,832 | $17,393 – $38,782 |
 | **Assumption** — a judged trial (implementation pass + judge pass, or a judge per step) costs roughly 1.5–3× that bare-agent baseline | ~$20 (round, blended across tiers/skills) | ~$22,600 | ~$29,380 |
 
-The middle row is the load-bearing fact here, not an estimate: it is real, vendored data showing that a *single, non-judged* agent already costs $12–26 per trial on these tasks — **4×–9× above `run.py`'s own $3 default budget cap.** Since `do-and-judge`/`do-in-steps` do strictly more work than that bare agent, the practical implication is blunt: **at the default `--max-budget-usd`, most sonnet/opus-tier judged trials will likely exhaust their budget before finishing** and end up `status: errored` (excluded from Pass@1, but still billed for whatever ran before the cutoff) rather than completing. Raise `--max-budget-usd` well above $3 (e.g. `--max-budget-usd 25`) before attempting `--mode full`, and use `--mode sample` to see your own real per-trial spend first — `results.json`'s `avg_cost_usd` per arm is ground truth; nothing above is.
+The top row is the load-bearing fact here, not an estimate: it is real, vendored data showing that a *single, non-judged* agent already costs $12–26 per trial on these tasks. Since `do-and-judge`/`do-in-steps` do strictly more work than that bare agent, a full run is a real financial commitment at the blended per-trial estimate above. This harness enforces no per-trial spend cap — every trial runs to completion or errors for an unrelated infra reason, it is never cut off partway through for cost reasons — so use `--mode sample` first to see your own real per-trial spend before committing to `--mode full`; `results.json`'s `avg_cost_usd` per arm is ground truth, nothing above is.
 
 **Fact** — Anthropic first-party API pricing per million tokens, fetched from `https://platform.claude.com/docs/en/about-claude/pricing` on 2026-08-09: Haiku 4.5 $1.00 / $5.00 (in/out), Sonnet 5 $2.00 / $10.00 introductory through 2026-08-31 (standard $3.00 / $15.00 from 2026-09-01), Opus 5 $5.00 / $25.00 (in/out). Haiku-tier arms will sit well under the blended $20/trial assumption above; opus/opus arms well above it.
 
@@ -177,10 +176,10 @@ The middle row is the load-bearing fact here, not an estimate: it is real, vendo
 
 ### 4. Full run
 
-Once you've raised `--max-budget-usd` based on a `--mode sample` result:
+Once you've reviewed your real per-trial spend from a `--mode sample` result (see [Cost](#cost) above):
 
 ```bash
-uv run python3 run.py --mode full --dataset-dir /path/to/deep-swe/tasks --max-budget-usd 25
+uv run python3 run.py --mode full --dataset-dir /path/to/deep-swe/tasks
 # add --with-vanilla for the 3 no-plugin control arms (13 arms, 1,469 trials, instead of 10/1,130)
 # add --skill do-and-judge (or do-in-steps) to run only that skill's 5 arms, 565 trials
 # (8 arms, 904 trials, with --with-vanilla) instead of both skills' 10/1,130 (13/1,469)
@@ -202,7 +201,7 @@ python3 collect.py
 
 `results.csv` is one row per trial. Its `reward` column is the verifier's own scalar binary verdict — `0` or `1`, the `reward` key of the `rewards` bundle each trial's verifier writes, blank when a bundle carries no such key. It is **not** a sum or score over that bundle: the verifier reports `rewards` as a metrics bundle (test counts, `f2p`/`p2p` ratios, a `partial` graded-credit score) alongside the one binary `reward`, and only the scalar answers "was this task solved". `resolved`/`status` are derived from the same scalar — see `verifier_reports_success()` in `collect.py`.
 
-Infrastructure failures (Docker build failures, agent/verifier timeouts, budget exhaustion) are classified `errored` and excluded from the Pass@1 denominator and every average — `n_errored` is reported separately per arm so nothing silently disappears. Re-runnable any time; it rebuilds both output files from scratch rather than merging.
+Infrastructure failures (Docker build failures, agent/verifier timeouts, API rate-limit failures) are classified `errored` and excluded from the Pass@1 denominator and every average — `n_errored` is reported separately per arm so nothing silently disappears. Re-runnable any time; it rebuilds both output files from scratch rather than merging.
 
 ### 6. Generate the report
 

@@ -320,7 +320,6 @@ def build_pier_command(
     template_path: Path,
     job_name: str,
     jobs_dir: Path,
-    max_budget_usd: float,
     agent_timeout_multiplier: float,
     dataset_args: list[str],
 ) -> list[str]:
@@ -328,9 +327,7 @@ def build_pier_command(
     `datacurve_pier==0.3.0` (see task handoff notes for the verification
     transcript): --agent-import-path, -m, --ak, --agent-timeout-multiplier,
     --job-name, --jobs-dir, -p, -l, --sample-seed all exist with this exact
-    spelling. --max-budget-usd is NOT a top-level pier flag (only
-    ClaudeCode's own CLI_FLAGS declare it) so it goes through --ak, not
-    top-level, matching claude_code.py's `CliFlag("max_budget_usd", ...)`.
+    spelling.
     """
     cmd = [
         pier_bin,
@@ -345,7 +342,6 @@ def build_pier_command(
         # and must never receive --plugin-dir.
         cmd += ["--ak", f"plugin_dir={PLUGIN_DIR}"]
     cmd += ["--ak", f"prompt_template_path={template_path}"]
-    cmd += ["--ak", f"max_budget_usd={max_budget_usd}"]
     cmd += ["--agent-timeout-multiplier", str(agent_timeout_multiplier)]
     cmd += ["--job-name", job_name, "--jobs-dir", str(jobs_dir)]
     cmd += dataset_args
@@ -593,7 +589,6 @@ def run_preflight(args: argparse.Namespace) -> int:
         template_path=template_path,
         job_name=job_name,
         jobs_dir=args.jobs_dir,
-        max_budget_usd=args.max_budget_usd,
         agent_timeout_multiplier=args.agent_timeout_multiplier,
         dataset_args=dataset_args,
     )
@@ -706,12 +701,6 @@ def build_arg_parser() -> argparse.ArgumentParser:
         help="Re-run arms even if a prior invocation already completed them.",
     )
     parser.add_argument(
-        "--max-budget-usd",
-        type=float,
-        default=3.0,
-        help="Per-trial spend cap, forwarded to claude-code's --max-budget-usd (default: %(default)s).",
-    )
-    parser.add_argument(
         "--agent-timeout-multiplier",
         type=float,
         default=3.0,
@@ -770,7 +759,6 @@ def run_arm(arm: Arm, args: argparse.Namespace, dataset_args: list[str]) -> tupl
         template_path=template_path,
         job_name=arm.id,
         jobs_dir=args.jobs_dir,
-        max_budget_usd=args.max_budget_usd,
         agent_timeout_multiplier=args.agent_timeout_multiplier,
         dataset_args=dataset_args,
     )
@@ -787,7 +775,6 @@ def preview_arm_command(arm: Arm, args: argparse.Namespace, dataset_args: list[s
         template_path=job_dir / "prompt.j2",
         job_name=arm.id,
         jobs_dir=args.jobs_dir,
-        max_budget_usd=args.max_budget_usd,
         agent_timeout_multiplier=args.agent_timeout_multiplier,
         dataset_args=dataset_args,
     )

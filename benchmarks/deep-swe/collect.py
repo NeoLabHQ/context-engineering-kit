@@ -45,7 +45,7 @@ checked in this order (first match wins), each verified against pier's real
 |---|----------------------------------------------------------------|------------|
 | 1 | result.json missing/corrupt/truncated (can't even be parsed)   | errored    |
 | 2 | non-vanilla trial, `sadd` plugin didn't load (system/init event)| errored   |
-| 3 | `TrialResult.exception_info` is set (pier's own infra-failure signal: Docker/environment build failure, agent/verifier timeout, non-zero agent exit code, cancellation -- and transitively, an API 529/rate-limit or budget exhaustion that crashed the `claude` process; see `infra_error_category()` for how the raw exception type is normalized into one of these) | errored |
+| 3 | `TrialResult.exception_info` is set (pier's own infra-failure signal: Docker/environment build failure, agent/verifier timeout, non-zero agent exit code, cancellation -- and transitively, an API 529/rate-limit failure that crashed the `claude` process; see `infra_error_category()` for how the raw exception type is normalized into one of these) | errored |
 | 4 | `verifier_result` missing, or its `rewards` dict is missing/empty (verifier never produced a scalar) | errored |
 | 5 | `rewards["reward"] == 1` -- or, for a bundle carrying no `reward` key, `f2p == 1.0 and p2p == 1.0`, falling back last to every value in `rewards` equalling `1` | resolved |
 | 6 | otherwise (verifier ran and did not report success)            | unresolved |
@@ -70,10 +70,10 @@ PASS@1 DENOMINATOR
 `errored` trials are EXCLUDED from every per-arm average (Pass@1, avg cost,
 avg output tokens, avg steps): they are not task attempts, and their
 cost/token/step figures are contaminated by whatever infra failure occurred
-(a Docker build failure trial burns ~$0; a timeout can burn the full
-budget without finishing). `n_errored` is still reported per arm, separately,
-so a reader can see how much data was dropped without it silently
-disappearing from the numbers.
+(a Docker build failure trial burns ~$0; a timeout can burn substantial
+cost before pier kills it, without finishing). `n_errored` is still reported
+per arm, separately, so a reader can see how much data was dropped without
+it silently disappearing from the numbers.
 
 RE-RUNNABLE BY CONSTRUCTION
 -----------------------------
@@ -267,17 +267,17 @@ def plugin_load_error_from_init_event(init_event: dict[str, Any] | None) -> str 
 # (asyncio's built-in, surfaced as this exact string at `job.py:40` and
 # checked against at `models/job/result.py:158`).
 #
-# Pier has no dedicated exception classes for a Docker/environment build
-# failure, an Anthropic API 529, or `--max-budget-usd` exhaustion: a build
-# failure raises a plain `RuntimeError` (see e.g. `environments/docker/
-# docker.py`), and a 529 or budget cutoff crashes the wrapped `claude`
-# process, which pier surfaces as `NonZeroAgentExitCodeError` -- there is no
-# separate signal to tell those two apart from the exception type alone.
+# Pier has no dedicated exception class for a Docker/environment build
+# failure or an Anthropic API 529: a build failure raises a plain
+# `RuntimeError` (see e.g. `environments/docker/docker.py`), and a 529
+# crashes the wrapped `claude` process, which pier surfaces as
+# `NonZeroAgentExitCodeError` -- there is no separate signal to tell those
+# two apart from the exception type alone.
 _EXCEPTION_TYPE_CATEGORIES: dict[str, str] = {
     "EnvironmentStartTimeoutError": "environment_start_timeout",
     "AgentSetupTimeoutError": "agent_setup_timeout",
     "AgentTimeoutError": "agent_timeout",
-    "NonZeroAgentExitCodeError": "agent_nonzero_exit",  # covers API 529 / budget exhaustion
+    "NonZeroAgentExitCodeError": "agent_nonzero_exit",  # covers API 529 (rate limit) failures
     "VerifierTimeoutError": "verifier_timeout",
     "CancelledError": "cancelled",
 }
