@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
 """Unit tests for `run.py`'s preflight dispatch predicate, `has_subagent_dispatch`.
 
-WHY THIS FILE STUBS `agent`
-----------------------------
+WHY `run` COMES FROM `run_fixtures`
+-----------------------------------
 `run.py` does `import agent`, and `agent.py` imports `pier` -- a package
-installed only in `/tmp/pier-venv`, not in the interpreter this suite runs
-under. Rather than leave the predicate untested (the state that let the
-`Task`/`Agent` rename break a correct run while 102 tests stayed green), we
-register a stub `agent` module carrying just the two constants `run.py` reads,
-then import `run`. Nothing else in `run.py` -- command building, the pier
-subprocess, the container lifecycle -- is exercised or exercisable this way;
-see README.md's "Running the tests" section for what covers those instead.
+installed only in the pier venv, not in the interpreter this suite normally
+runs under. Rather than leave the predicate untested (the state that let the
+`Task`/`Agent` rename break a correct run while 102 tests stayed green),
+`tests/run_fixtures.py` registers a stub `agent` module carrying just the two
+constants `run.py` reads and imports `run` behind it; see its docstring.
+Nothing else in `run.py` -- command building, the pier subprocess, the
+container lifecycle -- is exercised or exercisable this way; see README.md's
+"Running the tests" section for what covers those instead.
 
 The transcript fixtures below are the real `tool_use` part shape, taken from
 `runs/_preflight/abs-stepped-slices__HyQJyYy/agent/claude-code.txt`
@@ -23,19 +24,11 @@ re-checks the fixtures against that file directly whenever it is present.
 from __future__ import annotations
 
 import json
-import sys
 import tempfile
-import types
 import unittest
 from pathlib import Path
 
-if "agent" not in sys.modules:  # real `agent` needs `pier`; see module docstring
-    _agent_stub = types.ModuleType("agent")
-    _agent_stub.CEK_REF = "v0.0.0-test-stub"
-    _agent_stub.CEK_INSTALL_DIR = "/tmp/context-engineering-kit"
-    sys.modules["agent"] = _agent_stub
-
-import run  # noqa: E402 -- must follow the `agent` stub above
+from .run_fixtures import run
 
 RECORDED_TRANSCRIPT = (
     Path(run.__file__).resolve().parent

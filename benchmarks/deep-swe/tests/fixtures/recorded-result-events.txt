@@ -1,0 +1,29 @@
+# Trimmed copy of every {"type":"result"} line from the recorded stream
+# runs/do-in-steps__sonnet-sonnet/cattrs-partial-structuring-recov__ZsbwRdJ/agent/claude-code.txt
+# (22 events, $0.392 -> $26.530 cumulative). Only the keys the cost parser reads are
+# kept, plus subtype/origin for context -- the originals carry multi-KB usage and
+# modelUsage blocks. Costs are verbatim. Regenerate with tests/fixtures/README.md's
+# recipe if the recording is ever replaced. These `#` lines are also the fixture's
+# own check that a parser skips lines which do not start with `{`.
+{"type": "result", "subtype": "success", "total_cost_usd": 0.39202004999999995}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 1.64791455}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 2.33612025}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 2.8218857999999996}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 4.075447499999999}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 6.0552561}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 6.874706250000002}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 8.536769850000002}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 9.1920969}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 10.864708199999999}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 12.31647705}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 12.6247428}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 14.187474300000002}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 16.030434}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 16.695471450000003}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 18.47510595000001}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 20.203200150000008}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 21.71086995}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 22.799006099999993}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 23.305279349999992}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 24.51479699999999}
+{"type": "result", "subtype": "success", "origin": {"kind": "task-notification"}, "total_cost_usd": 26.53034819999999}

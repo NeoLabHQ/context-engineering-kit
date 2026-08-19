@@ -157,6 +157,12 @@ class BuildTrialRecordTests(unittest.TestCase):
             trial_dir = Path(tmp) / "trial-1"
             trial_dir.mkdir()
             (trial_dir / "result.json").write_text(json.dumps(result))
+            # This trial genuinely attempted the task and lost, which is only
+            # distinguishable from an abandoned one by the patch it committed
+            # -- without it the completion gate would (correctly) call this
+            # `incomplete` instead. See collect.py's classification table.
+            (trial_dir / "artifacts").mkdir()
+            (trial_dir / "artifacts" / "model.patch").write_text("diff --git a/x b/x\n")
 
             record = collect.build_trial_record(trial_dir, self.VANILLA_ARM_META)
 

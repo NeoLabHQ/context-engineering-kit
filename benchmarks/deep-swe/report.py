@@ -37,6 +37,17 @@ from leaderboard.json's own `honesty_note`/`snapshot_date`/`source_url`
 fields (never hand-duplicated text) explaining why. See `_official_bar`,
 `render_bar_mark`, and `render_official_baseline_footnote`.
 
+THREE OUTCOMES, NOT TWO
+--------------------------
+`collect.py` classifies every trial `resolved` / `unresolved` / `incomplete` /
+`errored`, and this file must keep the last two apart everywhere it shows
+them. `incomplete` is a trial the agent abandoned (no `artifacts/model.patch`,
+or a final message that ends in a question asked of an operator who was never
+there); it counts as a failed attempt inside Pass@1. `errored` is a trial the
+infrastructure lost, and it is excluded from Pass@1 entirely. Summing them
+into one "problems" column would merge a denominator-included number with a
+denominator-excluded one, so the arm table carries a separate column for each.
+
 NULL-HANDLING PHILOSOPHY
 ---------------------------
 `collect.py` already decided that a zero-attempt arm reports `pass_at_1` (and
@@ -74,8 +85,15 @@ DEFAULT_OUT_PATH = SCRIPT_DIR / "report.html"
 # arm dict can even carry "created_at"/"sample_seed" keys at all -- a v1
 # results.json (from a collect.py older than this change) never wrote them,
 # which is different from a v2 arm recording them as `null` (see that
-# function's docstring).
-EXPECTED_RESULTS_SCHEMA_VERSION = 2
+# function's docstring). That floor stays at 2 even though the expected
+# version has moved on: v3 did not change those two fields.
+#
+# v3 added collect.py's third trial outcome, `incomplete` (a trial the agent
+# abandoned -- no `artifacts/model.patch`, or a final message that ends in a
+# question), plus the `n_incomplete` and `max_cost_usd` arm fields this file
+# renders in the arm table. Reading a v2 file with this script leaves both
+# columns missing rather than wrong, hence a warning and not a hard failure.
+EXPECTED_RESULTS_SCHEMA_VERSION = 3
 MIN_SCHEMA_VERSION_WITH_RUN_METADATA = 2
 
 # Ordinal capability order -- fixed, not alphabetical (alphabetical would
@@ -564,8 +582,18 @@ def arm_table_rows(arms: list[dict[str, Any]]) -> list[dict[str, str]]:
                     arm["pass_at_1"], arm["pass_at_1_ci_low"], arm["pass_at_1_ci_high"]
                 ),
                 "avg_cost_usd": format_usd(arm["avg_cost_usd"]),
+                # The costliest single trial, next to the average that hides
+                # it -- with no spend cap in the harness (see collect.py's
+                # "WHY THERE IS NO ..." docstring section), an outlier here is
+                # the only cost anomaly warning a reader gets.
+                "max_cost_usd": format_usd(arm["max_cost_usd"]),
                 "avg_output_tokens": format_count(arm["avg_output_tokens"]),
                 "avg_n_agent_steps": format_count(arm["avg_n_agent_steps"]),
+                # Two separate counts, never summed: `n_incomplete` trials
+                # the agent abandoned (counted in Pass@1's denominator) and
+                # `n_errored` trials the infrastructure lost (excluded from
+                # it). See collect.py's classification table.
+                "n_incomplete": str(arm["n_incomplete"]),
                 "n_errored": str(arm["n_errored"]),
             }
         )
@@ -807,20 +835,28 @@ def render_arm_table(arms: list[dict[str, Any]]) -> str:
         # attributes on one element is invalid HTML and silently drops the
         # second one in most browsers, which would make has-errors a no-op.
         errored_cell_class = "num has-errors" if row["n_errored"] != "0" else "num"
+        # Same emphasis treatment as Errored: both are counts an operator
+        # wants to read as zero, and a bolded non-zero is what makes an
+        # abandoned trial visible at a glance instead of blending into the
+        # numbers beside it.
+        incomplete_cell_class = "num has-errors" if row["n_incomplete"] != "0" else "num"
         rows_html.append(
             "<tr>"
             f"<td>{html.escape(row['arm_id'])}</td>"
             f"<td class='num'>{row['pass_at_1']}</td>"
             f"<td class='num'>{row['avg_cost_usd']}</td>"
+            f"<td class='num'>{row['max_cost_usd']}</td>"
             f"<td class='num'>{row['avg_output_tokens']}</td>"
             f"<td class='num'>{row['avg_n_agent_steps']}</td>"
+            f"<td class='{incomplete_cell_class}'>{row['n_incomplete']}</td>"
             f"<td class='{errored_cell_class}'>{row['n_errored']}</td>"
             "</tr>"
         )
     header = (
         "<tr><th>Arm</th><th class='num'>Pass@1 ± CI</th><th class='num'>Avg cost</th>"
+        "<th class='num'>Max cost</th>"
         "<th class='num'>Avg output tokens</th><th class='num'>Avg steps</th>"
-        "<th class='num'>Errored</th></tr>"
+        "<th class='num'>Incomplete</th><th class='num'>Errored</th></tr>"
     )
     return (
         "<div class='table-scroll'><table class='arm-table'>"

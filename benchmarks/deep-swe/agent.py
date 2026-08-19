@@ -18,6 +18,10 @@ from pier.agents.installed.claude_code import ClaudeCode
 from pier.models.agent.install import AgentInstallSpec, InstallStep
 from pier.models.agent.network import NetworkAllowlist
 
+# The cost-parsing rule this class overrides pier's version with. Kept in a
+# pier-free module so it is testable without pier -- see its docstring.
+from stream_cost import parse_total_cost_from_stream_lines
+
 # Pinned to the `plugins/sadd` release this benchmark harness was built
 # against, not "main" -- every run must clone an identical tree. CEK_REF may
 # be a tag, a branch, or a raw commit SHA (the checkout below resolves all
@@ -77,3 +81,34 @@ class ClaudeCodeSadd(ClaudeCode):
         """Allow the CEK clone alongside whatever ClaudeCode already needs."""
         allowlist = super().network_allowlist()
         return NetworkAllowlist(domains=[*allowlist.domains, "github.com"])
+
+    def _parse_total_cost_from_stream_json(self) -> float | None:
+        """The stream's *total* cost, not the first `result` event's running total.
+
+        Overrides `ClaudeCode`'s version (pier's `claude_code.py`, same method
+        name), which returns at the FIRST `{"type":"result"}` line it finds and
+        so reports a fraction of the real bill for any session that resumed.
+        The rule that replaces it -- and the evidence for reading these events
+        as cumulative, why max rather than last, and what a null/missing cost
+        field does -- lives in `stream_cost.parse_total_cost_from_stream_lines`,
+        a module with no `pier` import so it stays testable under the project's
+        default test command. This method is only the I/O around it.
+
+        Upstream's edge cases are preserved exactly: a missing or unreadable
+        log returns None, and so does a stream with no usable `result` event.
+        Two deliberate differences, both in this shell rather than the rule:
+        the file is iterated line by line instead of read whole, so a 6 MB (or
+        600 MB) transcript never has to fit in memory; and `errors="replace"`
+        is passed for the reason collect.py documents on `load_json_or_none`,
+        namely that a log truncated mid-multibyte-character by an interrupted
+        job would otherwise raise `UnicodeDecodeError` -- which upstream's
+        `except OSError` does not catch -- out of trajectory building. A
+        replacement character can only corrupt the one line it lands on, which
+        then fails `json.loads` and is skipped like any other malformed line.
+        """
+        stream_path = self.logs_dir / "claude-code.txt"
+        try:
+            with stream_path.open(encoding="utf-8", errors="replace") as stream_lines:
+                return parse_total_cost_from_stream_lines(stream_lines)
+        except OSError:
+            return None

@@ -37,9 +37,10 @@ for a trial.
 
 STATUS CLASSIFICATION -- the single most consequential piece of logic here
 -----------------------------------------------------------------------------
-`status` is one of `resolved` / `unresolved` / `errored`. Signals are
-checked in this order (first match wins), each verified against pier's real
-`TrialResult` schema (`/tmp/pier-repo/src/pier/models/trial/result.py`):
+`status` is one of `resolved` / `unresolved` / `incomplete` / `errored`.
+Signals are checked in this order (first match wins), each verified against
+pier's real `TrialResult` schema
+(`/tmp/pier-repo/src/pier/models/trial/result.py`):
 
 | # | Signal                                                        | status     |
 |---|----------------------------------------------------------------|------------|
@@ -48,7 +49,8 @@ checked in this order (first match wins), each verified against pier's real
 | 3 | `TrialResult.exception_info` is set (pier's own infra-failure signal: Docker/environment build failure, agent/verifier timeout, non-zero agent exit code, cancellation -- and transitively, an API 529/rate-limit failure that crashed the `claude` process; see `infra_error_category()` for how the raw exception type is normalized into one of these) | errored |
 | 4 | `verifier_result` missing, or its `rewards` dict is missing/empty (verifier never produced a scalar) | errored |
 | 5 | `rewards["reward"] == 1` -- or, for a bundle carrying no `reward` key, `f2p == 1.0 and p2p == 1.0`, falling back last to every value in `rewards` equalling `1` | resolved |
-| 6 | otherwise (verifier ran and did not report success)            | unresolved |
+| 6 | no `artifacts/model.patch`, or the agent's final message ends in a question (the agent stopped without finishing -- see `find_trial_incompleteness_reason()`) | incomplete |
+| 7 | otherwise (verifier ran and did not report success)            | unresolved |
 
 Rows 1-4 are infrastructure failures, not task attempts: the agent never got
 a fair, uncorrupted shot at the task, or (row 2) we can't trust this trial as
@@ -61,9 +63,35 @@ a perfect trial unresolved whenever it has more than one fail-to-pass test.
 See `verifier_reports_success()` for the real observed bundle, the arithmetic
 relating its keys, and the two fallbacks used for bundles carrying no
 `reward` key -- recomputing the verdict from `f2p`/`p2p` where those exist,
-and only then the all-ones rule. Note that pier's own `compute_pass_at_k_by_evals` (see
-`/tmp/pier-repo/src/pier/utils/pass_at_k.py`) does assume one binary reward
-per key, so its Pass@k is not interchangeable with this module's.
+and only then the all-ones rule. Note that pier's own
+`compute_pass_at_k_by_evals` (see `/tmp/pier-repo/src/pier/utils/pass_at_k.py`)
+does assume one binary reward per key, so its Pass@k is not interchangeable
+with this module's.
+
+Row 6 (`incomplete`) is a THIRD outcome, deliberately neither of the two
+either side of it. Read the trial that motivated it -- job
+`do-in-steps__sonnet-sonnet`, trial `cattrs-partial-structuring-recov__ZsbwRdJ`
+-- as recorded: it committed nothing, so pier's artifact download failed and
+left no `artifacts/model.patch` (its `artifacts/manifest.json` records that
+failure); pier nonetheless saw a clean agent exit and no `exception_info`; and
+the verifier then dutifully scored the untouched repository 0/69, which is
+indistinguishable from a genuine wrong answer.
+
+The second signal is grounded in a different recorded trial, where the
+mechanism is visible rather than inferred: `_preflight-do-in-steps/
+cattrs-partial-structuring-recov__9ryVMmH` ends its final message with "Which
+approach would you prefer? Or shall I continue with the current orchestration
+pace?" after laying out a numbered menu under budget pressure -- a question
+asked under `claude --print` with no stdin for anyone to answer through. That
+is why this gate has two signals and why run.py's prompt carries a
+non-interactive contract.
+
+It is not `errored` either: nothing in the infrastructure failed, so calling it
+one would blame the harness for the agent's own abandonment (and, per the
+section below, quietly drop it out of Pass@1). `incomplete` names what
+actually happened, and row 6 sits AFTER row 5 so a trial the verifier
+certifies as solved can never be downgraded by these heuristics --
+`incomplete` only ever refines what would otherwise have been `unresolved`.
 
 PASS@1 DENOMINATOR
 -------------------
@@ -74,6 +102,28 @@ cost/token/step figures are contaminated by whatever infra failure occurred
 cost before pier kills it, without finishing). `n_errored` is still reported
 per arm, separately, so a reader can see how much data was dropped without
 it silently disappearing from the numbers.
+
+`incomplete` trials are INCLUDED -- they are counted as attempts that failed,
+exactly where `unresolved` sits, and `n_incomplete` is reported alongside so
+the reason stays visible. This is the opposite call from `errored` because
+the cause is the opposite: the agent got a fair shot at the task and walked
+away from it. Excluding them would let an arm raise its own Pass@1 by
+abandoning the tasks it was losing, which is the last incentive this
+benchmark should create.
+
+WHY THERE IS NO "SPENT MOST OF ITS BUDGET" CONDITION
+------------------------------------------------------
+`incomplete` covers a missing patch and an abandoning question, but NOT
+"cost came within X% of a cap" -- this harness deliberately enforces no
+per-trial spend cap (see README.md's Cost section), so there is no cap for a
+cost to approach and no such condition to evaluate. Cost anomalies stay
+visible a different way instead: every trial's `cost_usd` is recorded
+per-row, and each arm reports both `avg_cost_usd` and `max_cost_usd` --
+the max because a single runaway trial is invisible in an average over
+dozens. Those figures are only worth reading at all because
+`ClaudeCodeSadd._parse_total_cost_from_stream_json` (agent.py) fixed the
+upstream parser that reported the FIRST of a stream's many cumulative
+`result` events, understating the motivating run's real spend 68x.
 
 RE-RUNNABLE BY CONSTRUCTION
 -----------------------------
@@ -90,6 +140,7 @@ import csv
 import json
 import math
 import sys
+from collections.abc import Iterator
 from dataclasses import asdict, dataclass, fields
 from datetime import datetime
 from pathlib import Path
@@ -101,18 +152,31 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # consumer of results.json can detect a shape it wasn't written for instead
 # of silently misreading renamed/removed/reordered fields.
 #
-# v2 (this version): ArmAggregate gained `created_at` and `sample_seed`,
-# surfaced from each arm's `arm.json` (see `load_arm_run_metadata`) so
-# report.py can render a real run-start date/seed in its header instead of
-# the "not recorded" placeholder v1 consumers must still fall back to.
-RESULTS_SCHEMA_VERSION = 2
+# v2: ArmAggregate gained `created_at` and `sample_seed`, surfaced from each
+# arm's `arm.json` (see `load_arm_run_metadata`) so report.py can render a
+# real run-start date/seed in its header instead of the "not recorded"
+# placeholder v1 consumers must still fall back to.
+#
+# v3 (this version): `status` gained a fourth value, `incomplete` (see the
+# module docstring's classification table), and ArmAggregate gained the
+# `n_incomplete` and `max_cost_usd` fields that go with it. A v2 consumer
+# reading a v3 file would silently miscount abandoned trials as `unresolved`
+# ones, which is exactly the confusion this version bump exists to surface.
+RESULTS_SCHEMA_VERSION = 3
 
-Status = Literal["resolved", "unresolved", "errored"]
+Status = Literal["resolved", "unresolved", "incomplete", "errored"]
 
 # The stream-json event pier tees to `<trial_dir>/agent/claude-code.txt` that
 # carries plugin-load information (see run.py's `find_init_event`, verified
 # against a live `claude` invocation).
 _STREAM_LOG_RELATIVE_PATH = Path("agent") / "claude-code.txt"
+
+# The patch pier copies out of the container for a trial that committed work.
+# Its absence is the hardest available evidence that a trial produced nothing
+# at all -- observed on the motivating run, whose `artifacts/manifest.json`
+# records `{"source": "/logs/artifacts/model.patch", "status": "failed"}`
+# because the agent never committed anything for pier to download.
+_MODEL_PATCH_RELATIVE_PATH = Path("artifacts") / "model.patch"
 
 
 # --------------------------------------------------------------------------
@@ -151,9 +215,11 @@ class TrialRecord:
     claude_code_version: str | None
     # Beyond the required field list: trial_id makes every row traceable back
     # to its `runs/<arm-id>/<trial_id>/` directory, and error_reason is how
-    # an `errored` row's cause surfaces instead of being silently dropped
-    # (required by this task's plugin-load-assertion and error-visibility
-    # rules). See "Context for Next Steps" in the handoff notes.
+    # an `errored` row's cause -- or an `incomplete` row's, verbatim from
+    # `find_trial_incompleteness_reason` -- surfaces instead of being
+    # silently dropped (required by this task's plugin-load-assertion and
+    # error-visibility rules). See "Context for Next Steps" in the handoff
+    # notes.
     trial_id: str
     error_reason: str | None
 
@@ -169,13 +235,23 @@ class ArmAggregate:
     is_vanilla: bool
     n_resolved: int
     n_unresolved: int
+    # Trials the agent abandoned rather than failed -- counted as attempts,
+    # not dropped like `n_errored`; see the module docstring's "PASS@1
+    # DENOMINATOR" section for why the two are treated oppositely.
+    n_incomplete: int
     n_errored: int
-    n_attempts: int  # resolved + unresolved -- the Pass@1 denominator
+    n_attempts: int  # resolved + unresolved + incomplete -- the Pass@1 denominator
     n_total_trials: int  # n_attempts + n_errored -- every trial seen for this arm
     pass_at_1: float | None
     pass_at_1_ci_low: float | None
     pass_at_1_ci_high: float | None
     avg_cost_usd: float | None
+    # The costliest single attempt in this arm. Reported next to the average
+    # because an average over dozens of trials hides exactly the anomaly worth
+    # seeing -- one runaway trial -- and, with no spend cap in this harness to
+    # bound it, that outlier is the only warning an operator gets. See the
+    # module docstring's "WHY THERE IS NO ..." section.
+    max_cost_usd: float | None
     avg_output_tokens: float | None
     avg_n_agent_steps: float | None
     # v2 additions, both sourced from this arm's `arm.json` (see
@@ -257,6 +333,120 @@ def plugin_load_error_from_init_event(init_event: dict[str, Any] | None) -> str 
     return None
 
 
+# A fenced code block opens and closes on a line whose first non-space
+# characters are a run of backticks or tildes (CommonMark). Tracked so a `?`
+# inside a diff, a traceback or a shell snippet can never read as a question.
+_CODE_FENCE_PREFIXES = ("```", "~~~")
+
+# Markdown decoration stripped off the end of the final line before looking
+# for a trailing question mark, so `**Which would you like?**` still reads as a
+# question. Quote and bracket characters are deliberately NOT in this set --
+# see `message_ends_in_question`.
+_TRAILING_MARKDOWN_CHARS = "*_`~ \t"
+
+# The question marks a closing line may end with. ASCII `?` covers the agent
+# prose this harness has recorded; U+FF1F is the full-width form a CJK
+# keyboard produces (`你好？`), which reads identically to a human and would
+# otherwise be a silent miss. Other scripts' marks -- Arabic `\u061f`, Greek
+# `\u037e` -- are NOT matched; see this function's documented blind spots.
+_QUESTION_MARKS = ("?", "\uff1f")
+
+
+def last_prose_line(text: str) -> str | None:
+    """The last line of `text` a reader would take as its closing sentence.
+
+    Skips what is not prose: blank lines, fence delimiters, every line inside
+    a fenced code block, and lines indented four spaces or a tab (markdown's
+    other code-block form). Returns None when nothing prose-like is left.
+
+    An unclosed fence keeps everything after it excluded, which is the
+    conservative direction: a truncated log ends mid-code-block, and code is
+    never a question to the operator.
+    """
+    inside_fence = False
+    closing_line: str | None = None
+
+    for raw_line in text.splitlines():
+        line = raw_line.strip()
+        if line.startswith(_CODE_FENCE_PREFIXES):
+            inside_fence = not inside_fence
+            continue
+        if inside_fence or not line:
+            continue
+        if raw_line.startswith(("    ", "\t")):
+            continue
+        closing_line = line
+
+    return closing_line
+
+
+def message_ends_in_question(text: str | None) -> bool:
+    """Whether an agent's final message closes by asking the reader something.
+
+    This is a heuristic over free-form prose, so it is tuned to under-report
+    rather than over-report: a missed abandonment still shows up as a failed
+    trial, while a false positive would libel a trial that really did finish.
+    Concretely, it fires only when the message's closing prose line (see
+    `last_prose_line`) ends in a literal `?` once markdown emphasis is
+    stripped. That single rule is what buys the guarantees below:
+
+    * A rhetorical question followed by more content cannot fire -- only the
+      LAST prose line is examined, so "Why? Because the parser was wrong."
+      and "Should I stop? No -- continuing." are both quiet.
+    * A `?` inside a code fence cannot fire; the fence's contents are skipped
+      wholesale, as are indented code blocks.
+    * A quoted or parenthesized question ends in `"` or `)`, not `?`, so
+      `the error says "what now?"` stays quiet. Those closers are excluded
+      from `_TRAILING_MARKDOWN_CHARS` on purpose: quoting a question is
+      reporting one, not asking it.
+    * Trailing whitespace, blank lines and a trailing newline are irrelevant,
+      and so is `**bold**`/`_italic_`/`` `code` `` emphasis around the
+      question itself.
+
+    Concretely, "ends in a question mark" means ASCII `?` or its full-width
+    U+FF1F form (`_QUESTION_MARKS`), the latter because a CJK keyboard produces
+    it and it reads identically to a human.
+
+    The accepted blind spots, all false NEGATIVES: a question asked in a
+    four-space-indented line (markdown cannot tell that from code); a question
+    phrased without a question mark ("Let me know which you prefer."); and a
+    question closed with another script's mark -- Arabic `\u061f` (U+061F) or
+    Greek `\u037e` (U+037E) -- neither of which has appeared in a recorded
+    transcript, and adding either on speculation would widen the rule with no
+    evidence behind it. Empty or absent text is never a question.
+    """
+    if not text:
+        return False
+
+    closing_line = last_prose_line(text)
+    if closing_line is None:
+        return False
+
+    return closing_line.rstrip(_TRAILING_MARKDOWN_CHARS).endswith(_QUESTION_MARKS)
+
+
+def incompleteness_reason_from_signals(
+    *, has_model_patch: bool, final_message: str | None
+) -> str | None:
+    """Judge two already-gathered signals; None means the trial looks finished.
+
+    Pure counterpart of `find_trial_incompleteness_reason`, split from it the
+    same way `plugin_load_error_from_init_event` is split from
+    `find_stream_log_init_event`: the judgment is unit-testable with plain
+    values, no fixture files needed.
+
+    The missing patch is reported first when both fire, because it is the
+    stronger, non-heuristic evidence -- an operator reading
+    `no_model_patch` needs no further convincing, while
+    `final_message_is_question` invites a look at the transcript.
+    """
+    if not has_model_patch:
+        return "no_model_patch"
+    if message_ends_in_question(final_message):
+        return "final_message_is_question"
+    return None
+
+
 # Maps a pier `exception_type` (an `Exception` class's bare `__name__`, per
 # `ExceptionInfo.from_exception` at pier's `models/trial/result.py:31`) to a
 # coarse, human-legible category. Every key below is a real class verified in
@@ -335,17 +525,27 @@ def classify_status(
     exception_type: str | None,
     rewards: dict[str, float | int] | None,
     plugin_load_error: str | None,
+    incompleteness_reason: str | None,
 ) -> tuple[Status, str | None]:
     """Classify one trial's outcome. Returns (status, error_reason).
 
+    `incompleteness_reason` is `find_trial_incompleteness_reason()`'s verdict
+    for this trial (None if it looks finished). It is a required argument with
+    no default on purpose: a completion gate that a caller can forget to pass
+    is a completion gate that silently stops gating, which is the failure mode
+    this parameter was added to end.
+
     `error_reason` is always None for `resolved`/`unresolved`; for `errored`
-    it names which of the rules in this module's docstring table fired. A
+    it names which of the rules in this module's docstring table fired, and
+    for `incomplete` it carries the incompleteness reason verbatim. A
     pier exception_info additionally carries a normalized category from
     `infra_error_category()` alongside the raw `exception_type`, so no
     information is lost even though the outcome is always `errored` either
     way. Signal precedence matches the module docstring's table (plugin
     load, then pier's own exception_info, then a missing/empty rewards
-    dict, then the verifier's own success verdict).
+    dict, then the verifier's own success verdict, and only then the
+    completion gate -- a verified success is never downgraded to
+    `incomplete`).
 
     Worked example: `claude` crashes mid-task from an Anthropic API 529 (so
     `exception_type="NonZeroAgentExitCodeError"`), but the verifier still
@@ -363,6 +563,8 @@ def classify_status(
         return "errored", "missing_verifier_rewards"
     if verifier_reports_success(rewards):
         return "resolved", None
+    if incompleteness_reason is not None:
+        return "incomplete", incompleteness_reason
     return "unresolved", None
 
 
@@ -452,6 +654,17 @@ def mean_or_none(values: list[float | int | None]) -> float | None:
     return sum(present) / len(present) if present else None
 
 
+def max_or_none(values: list[float | int | None]) -> float | None:
+    """Largest of the non-None values, or None if there are none.
+
+    Same "no data is None, never 0.0" contract as `mean_or_none` -- report.py
+    relies on every numeric arm field distinguishing the two (see its
+    "NULL-HANDLING PHILOSOPHY" docstring section).
+    """
+    present = [v for v in values if v is not None]
+    return max(present) if present else None
+
+
 # --------------------------------------------------------------------------
 # Filesystem walking
 # --------------------------------------------------------------------------
@@ -486,29 +699,115 @@ def load_json_or_none(path: Path) -> dict[str, Any] | None:
         return None
 
 
-def find_stream_log_init_event(trial_dir: Path) -> dict[str, Any] | None:
-    """Locate and return the `system`/`init` event from this trial's
-    claude-code.txt transcript, or None if the log or the event is missing.
+def iter_stream_events(stream_log: Path) -> Iterator[dict[str, Any]]:
+    """Yield each parseable JSON object from a claude-code.txt transcript,
+    or nothing at all if the log is missing.
 
-    Duplicated from run.py's `find_init_event`/`iter_stream_events` rather
-    than imported -- see module docstring's "WHY THIS FILE DOES NOT IMPORT
-    pier" section.
+    Duplicated from run.py's `iter_stream_events` (same name, same shape)
+    rather than imported -- see module docstring's "WHY THIS FILE DOES NOT
+    IMPORT pier" section. Within *this* file it is the one reader both
+    `find_stream_log_init_event` and `find_stream_log_final_message` share, so
+    the two can't drift apart on which lines count as events.
+
+    Read with `errors="replace"` for the reason `load_json_or_none` documents:
+    a transcript truncated mid-multibyte-character must not take the whole
+    collection run down with a UnicodeDecodeError. A replaced byte corrupts
+    only its own line, which then fails to parse and is skipped.
     """
-    stream_log = trial_dir / _STREAM_LOG_RELATIVE_PATH
-    if not stream_log.exists():
-        return None
+    try:
+        content = stream_log.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return
 
-    for line in stream_log.read_text(encoding="utf-8", errors="replace").splitlines():
+    for line in content.splitlines():
         line = line.strip()
         if not line.startswith("{"):
             continue
         try:
-            event = json.loads(line)
+            yield json.loads(line)
         except json.JSONDecodeError:
             continue
+
+
+def find_stream_log_init_event(trial_dir: Path) -> dict[str, Any] | None:
+    """Locate and return the `system`/`init` event from this trial's
+    claude-code.txt transcript, or None if the log or the event is missing.
+    """
+    for event in iter_stream_events(trial_dir / _STREAM_LOG_RELATIVE_PATH):
         if event.get("type") == "system" and event.get("subtype") == "init":
             return event
     return None
+
+
+def find_stream_log_final_message(trial_dir: Path) -> str | None:
+    """The agent's final message: the `result` field of the LAST
+    `{"type":"result"}` event in this trial's transcript.
+
+    WHICH MESSAGE COUNTS AS "FINAL" -- the load-bearing choice here. The two
+    candidates are this one and the last `assistant` text block in the stream;
+    this one wins for three reasons. It is by construction the text
+    `claude --print` emitted as its turn-final answer to the (absent)
+    operator, i.e. the message that accompanies `stop_reason: end_turn` and
+    would have been the question a human was expected to answer. It is one
+    flat string, where the last assistant block has to be dug out of
+    interleaved content parts whose text may belong to a sub-agent rather
+    than the orchestrator -- attributing a sub-agent's question to the run
+    would be a false positive. And it is the same event family
+    `ClaudeCodeSadd._parse_total_cost_from_stream_json` reads, so both cost
+    and completion are judged off one authoritative event.
+
+    LAST, not first: a `--print` session with async sub-agents emits one
+    `result` event per resumption (22 of them on the motivating run), and only
+    the last one describes how the session actually ended -- the same trap
+    agent.py's cost override exists to fix.
+
+    Returns None when the log is missing, carries no `result` event, or that
+    event's `result` is not a string.
+    """
+    final_message: str | None = None
+    for event in iter_stream_events(trial_dir / _STREAM_LOG_RELATIVE_PATH):
+        if event.get("type") != "result":
+            continue
+        message = event.get("result")
+        if isinstance(message, str):
+            final_message = message
+    return final_message
+
+
+def trial_has_model_patch(trial_dir: Path) -> bool:
+    """Whether this trial left behind a NON-EMPTY `artifacts/model.patch`.
+
+    Absent and empty both mean the same thing about the agent -- it committed
+    nothing -- so they are answered the same way here. An empty patch is the
+    likelier shape whenever pier creates the destination before the copy it is
+    about to fail (the motivating run instead lost the file entirely: its
+    `artifacts/manifest.json` records `model.patch` with `"status": "failed"`,
+    leaving only that manifest behind). Accepting a zero-byte file would let
+    exactly the condition this gate exists to catch through as `unresolved`,
+    which is why the size is checked and not just the file's existence.
+
+    `os.stat` is only reached when `is_file()` already said there is a file to
+    stat, and `is_file()` is false -- never an exception -- when the file, the
+    `artifacts/` directory, or the whole trial directory is absent. So this
+    answers False for every one of those cases without raising.
+    """
+    model_patch = trial_dir / _MODEL_PATCH_RELATIVE_PATH
+    return model_patch.is_file() and model_patch.stat().st_size > 0
+
+
+def find_trial_incompleteness_reason(trial_dir: Path) -> str | None:
+    """Gather this trial's completion signals off disk, then judge them.
+
+    Impure counterpart of `incompleteness_reason_from_signals`, which holds
+    the actual rules. Also called by run.py (the only import direction that
+    is safe: run.py may import collect.py, never the reverse -- see this
+    module's docstring) so that the gate a run reports live and the gate
+    `results.json` records are the same code, not two drifting copies.
+    """
+    return incompleteness_reason_from_signals(
+        has_model_patch=trial_has_model_patch(trial_dir),
+        final_message=find_stream_log_final_message(trial_dir),
+    )
 
 
 def build_trial_record(trial_dir: Path, arm_meta: dict[str, Any]) -> TrialRecord:
@@ -532,6 +831,7 @@ def build_trial_record(trial_dir: Path, arm_meta: dict[str, Any]) -> TrialRecord
         exception_type=exception_type,
         rewards=rewards,
         plugin_load_error=plugin_load_error,
+        incompleteness_reason=find_trial_incompleteness_reason(trial_dir),
     )
 
     n_input, n_cache, n_output, cost = token_cost_totals_from_result(trial)
@@ -678,13 +978,14 @@ def aggregate_arm(
 
     `trials` must all share the same arm_id (group_trials_by_arm's job).
     Errored trials are excluded from every average and from Pass@1's
-    denominator -- see module docstring's "PASS@1 DENOMINATOR" section.
+    denominator; incomplete ones are included as failed attempts -- see module
+    docstring's "PASS@1 DENOMINATOR" section for both calls.
 
-    Worked example: 10 trials for one arm -- 6 resolved, 2 unresolved, 2
-    errored -- yield `n_attempts=8` (6+2, excluding the errored pair),
-    `pass_at_1=6/8=0.75`, and a CI from `wilson_score_interval(6, 8)`. The 2
-    errored trials count toward `n_errored`/`n_total_trials` only, never the
-    denominator or any average.
+    Worked example: 11 trials for one arm -- 6 resolved, 2 unresolved, 1
+    incomplete, 2 errored -- yield `n_attempts=9` (6+2+1, excluding only the
+    errored pair), `pass_at_1=6/9`, and a CI from
+    `wilson_score_interval(6, 9)`. The 2 errored trials count toward
+    `n_errored`/`n_total_trials` only, never the denominator or any average.
 
     `run_metadata` is this arm's `{"created_at", "sample_seed"}` entry from
     `load_arm_run_metadata` (keyed by arm_id), or `None` when the caller has
@@ -695,8 +996,9 @@ def aggregate_arm(
     first = trials[0]
     resolved = [t for t in trials if t.status == "resolved"]
     unresolved = [t for t in trials if t.status == "unresolved"]
+    incomplete = [t for t in trials if t.status == "incomplete"]
     errored = [t for t in trials if t.status == "errored"]
-    attempts = resolved + unresolved
+    attempts = resolved + unresolved + incomplete
 
     n_attempts = len(attempts)
     pass_at_1 = len(resolved) / n_attempts if n_attempts > 0 else None
@@ -713,6 +1015,7 @@ def aggregate_arm(
         is_vanilla=first.skill is None,
         n_resolved=len(resolved),
         n_unresolved=len(unresolved),
+        n_incomplete=len(incomplete),
         n_errored=len(errored),
         n_attempts=n_attempts,
         n_total_trials=len(trials),
@@ -720,6 +1023,7 @@ def aggregate_arm(
         pass_at_1_ci_low=ci_low,
         pass_at_1_ci_high=ci_high,
         avg_cost_usd=mean_or_none([t.cost_usd for t in attempts]),
+        max_cost_usd=max_or_none([t.cost_usd for t in attempts]),
         avg_output_tokens=mean_or_none([t.output_tokens for t in attempts]),
         avg_n_agent_steps=mean_or_none([t.n_agent_steps for t in attempts]),
         created_at=arm_run_metadata.get("created_at"),
@@ -801,8 +1105,10 @@ def main(argv: list[str] | None = None) -> int:
     write_results_csv(args.out_dir / "results.csv", trials)
 
     n_errored = sum(1 for t in trials if t.status == "errored")
+    n_incomplete = sum(1 for t in trials if t.status == "incomplete")
     print(
-        f"[collect] wrote {len(trials)} trial records ({n_errored} errored) "
+        f"[collect] wrote {len(trials)} trial records "
+        f"({n_errored} errored, {n_incomplete} incomplete) "
         f"across {len(arms)} arms to {args.out_dir}"
     )
     return 0

@@ -20,8 +20,10 @@ class ArmTableRowsTests(unittest.TestCase):
             pass_at_1_ci_low=0.54,
             pass_at_1_ci_high=0.70,
             avg_cost_usd=12.5,
+            max_cost_usd=41.0,
             avg_output_tokens=5000.0,
             avg_n_agent_steps=42.0,
+            n_incomplete=2,
             n_errored=3,
         )
         rows = report.arm_table_rows([arm])
@@ -32,8 +34,12 @@ class ArmTableRowsTests(unittest.TestCase):
                     "arm_id": "sonnet-skill-a-sonnet",
                     "pass_at_1": "62% ± 8%",
                     "avg_cost_usd": "$12.50",
+                    "max_cost_usd": "$41.00",
                     "avg_output_tokens": "5,000",
                     "avg_n_agent_steps": "42",
+                    # Never summed with n_errored: incomplete trials count in
+                    # Pass@1's denominator, errored ones don't.
+                    "n_incomplete": "2",
                     "n_errored": "3",
                 }
             ],
@@ -45,12 +51,14 @@ class ArmTableRowsTests(unittest.TestCase):
             pass_at_1_ci_low=None,
             pass_at_1_ci_high=None,
             avg_cost_usd=None,
+            max_cost_usd=None,
             avg_output_tokens=None,
             avg_n_agent_steps=None,
         )
         row = report.arm_table_rows([arm])[0]
         self.assertEqual(row["pass_at_1"], "—")
         self.assertEqual(row["avg_cost_usd"], "—")
+        self.assertEqual(row["max_cost_usd"], "—")
 
 
 class OfficialBaselineTableRowsTests(unittest.TestCase):

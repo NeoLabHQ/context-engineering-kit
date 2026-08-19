@@ -2,31 +2,20 @@
 """Unit tests for `run.py`'s `--skill` and `--model` flags: arm-matrix
 filtering, preflight arm/job-name selection, and argparse validation.
 
-Stubs the `agent` module for the same reason `test_run_dispatch.py` does --
-`run.py` does `import agent`, and the real one needs `pier`, which isn't
-installed in the interpreter this suite runs under. See that file's module
-docstring for the full rationale; this file only repeats the minimum needed
-to import `run` standalone under `python3 -m unittest` (module import order
-across test files isn't guaranteed, so this guard can't assume the other
-test module has already registered the stub).
+Imports `run` through `tests/run_fixtures.py`, which stubs the `agent` module
+first -- `run.py` does `import agent`, and the real one needs `pier`, which
+isn't installed in the interpreter this suite normally runs under. See that
+module's docstring for the full rationale.
 """
 
 from __future__ import annotations
 
 import json
-import sys
 import tempfile
-import types
 import unittest
 from pathlib import Path
 
-if "agent" not in sys.modules:  # real `agent` needs `pier`; see module docstring
-    _agent_stub = types.ModuleType("agent")
-    _agent_stub.CEK_REF = "v0.0.0-test-stub"
-    _agent_stub.CEK_INSTALL_DIR = "/tmp/context-engineering-kit"
-    sys.modules["agent"] = _agent_stub
-
-import run  # noqa: E402 -- must follow the `agent` stub above
+from .run_fixtures import run
 
 
 class DefaultArmMatrixTests(unittest.TestCase):

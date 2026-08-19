@@ -44,12 +44,38 @@ version of this -- kept here too so the two can be diffed against drift):
         <task-name>__<uuid4>/          <- one directory per trial (written by pier)
             agent/claude-code.txt      <- claude's --output-format=stream-json transcript
             result.json                <- this trial's TrialResult
+            artifacts/model.patch      <- the trial's committed diff; ABSENT when the agent
+                                          committed nothing (see find_incomplete_trials)
             config.json, trial.log
 
 Everything under `runs/` past `arm.json`/`prompt.j2` is pier's own doing;
 `collect.py` (Step 3) walks `runs/*/*/result.json` for trial results and
 reads `runs/*/arm.json` to recover which (skill, orchestrator, impl) produced
 them, rather than parsing the arm-id string.
+
+PER-ARM STATUS AND EXIT CODES
+------------------------------
+Every arm this script runs reports one of three statuses, and the process exit
+code mirrors the worst one seen:
+
+    PASS        pier exited 0 and every trial produced a patch and a
+                finished-looking final message.                     -> exit 0
+    INCOMPLETE  pier exited 0, but at least one trial has no
+                `artifacts/model.patch` or ended its turn asking the
+                operator a question (see `find_incomplete_trials`,
+                whose rules live in collect.py).                    -> exit 3
+    FAIL        pier itself exited non-zero for this arm.            -> exit 1
+
+FAIL outranks INCOMPLETE: when pier fails, its own exit code is the more
+actionable signal, and the trial artifacts it would have been judged on may
+not exist at all. INCOMPLETE gets exit code 3 rather than 2 because argparse
+already spends 2 on usage errors (`parser.error`), and a CI job must be able
+to tell "you invoked me wrong" from "the agents abandoned their tasks".
+
+`--preflight` uses the same exit code for the same condition: its PASSED
+verdict covers the plugin checks it exists to make, and an unfinished preflight
+trial is reported and exits 3 rather than being folded into either PASSED or a
+plugin failure -- see `run_preflight`.
 
 SEED PINNING
 ------------
@@ -64,7 +90,10 @@ Pier is installed as a console-script entry point, so its own process never
 has this directory on `sys.path`. Its `--agent-import-path agent:ClaudeCodeSadd`
 does `importlib.import_module("agent")`, which raises `ModuleNotFoundError`
 unless we put this directory on `PYTHONPATH` for the subprocess -- see
-`run_pier()`. We also `import agent` ourselves (for its `CEK_REF`/
+`run_pier()`. That same entry is what lets `agent.py` import its sibling
+`stream_cost.py` (verified: importing `agent` succeeds from an unrelated cwd
+with only `PYTHONPATH` set, and from this directory with only cwd set).
+We also `import agent` ourselves (for its `CEK_REF`/
 `CEK_INSTALL_DIR` constants); `sys.path` is patched at the top of this file so
 that import works regardless of how `run.py` itself was invoked.
 
@@ -87,6 +116,7 @@ import shlex
 import shutil
 import subprocess
 import sys
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -96,6 +126,14 @@ if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
 
 import agent  # noqa: E402 -- must follow the sys.path patch above
+
+# collect.py holds the completion-gate rules this script reports live (see
+# `find_incomplete_trials`). Importing it here, rather than reimplementing
+# them, keeps one definition of "incomplete" for the whole harness. This is
+# the only safe direction: collect.py must never import run.py/agent.py,
+# because those need `pier` and collect.py is required to run (and be tested)
+# without it -- see collect.py's own module docstring.
+import collect  # noqa: E402 -- must follow the sys.path patch above
 
 # --------------------------------------------------------------------------
 # The matrix. This is the single source of truth for every arm this script
@@ -219,8 +257,40 @@ def build_arms(
 # --------------------------------------------------------------------------
 
 
+# Appended verbatim to EVERY arm's prompt -- plugin arms and vanilla controls
+# alike. The recorded `do-in-steps__sonnet-sonnet` run finished with
+# `stop_reason: end_turn`, `terminal_reason: completed`, `is_error: false` and
+# nothing committed. The abandonment behind that is directly observable in a
+# sibling recording, `runs/_preflight-do-in-steps/cattrs-partial-structuring-recov__9ryVMmH`,
+# whose final message offers a numbered menu under budget pressure and closes
+# "Which approach would you prefer? Or shall I continue with the current
+# orchestration pace?" -- under `claude --print` there is no stdin and nobody to
+# answer, so a question ends the run instead of pausing it. A prompt that never
+# establishes there is no human to ask makes that look like a reasonable move.
+#
+# SYMMETRIC BY CONSTRUCTION, deliberately: vanilla arms are the control this
+# benchmark measures the plugin arms *against*, so any prompt text present in
+# one and absent from the other becomes a second, uncontrolled difference
+# between them, and a Pass@1 gap could no longer be attributed to the skill.
+# Vanilla arms are just as non-interactive (same `--print`, same `</dev/null`),
+# so the contract is equally true of them -- there is no arm this text would
+# be a lie for. It is spliced in by `render_prompt_template_text` below in one
+# place shared by both branches, so the two can never drift apart.
+#
+# Must stay free of Jinja2 syntax (`{{`, `{%`): this text is part of a
+# template body rendered under `StrictUndefined` (see below).
+NON_INTERACTIVE_CONTRACT = (
+    "You are running non-interactively: there is no human in this session and "
+    "no stdin to read an answer from. Never end your turn with a question -- "
+    "nobody can answer it, so ending on one abandons the task with the work "
+    "unfinished. If a decision is ambiguous or a constraint blocks the "
+    "approach you wanted, choose the best available option, state the choice "
+    "you made and why, and keep working until the task is complete."
+)
+
+
 def render_prompt_template_text(arm: Arm) -> str:
-    """The one-line Jinja2 template body pier renders for this arm.
+    """The Jinja2 template body pier renders for this arm.
 
     HARD CONSTRAINT (verified against pier/utils/templating.py
     `render_prompt_template`): it parses this file under Jinja2
@@ -228,10 +298,21 @@ def render_prompt_template_text(arm: Arm) -> str:
     `instruction` is the only variable that will ever be bound. Referencing
     anything else raises `UndefinedError` at run time. Vanilla arms therefore
     get a bare `{{ instruction }}` passthrough with no slash command.
+
+    The invocation line stays FIRST, with `NON_INTERACTIVE_CONTRACT` appended
+    below it rather than prepended above it: claude-code only dispatches a
+    slash command when the prompt *starts* with it, so prose in front of
+    `/do-in-steps` would silently demote the whole plugin arm to a vanilla one
+    -- the single worst failure this file could cause. Appending keeps the
+    contract inside the text the model reads while leaving the first character
+    of every plugin prompt a `/`.
     """
-    if arm.is_vanilla:
-        return "{{ instruction }}\n"
-    return f"/{arm.skill} --model {arm.impl} {{{{ instruction }}}}\n"
+    invocation = (
+        "{{ instruction }}"
+        if arm.is_vanilla
+        else f"/{arm.skill} --model {arm.impl} {{{{ instruction }}}}"
+    )
+    return f"{invocation}\n\n{NON_INTERACTIVE_CONTRACT}\n"
 
 
 def write_prompt_template(job_dir: Path, arm: Arm) -> Path:
@@ -393,6 +474,100 @@ def is_arm_complete(job_dir: Path) -> bool:
     except (OSError, json.JSONDecodeError):
         return False
     return data.get("finished_at") is not None
+
+
+# --------------------------------------------------------------------------
+# Completion gate: did the trials this arm ran actually finish?
+# --------------------------------------------------------------------------
+
+# Exit codes main() returns. 0 and 1 are unchanged; see the module docstring's
+# "PER-ARM STATUS AND EXIT CODES" section for why INCOMPLETE claims 3 and not
+# the tempting 2 (argparse's usage-error code).
+EXIT_ARM_FAILED = 1
+EXIT_TRIALS_INCOMPLETE = 3
+
+
+def find_incomplete_trials(job_dir: Path) -> dict[str, str]:
+    """Map trial_id -> incompleteness reason for every unfinished trial here.
+
+    Empty dict means every trial under this arm looks finished. The rules
+    themselves live in `collect.py` (`find_trial_incompleteness_reason`) so
+    that what a run reports live and what `results.json` records later can
+    never disagree.
+
+    Globs one level down -- `<job_dir>/<trial>/result.json` -- which is the
+    trial depth collect.py's `find_trial_result_paths` reaches two levels
+    below `runs/`. A trial that never got far enough to write a `result.json`
+    is not judged here: pier itself failed that arm, and its non-zero exit
+    code is the signal (FAIL outranks INCOMPLETE).
+    """
+    incomplete: dict[str, str] = {}
+    for result_path in sorted(job_dir.glob("*/result.json")):
+        trial_dir = result_path.parent
+        reason = collect.find_trial_incompleteness_reason(trial_dir)
+        if reason is not None:
+            incomplete[trial_dir.name] = reason
+    return incomplete
+
+
+def arm_status_label(exit_code: int, incomplete_trials: dict[str, str]) -> str:
+    """The one-line PASS / INCOMPLETE / FAIL verdict printed for an arm.
+
+    Pure so the three-state contract is testable without running pier. See the
+    module docstring for the precedence (FAIL, then INCOMPLETE, then PASS) and
+    what each state means.
+
+    The INCOMPLETE label carries a per-reason breakdown rather than a list of
+    trial ids: an arm can hold ~113 trials, and a reader deciding whether to
+    care needs the shape of the problem, not every id. The ids are still
+    printed once, in main()'s end-of-run summary.
+    """
+    if exit_code != 0:
+        return f"FAIL (exit {exit_code})"
+    if not incomplete_trials:
+        return "PASS"
+
+    reason_counts = Counter(incomplete_trials.values())
+    breakdown = ", ".join(f"{reason} x{count}" for reason, count in sorted(reason_counts.items()))
+    return f"INCOMPLETE ({len(incomplete_trials)} trials -- {breakdown})"
+
+
+def report_run_summary(
+    exit_codes: dict[str, int], incomplete_by_arm: dict[str, dict[str, str]]
+) -> int:
+    """Print the end-of-run summary; return the exit code main() should exit on.
+
+    `exit_codes` is arm_id -> pier exit code for every arm this invocation
+    actually ran; `incomplete_by_arm` is arm_id -> {trial_id: reason} for every
+    arm holding unfinished trials, INCLUDING arms that were skipped as already
+    complete.
+
+    Both buckets are reported before either decides the exit code, so an
+    operator sees everything that went wrong rather than only the worst of it.
+    The success line is printed on exactly one condition -- both buckets empty
+    -- because the defect this replaced was a summary announcing "all 1 arms
+    completed successfully" over a trial that committed nothing.
+    """
+    failed = {arm_id: code for arm_id, code in exit_codes.items() if code != 0}
+    if failed:
+        print(f"[run] {len(failed)}/{len(exit_codes)} arms failed: {failed}", file=sys.stderr)
+    if incomplete_by_arm:
+        # No denominator on this count on purpose: it can include arms this
+        # invocation skipped, which are absent from `exit_codes`, so
+        # "N/len(exit_codes)" would be a ratio of two different populations.
+        print(
+            f"[run] {len(incomplete_by_arm)} arm(s) have INCOMPLETE trials "
+            f"(no artifacts/model.patch, or a final message that ends in a "
+            f"question): {incomplete_by_arm}",
+            file=sys.stderr,
+        )
+
+    if failed:
+        return EXIT_ARM_FAILED
+    if incomplete_by_arm:
+        return EXIT_TRIALS_INCOMPLETE
+    print(f"[run] all {len(exit_codes)} arms completed successfully.")
+    return 0
 
 
 # --------------------------------------------------------------------------
@@ -568,6 +743,12 @@ def run_preflight(args: argparse.Namespace) -> int:
     A preflight that passes when the plugin silently failed to load is worse
     than no preflight -- so every failure path below prints to stderr and
     exits non-zero rather than returning a boolean an operator could ignore.
+
+    Returns 0 when the plugin checks pass and the trial finished,
+    `EXIT_TRIALS_INCOMPLETE` when they pass but the trial did not finish (the
+    plugin verdict and the completion verdict are separate; see the comment at
+    the end of this function), and exits 1 via `fail()` on any plugin-check
+    failure.
     """
     skill = args.skill or SKILLS[0]
     arm = preflight_arm(skill, args.model)
@@ -617,6 +798,31 @@ def run_preflight(args: argparse.Namespace) -> int:
             f"no sub-agent dispatch (tool in {sorted(SUBAGENT_DISPATCH_TOOLS)} with a "
             f"`subagent_type` input) found in {stream_log} -- no sub-agent was ever dispatched."
         )
+
+    # The completion gate applies here too. A preflight trial is a real trial:
+    # `runs/_preflight-do-in-steps/cattrs-partial-structuring-recov__9ryVMmH` is
+    # the one recorded trial that ends on an abandoning question, and it is a
+    # preflight one -- so printing a bare "PASSED" over it is exactly the
+    # false-success this harness was fixed to stop doing.
+    #
+    # It does NOT turn into a preflight failure, though. Preflight asks one
+    # question -- did the plugin load and dispatch a sub-agent -- and answers it
+    # on the cheapest arm there is (haiku/haiku, one task), which may well
+    # abandon or lose the task without saying anything about plugin loading.
+    # Conflating the two would make a working plugin fail its own smoke test.
+    # So the plugin verdict stays PASSED and is reported as covering exactly
+    # that, while the exit code carries the completion state using the same
+    # three-state contract main() uses (see this module's docstring).
+    incomplete_trials = find_incomplete_trials(job_dir)
+    if incomplete_trials:
+        print(
+            f"[preflight] PASSED (plugin checks only): 'sadd' loaded, sub-agent dispatch "
+            f"observed (pier exit code {pier_exit_code}) -- but "
+            f"{len(incomplete_trials)} trial(s) did NOT finish the task: {incomplete_trials}. "
+            f"The plugin works; the agent did not complete its work.",
+            file=sys.stderr,
+        )
+        return EXIT_TRIALS_INCOMPLETE
 
     print(
         f"[preflight] PASSED: 'sadd' loaded, sub-agent dispatch observed "
@@ -708,6 +914,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
         "sub-agents per task, so a trial takes far longer than a plain single-agent run; "
         "the default of 1.0 would likely time out mid-judgement (default: %(default)s).",
     )
+    # Deliberately NO --max-budget-usd (or any other spend-cap flag): see
+    # collect.py's "WHY THERE IS NO 'SPENT MOST OF ITS BUDGET' CONDITION"
+    # docstring section and README.md's Cost section. Every trial runs to
+    # completion or errors for an unrelated reason; it is never cut off partway
+    # through for cost reasons, because a trial killed mid-judgement measures
+    # the cap rather than the skill. Do not re-add one.
     parser.add_argument(
         "--dry-run",
         action="store_true",
@@ -827,28 +1039,35 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     exit_codes: dict[str, int] = {}
+    incomplete_by_arm: dict[str, dict[str, str]] = {}
     for arm in arms:
         job_dir = arm_job_dir(args.jobs_dir, arm)
         if not args.force and is_arm_complete(job_dir):
-            print(f"[{arm.id}] SKIP (already complete; pass --force to re-run)")
+            # A skipped arm is still checked: pier finished it, but "finished"
+            # is exactly the state that used to hide abandoned trials, and a
+            # resumed run must not report success for trials an earlier
+            # invocation left incomplete.
+            skipped_incomplete = find_incomplete_trials(job_dir)
+            if skipped_incomplete:
+                incomplete_by_arm[arm.id] = skipped_incomplete
+            note = f" -- {len(skipped_incomplete)} INCOMPLETE trials" if skipped_incomplete else ""
+            print(f"[{arm.id}] SKIP (already complete; pass --force to re-run){note}")
             continue
 
         _, cmd = run_arm(arm, args, dataset_args)
         print(f"[{arm.id}] $ {shlex.join(cmd)}")
         exit_code = run_pier(cmd)
         exit_codes[arm.id] = exit_code
-        # Surface pass/fail per arm as it happens -- a run spans hours across
+        incomplete_trials = find_incomplete_trials(job_dir)
+        if incomplete_trials:
+            incomplete_by_arm[arm.id] = incomplete_trials
+        # Surface the verdict per arm as it happens -- a run spans hours across
         # up to 13 arms, so waiting for the end-of-run summary to learn an
-        # early arm failed wastes the rest of the run's wall-clock time.
-        status = "PASS" if exit_code == 0 else f"FAIL (exit {exit_code})"
-        print(f"[{arm.id}] {status}")
+        # early arm failed (or quietly abandoned its tasks) wastes the rest of
+        # the run's wall-clock time.
+        print(f"[{arm.id}] {arm_status_label(exit_code, incomplete_trials)}")
 
-    failed = {arm_id: code for arm_id, code in exit_codes.items() if code != 0}
-    if failed:
-        print(f"[run] {len(failed)}/{len(exit_codes)} arms failed: {failed}", file=sys.stderr)
-        return 1
-    print(f"[run] all {len(exit_codes)} arms completed successfully.")
-    return 0
+    return report_run_summary(exit_codes, incomplete_by_arm)
 
 
 if __name__ == "__main__":

@@ -67,22 +67,33 @@ class VerifierReportsSuccessTests(unittest.TestCase):
 class ClassifyStatusTests(unittest.TestCase):
     """Precedence order under test (collect.py's classification table):
     plugin_load_error > exception_type > missing/empty rewards > the
-    verifier's success verdict > otherwise. Each test isolates one row; the
-    precedence tests at the bottom prove a higher-priority signal wins even
-    when a lower-priority one would, by itself, say something different.
+    verifier's success verdict > the completion gate > otherwise. Each test
+    isolates one row; the precedence tests at the bottom prove a
+    higher-priority signal wins even when a lower-priority one would, by
+    itself, say something different.
+
+    Every call passes `incompleteness_reason` explicitly, because
+    classify_status requires it -- a completion gate with a default is a
+    completion gate a caller can forget.
     """
 
     def test_real_resolved_bundle_is_resolved(self) -> None:
         # Guards the actual defect: f2p_total == 6 must not stop a bundle
         # whose scalar reward is 1 from classifying resolved.
         status, reason = collect.classify_status(
-            exception_type=None, rewards=RESOLVED_REWARDS, plugin_load_error=None
+            exception_type=None,
+            rewards=RESOLVED_REWARDS,
+            plugin_load_error=None,
+            incompleteness_reason=None,
         )
         self.assertEqual((status, reason), ("resolved", None))
 
     def test_real_unresolved_bundle_is_unresolved(self) -> None:
         status, reason = collect.classify_status(
-            exception_type=None, rewards=UNRESOLVED_REWARDS, plugin_load_error=None
+            exception_type=None,
+            rewards=UNRESOLVED_REWARDS,
+            plugin_load_error=None,
+            incompleteness_reason=None,
         )
         self.assertEqual((status, reason), ("unresolved", None))
 
@@ -90,7 +101,10 @@ class ClassifyStatusTests(unittest.TestCase):
         # All fail-to-pass tests fixed but half the pass-to-pass tests broken:
         # `partial` is a high 0.75, yet the binary verdict is still 0.
         status, reason = collect.classify_status(
-            exception_type=None, rewards=REGRESSION_REWARDS, plugin_load_error=None
+            exception_type=None,
+            rewards=REGRESSION_REWARDS,
+            plugin_load_error=None,
+            incompleteness_reason=None,
         )
         self.assertEqual((status, reason), ("unresolved", None))
 
@@ -99,25 +113,40 @@ class ClassifyStatusTests(unittest.TestCase):
         # for a DeepSWE bundle missing its scalar, the all-ones one for a
         # legacy binary bundle.
         by_ratios, _ = collect.classify_status(
-            exception_type=None, rewards=RESOLVED_REWARDS_NO_SCALAR, plugin_load_error=None
+            exception_type=None,
+            rewards=RESOLVED_REWARDS_NO_SCALAR,
+            plugin_load_error=None,
+            incompleteness_reason=None,
         )
         by_all_ones, _ = collect.classify_status(
-            exception_type=None, rewards=LEGACY_BINARY_REWARDS, plugin_load_error=None
+            exception_type=None,
+            rewards=LEGACY_BINARY_REWARDS,
+            plugin_load_error=None,
+            incompleteness_reason=None,
         )
         failed, _ = collect.classify_status(
-            exception_type=None, rewards=LEGACY_BINARY_REWARDS_FAILED, plugin_load_error=None
+            exception_type=None,
+            rewards=LEGACY_BINARY_REWARDS_FAILED,
+            plugin_load_error=None,
+            incompleteness_reason=None,
         )
         self.assertEqual((by_ratios, by_all_ones, failed), ("resolved", "resolved", "unresolved"))
 
     def test_missing_rewards_is_errored(self) -> None:
         status, reason = collect.classify_status(
-            exception_type=None, rewards=None, plugin_load_error=None
+            exception_type=None,
+            rewards=None,
+            plugin_load_error=None,
+            incompleteness_reason=None,
         )
         self.assertEqual((status, reason), ("errored", "missing_verifier_rewards"))
 
     def test_empty_rewards_dict_is_errored(self) -> None:
         status, reason = collect.classify_status(
-            exception_type=None, rewards={}, plugin_load_error=None
+            exception_type=None,
+            rewards={},
+            plugin_load_error=None,
+            incompleteness_reason=None,
         )
         self.assertEqual((status, reason), ("errored", "missing_verifier_rewards"))
 
@@ -130,6 +159,7 @@ class ClassifyStatusTests(unittest.TestCase):
             exception_type="NonZeroAgentExitCodeError",
             rewards=RESOLVED_REWARDS,
             plugin_load_error=None,
+            incompleteness_reason=None,
         )
         self.assertEqual(
             (status, reason),
@@ -145,8 +175,46 @@ class ClassifyStatusTests(unittest.TestCase):
             exception_type="AgentTimeoutError",
             rewards=RESOLVED_REWARDS,
             plugin_load_error="sadd_plugin_not_loaded:loaded=[]",
+            incompleteness_reason=None,
         )
         self.assertEqual((status, reason), ("errored", "sadd_plugin_not_loaded:loaded=[]"))
+
+    def test_incompleteness_reason_downgrades_an_otherwise_unresolved_trial(self) -> None:
+        # The motivating trial: the verifier ran and scored the untouched repo
+        # 0/69, which alone reads as a normal wrong answer. The missing patch
+        # is what tells those two apart.
+        status, reason = collect.classify_status(
+            exception_type=None,
+            rewards=UNRESOLVED_REWARDS,
+            plugin_load_error=None,
+            incompleteness_reason="no_model_patch",
+        )
+        self.assertEqual((status, reason), ("incomplete", "no_model_patch"))
+
+    def test_verifier_success_outranks_the_completion_gate(self) -> None:
+        # Row 5 before row 6: if the verifier certifies the task solved, no
+        # heuristic about patches or question marks may take that away.
+        status, reason = collect.classify_status(
+            exception_type=None,
+            rewards=RESOLVED_REWARDS,
+            plugin_load_error=None,
+            incompleteness_reason="final_message_is_question",
+        )
+        self.assertEqual((status, reason), ("resolved", None))
+
+    def test_infra_failure_outranks_the_completion_gate(self) -> None:
+        # An infra failure also leaves no model.patch behind, so both signals
+        # fire at once. `errored` must win: the harness broke, and blaming the
+        # agent for abandoning a task it never got to attempt would also pull
+        # the trial into Pass@1's denominator, which errored trials are
+        # excluded from.
+        status, reason = collect.classify_status(
+            exception_type="AgentTimeoutError",
+            rewards=UNRESOLVED_REWARDS,
+            plugin_load_error=None,
+            incompleteness_reason="no_model_patch",
+        )
+        self.assertEqual((status, reason), ("errored", "pier_exception:agent_timeout:AgentTimeoutError"))
 
 
 class InfraErrorCategoryTests(unittest.TestCase):

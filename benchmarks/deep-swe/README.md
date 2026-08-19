@@ -2,7 +2,7 @@
 
 Runs the [DeepSWE](https://deepswe.datacurve.ai/) coding-agent benchmark (113 real-world software-engineering tasks) against `claude-code` running the `sadd` plugin's judged skills (`do-and-judge`, `do-in-steps`), across a 5×2 model-tier matrix, via [pier](https://github.com/datacurve-ai/pier). Produces `results.json`/`results.csv` and a self-contained `report.html` comparing this harness's own arms against DeepSWE's official leaderboard.
 
-**Read [Cost and time](#cost-and-time--read-this-before---mode-full) before running `--mode full`.** A full run is roughly 1,130–1,469 trials of a judged skill that fans out to sub-agents — meaningfully more expensive per task than a plain single-agent benchmark run.
+**Read [Cost and time](#cost-and-time--read-this-before---mode-full) before running `--mode full`.** A full run is 1,130 trials of a judged skill that fans out to sub-agents — 1,469 with `--with-vanilla`, whose extra 339 are single-agent control trials running no skill at all. The judged trials are meaningfully more expensive per task than a plain single-agent benchmark run.
 
 ## Prerequisites
 
@@ -45,7 +45,7 @@ Runs the [DeepSWE](https://deepswe.datacurve.ai/) coding-agent benchmark (113 re
 
      Leave `ANTHROPIC_API_KEY` unset so pier's env-stripping picks the OAuth token.
 
-     **Unverified — hedge this before trusting the [Cost and time](#cost-and-time--read-this-before---mode-full) numbers below under this auth mode:** whether pier's per-trial cost parsing (`total_cost_usd` from the stream, `claude_code.py:665-691`, method `_parse_total_cost_from_stream_json`) reports meaningful, correct dollar figures under subscription/OAuth auth — as opposed to first-party API-key billing — was **not tested** as part of this change. Subscription auth also carries its own rate limits this harness has no visibility into. Run `--mode sample` first and inspect `results.json`'s `avg_cost_usd` yourself before relying on it under OAuth auth.
+     **Unverified — hedge this before trusting the [Cost and time](#cost-and-time--read-this-before---mode-full) numbers below under this auth mode:** whether per-trial cost parsing (`total_cost_usd` from the stream — this harness overrides pier's own `_parse_total_cost_from_stream_json` in `agent.py`, see [Cost](#cost)) reports meaningful, correct dollar figures under subscription/OAuth auth — as opposed to first-party API-key billing — was **not tested** as part of this change. Subscription auth also carries its own rate limits this harness has no visibility into. Run `--mode sample` first and inspect `results.json`'s `avg_cost_usd` yourself before relying on it under OAuth auth.
 
    - **AWS Bedrock:**
 
@@ -62,7 +62,7 @@ Runs the [DeepSWE](https://deepswe.datacurve.ai/) coding-agent benchmark (113 re
      export ANTHROPIC_BASE_URL=https://your-gateway.example.com
      ```
 
-     Pier's container network allowlist follows whichever mode is active: `ANTHROPIC_BASE_URL`'s own hostname when set, `*.amazonaws.com` in Bedrock mode, else `api.anthropic.com` (`claude_code.py:177-187`, method `network_allowlist`).
+     Pier's container network allowlist is decided in this order (`claude_code.py:177-187`, method `network_allowlist`): Bedrock mode is checked **first** and returns `.amazonaws.com`, so it wins even when `ANTHROPIC_BASE_URL` is also set; otherwise `ANTHROPIC_BASE_URL`'s own hostname when that is set; else `api.anthropic.com`. Whichever pier picks is not the final list here — `agent.py`'s `ClaudeCodeSadd.network_allowlist` appends `github.com` to it, so the container can clone the pinned plugin checkout.
 
    Pier also has generic `--ae/--agent-env KEY=VALUE` and `--env-file <path>` flags for injecting arbitrary container env (`src/pier/cli/jobs.py:348-354` for `--ae/--agent-env`, `:491-497` for `--env-file`), but `run.py` builds its own fixed `pier run` command with no pass-through for extra flags — for this harness, exporting the variables above on the host before invoking `run.py` is the only route; there is nothing to add to `run.py` itself for any of these modes.
 
@@ -78,7 +78,7 @@ Run these from `benchmarks/deep-swe/` (or adjust paths). All `run.py` invocation
 
 ### 1. Preflight
 
-Cheapest possible sanity check: runs one task on the cheapest arm of one skill (default `do-and-judge`, haiku/haiku) and fails loudly unless the `sadd` plugin actually loaded **and** a sub-agent was actually dispatched (checked against the `claude-code.txt` stream-json transcript, not just exit code).
+Cheapest sanity check that still runs something: one task on the cheapest arm of one skill (default `do-and-judge`, haiku/haiku), failing loudly unless the `sadd` plugin actually loaded **and** a sub-agent was actually dispatched (checked against the `claude-code.txt` stream-json transcript, not just exit code). Cheapest is relative, not free — the two preflight trials recorded under `runs/` took **31.9 and 41.1 minutes** each (`finished_at − started_at`), so plan on a coffee-break's wait rather than seconds.
 
 ```bash
 uv run python3 run.py --preflight --task <task-name> --dataset-dir /path/to/deep-swe/tasks
@@ -95,15 +95,17 @@ Pass `--skill do-in-steps` to preflight that skill's cheapest arm (haiku/haiku) 
 uv run python3 run.py --preflight --skill do-in-steps --task <task-name> --dataset-dir /path/to/deep-swe/tasks
 ```
 
+A preflight trial is a real trial, so the [completion gate](#5-collect-results) applies to it: if it produced no `artifacts/model.patch` or ended its turn on a question, `--preflight` still reports `PASSED (plugin checks only)` — the plugin loaded and dispatched, which is all preflight asks — and exits `3` instead of `0`, naming the trial and reason on stderr. It is not treated as a plugin failure: preflight runs one task on the cheapest arm, which can lose or abandon that task with the plugin working perfectly.
+
 `--skill`'s job directory is `runs/_preflight-<skill>/` for any skill other than the default, so the two skills' preflight runs never collide; the default skill keeps the original `runs/_preflight/` name.
 
-Pass `--model sonnet` (or `haiku`/`opus`) to preflight that tier's arm instead of the cheapest one — useful to smoke-test a specific tier pair before spending real money on it in `--mode single/sample/full`:
+Pass `--model sonnet` (or `haiku`/`opus`) to preflight that tier's arm instead of the cheapest one — useful to smoke-test a specific tier pair before committing to it in `--mode single/sample/full`. Note that this preflight is itself a real-money trial at that tier: the one uncapped sonnet-tier `do-in-steps` trial recorded under `runs/` — not a preflight, but the same per-trial work — really cost **$26.530** (its stream's cumulative total; pier recorded the understated $0.392, see [Cost](#cost)) and ran **127.7 minutes**.
 
 ```bash
 uv run python3 run.py --preflight --skill do-in-steps --model sonnet --task <task-name> --dataset-dir /path/to/deep-swe/tasks
 ```
 
-Same job-directory rule applies: any `--model` other than none appends a `-<model>` suffix (e.g. `runs/_preflight-sonnet/`, or `runs/_preflight-do-in-steps-sonnet/` combined with a non-default `--skill`), so preflighting the same skill at different tiers back to back never overwrites a prior run's `prompt.j2`/`arm.json`. Only the bare default — no `--skill`, no `--model` — keeps `runs/_preflight/`.
+Same job-directory rule applies: any `--model` other than none appends a `-<model>` suffix (e.g. `runs/_preflight-sonnet/`, or `runs/_preflight-do-in-steps-sonnet/` combined with a non-default `--skill`), so preflighting the same skill at different tiers back to back never overwrites a prior run's `prompt.j2`/`arm.json`. `runs/_preflight/` is the directory whenever the skill in effect is the default `do-and-judge` — left implicit *or* passed explicitly, since `run_preflight` resolves `--skill` before naming the job — and no `--model` is given.
 
 Always run this before anything else — a broken `--plugin-dir` or a misconfigured container silently produces zero measurement, not an error, on every other command.
 
@@ -131,11 +133,13 @@ All arms against `--n-tasks` tasks, sampled with a pinned seed (`SAMPLE_SEED = 2
 uv run python3 run.py --mode sample --n-tasks 20 --dataset-dir /path/to/deep-swe/tasks
 ```
 
-**Use this to measure your own real per-trial cost and duration before touching `--mode full`.** Everything in the next section is a labeled assumption; a 10–20 task sample gives you real numbers from `results.json` in minutes, not a guess.
+**Use this to measure your own real per-trial cost and duration before touching `--mode full`.** Every projected *total* in the next section is labeled with its basis — **Fact** (vendored data) or **Assumption** (a stated estimate) — and the *Measured* per-trial figures there come from three individually recorded trials, not from a run of the matrix.
+
+**A sample run is not a quick check — budget days, not minutes.** `--n-tasks 20` is 20 tasks × 10 arms = 200 trials. Derivation from what this repo records: `run.py` runs arms sequentially (one `pier run` per arm), every recorded `runs/*/config.json` has `n_concurrent_trials: 4`, and the three trials under `runs/` took 31.9 / 41.1 / 127.7 minutes (`finished_at − started_at` in each `result.json`). That gives 10 arms × ⌈20/4⌉ batches × 32–128 min ≈ **27–106 hours of wall-clock**; `--n-tasks 10` brings it to ≈ **16–64 hours** — not half, because ⌈10/4⌉ is 3 batches per arm rather than 5. Two of those three trials ran under the $3 cap described below, which truncates a trial, so a sample without that cap skews toward the high end. What a sample buys is *measured* numbers in place of the estimates below — not speed.
 
 ### Cost and time — read this before `--mode full`
 
-**No run of this harness has been executed. Every number below is a stated assumption with its derivation shown, not a measurement.** A full run is 1,130–1,469 trials of a *judged* skill that dispatches sub-agents (an implementation pass, plus a separate judge pass — `do-in-steps` runs one judge per step) — categorically more expensive per task than a single plain agent turn. Do not run `--mode full` against a live API key without reading this.
+**No multi-task run of this matrix has been executed: the three jobs recorded under `runs/` hold exactly one trial each (two from `--preflight`, one single-task arm run). Every projected *total* below is therefore an extrapolation, not a measurement of this harness.** Each row names its basis: **Fact** rows are vendored or published data (measured elsewhere, by someone else, on a different agent scaffold), **Assumption** rows are estimates with their derivation shown, and the per-trial figures under [Cost](#cost) labeled *Measured* are real measurements taken from those three recorded trials. A full run is 1,130 trials of a *judged* skill that dispatches sub-agents (an implementation pass, plus a separate judge pass — `do-in-steps` runs one judge per step), or 1,469 with `--with-vanilla`, whose extra 339 are single-agent control trials running no skill. The judged ones are categorically more expensive per task than a single plain agent turn. Do not run `--mode full` against a live API key without reading this.
 
 #### Trial count
 
@@ -152,7 +156,7 @@ uv run python3 run.py --mode sample --n-tasks 20 --dataset-dir /path/to/deep-swe
 | `--mode full --skill <skill> --model <tier>` | 1 | 113 × 1 = **113** |
 | `--mode full --skill <skill> --model <tier> --with-vanilla` | 2 | 113 × 2 = **226** |
 
-The cost and time figures below are all derived from the unfiltered 10/13-arm counts; a `--skill`- and/or `--model`-filtered full run's cost and time scale down proportionally with its arm count (e.g. 565/1,130 for `--skill` alone, 226/1,130 for `--model` alone, 113/1,130 for both together, of the totals below).
+The projected cost and time *totals* below are all derived from the unfiltered 10/13-arm counts; a `--skill`- and/or `--model`-filtered full run's cost and time scale down proportionally with its arm count (e.g. 565/1,130 for `--skill` alone, 226/1,130 for `--model` alone, 113/1,130 for both together, of the totals below).
 
 #### Cost
 
@@ -161,7 +165,23 @@ The cost and time figures below are all derived from the unfiltered 10/13-arm co
 | **Fact** — official leaderboard's real measured cost for a *bare, non-judged* single agent on these same 113 tasks (`data/leaderboard.json.tiers.{sonnet,opus}.avg_cost_usd` — mini-swe-agent, not this harness) | $11.84 (opus) – $26.40 (sonnet) | $13,379 – $29,832 | $17,393 – $38,782 |
 | **Assumption** — a judged trial (implementation pass + judge pass, or a judge per step) costs roughly 1.5–3× that bare-agent baseline | ~$20 (round, blended across tiers/skills) | ~$22,600 | ~$29,380 |
 
-The top row is the load-bearing fact here, not an estimate: it is real, vendored data showing that a *single, non-judged* agent already costs $12–26 per trial on these tasks. Since `do-and-judge`/`do-in-steps` do strictly more work than that bare agent, a full run is a real financial commitment at the blended per-trial estimate above. This harness enforces no per-trial spend cap — every trial runs to completion or errors for an unrelated infra reason, it is never cut off partway through for cost reasons — so use `--mode sample` first to see your own real per-trial spend before committing to `--mode full`; `results.json`'s `avg_cost_usd` per arm is ground truth, nothing above is.
+The top row is the load-bearing fact here, not an estimate: it is real, vendored data showing that a *single, non-judged* agent already costs $12–26 per trial on these tasks. Since `do-and-judge`/`do-in-steps` do strictly more work than that bare agent, a full run is a real financial commitment at the blended per-trial estimate above. This harness enforces no per-trial spend cap — every trial runs to completion or errors for an unrelated infra reason, it is never cut off partway through for cost reasons — so use `--mode sample` first to see your own real per-trial spend before committing to `--mode full`; for a run made with the cost override described below in place, `results.json`'s `avg_cost_usd` and `max_cost_usd` per arm are ground truth, nothing above is. Read `max_cost_usd` too, not just the average: with no cap to bound a runaway trial, a single expensive one is invisible in an average over dozens.
+
+`agent.py` overrides pier's `_parse_total_cost_from_stream_json` so those figures can be trusted going forward. Pier returned the FIRST `{"type":"result"}` event in a trial's stream, but a `claude --print` session with async sub-agents emits one such event per resumption, each carrying the session's *cumulative* spend. `ClaudeCodeSadd` takes the maximum across all of them instead; the rule itself lives in `stream_cost.py` (kept out of `agent.py` so it is testable without `pier`), whose docstring carries the last-vs-max and partial-data decisions.
+
+Measured on the three trials recorded under `runs/`:
+
+| Recorded trial | `result` events | first → last | pier recorded |
+|---|---:|---|---|
+| `do-in-steps__sonnet-sonnet/…ZsbwRdJ` | 22 | $0.392 → $26.530 | $0.392 — understated 68x |
+| `_preflight-do-in-steps/…9ryVMmH` | 11 | $0.140 → $1.804 | $0.140 — understated 13x |
+| `_preflight/abs-stepped-slices__HyQJyYy` | 1 | $1.865 → $1.865 | $1.865 — correct |
+
+So the defect is conditional, not universal: **any trial whose stream carries more than one `result` event was understated the same way, and single-`result`-event trials were always correct** (for those, first and last are the same event). Whether a given trial is affected depends on whether its session ever resumed, which is what a sub-agent completion does.
+
+**Provenance — two of those three trials ran under a spend cap this harness no longer has.** Both `_preflight*` jobs record a $3.00 per-trial budget cap in the pier `config.json`/`lock.json` they were run with, so their spend was bounded at $3 and says nothing about what an uncapped trial costs; the `do-in-steps__sonnet-sonnet` job carries no such key and is the one uncapped trial here, at $26.530. The cap was removed from this harness (there is no flag for it — see [Cost](#cost) above), so an uncapped run can cost several times what the two capped rows show, as that third row does.
+
+**Trials already recorded in `runs/` keep whatever figure pier wrote at the time** — understated for the two multi-`result`-event trials above, already correct for the single-event one. `collect.py` reports the cost pier wrote into each trial's `result.json` and deliberately does not re-derive it from the stream — re-deriving would silently restate numbers for runs already on disk, leaving `results.json` disagreeing with the `result.json` files it was built from. The override corrects runs made from here on; to see the real total for an already-recorded trial, read the last `result` event of its `agent/claude-code.txt` directly.
 
 **Fact** — Anthropic first-party API pricing per million tokens, fetched from `https://platform.claude.com/docs/en/about-claude/pricing` on 2026-08-09: Haiku 4.5 $1.00 / $5.00 (in/out), Sonnet 5 $2.00 / $10.00 introductory through 2026-08-31 (standard $3.00 / $15.00 from 2026-09-01), Opus 5 $5.00 / $25.00 (in/out). Haiku-tier arms will sit well under the blended $20/trial assumption above; opus/opus arms well above it.
 
@@ -188,6 +208,10 @@ uv run python3 run.py --mode full --dataset-dir /path/to/deep-swe/tasks
 # controls to 1 instead of 3 -- see the Trial count table for every combination
 ```
 
+Each arm prints one of three verdicts as it finishes — `PASS`, `INCOMPLETE` or `FAIL` — and the process exit code mirrors the worst one seen: `0` all clean, `3` at least one arm has INCOMPLETE trials, `1` pier itself failed an arm (which outranks INCOMPLETE). An arm is INCOMPLETE when a trial produced no `artifacts/model.patch` (missing or zero-byte — both mean it committed nothing) or ended its turn asking a question nobody could answer — see [Collect results](#5-collect-results) for what that means and why. The end-of-run summary only says "completed successfully" when nothing is in either bucket, and arms skipped as already-complete are re-checked so a resumed run cannot claim success for trials an earlier invocation abandoned. Exit code `3` and not `2`, because argparse already spends `2` on usage errors.
+
+Every arm's prompt — plugin and vanilla control alike — also carries a short non-interactive contract telling the agent there is no human to answer it and to choose, state the choice, and keep going. It is identical text in both, deliberately: the vanilla arms are the control the plugin arms are measured against, so prompt text in one and not the other would be a second uncontrolled difference between them.
+
 Useful flags: `--dry-run` prints every arm's `pier` command and the arm count without writing anything or executing anything — sanity-check the matrix before spending money. It honors `--skill` and `--model` identically to a real run, so the printed commands and count reflect exactly the filtered matrix that would execute — combine `--dry-run` with `--skill`/`--model` to confirm the filter before committing budget. Resumability isn't specific to `--mode full`: any invocation that isn't `--dry-run` or `--preflight` — `--mode single` and `--mode sample` included — skips an arm whose `runs/<arm-id>/result.json` already has `finished_at` set, unless `--force` is passed.
 
 ### 5. Collect results
@@ -199,9 +223,24 @@ python3 collect.py
 # --runs-dir / --out-dir override the defaults (./runs, this directory)
 ```
 
-`results.csv` is one row per trial. Its `reward` column is the verifier's own scalar binary verdict — `0` or `1`, the `reward` key of the `rewards` bundle each trial's verifier writes, blank when a bundle carries no such key. It is **not** a sum or score over that bundle: the verifier reports `rewards` as a metrics bundle (test counts, `f2p`/`p2p` ratios, a `partial` graded-credit score) alongside the one binary `reward`, and only the scalar answers "was this task solved". `resolved`/`status` are derived from the same scalar — see `verifier_reports_success()` in `collect.py`.
+`results.csv` is one row per trial. Its `reward` column is the verifier's own scalar binary verdict — `0` or `1`, the `reward` key of the `rewards` bundle each trial's verifier writes, blank when a bundle carries no such key. It is **not** a sum or score over that bundle: the verifier reports `rewards` as a metrics bundle (test counts, `f2p`/`p2p` ratios, a `partial` graded-credit score) alongside the one binary `reward`, and only the scalar answers "was this task solved". `resolved`/`status` are derived from that same scalar whenever the bundle carries one; for a bundle that does not, the verdict is recomputed from `f2p`/`p2p` and, failing that, from an all-values-equal-1 rule — see `verifier_reports_success()` in `collect.py` for why those two fallbacks are ordered that way.
 
-Infrastructure failures (Docker build failures, agent/verifier timeouts, API rate-limit failures) are classified `errored` and excluded from the Pass@1 denominator and every average — `n_errored` is reported separately per arm so nothing silently disappears. Re-runnable any time; it rebuilds both output files from scratch rather than merging.
+Every trial gets one of **four** statuses, carried in the `status` column of `results.csv` (and each trial's entry in `results.json`). The two failure-ish ones are deliberately not the same thing:
+
+| `status` | Meaning | `error_reason` | In Pass@1's denominator? |
+|---|---|---|---|
+| `resolved` | The verifier says the task was solved. | blank | Yes (as a success) |
+| `unresolved` | The agent finished and got it wrong. | blank | Yes (as a failure) |
+| `incomplete` | The agent never finished: no `artifacts/model.patch` for the trial (absent or zero-byte), or its final message ends in a question asked of an operator who was never there. | `no_model_patch` or `final_message_is_question` | Yes (as a failure) |
+| `errored` | Infrastructure failure — Docker build failure, agent/verifier timeout, API rate-limit failure, plugin that didn't load. | `pier_exception:<category>:<type>`, `missing_verifier_rewards`, `malformed_result_json`, or a plugin-load reason | **No** — excluded from every average too |
+
+**Read `error_reason` to find out *why* a given trial is `incomplete` or `errored`** — it is a `results.csv` column (and a `results.json` trial field) carrying the specific reason, alongside `trial_id`, which names the `runs/<arm-id>/<trial_id>/` directory to go read. To re-attempt an arm holding INCOMPLETE trials, re-run it with `--force` (`run.py` otherwise skips an arm pier already finished; see [Full run](#4-full-run)).
+
+`n_incomplete` and `n_errored` are both reported per arm, and never summed: an `incomplete` trial is the agent's own abandonment and counts against the arm, while an `errored` one is the harness's fault and is dropped from the numbers entirely (so nothing silently disappears either way). Keeping `incomplete` in the denominator is deliberate — excluding it would let an arm raise its Pass@1 by walking away from the tasks it was losing. A verifier-certified success is never downgraded to `incomplete`, and an infra failure is never relabelled as one; see `classify_status()` in `collect.py` for the full precedence table.
+
+The "ends in a question" test is a conservative heuristic: it looks only at the last prose line of the final `result` event, ignores anything inside a code fence, and stays quiet on quoted or rhetorical questions. See `message_ends_in_question()` in `collect.py` for exactly what it will and won't catch. It is validated against real recorded prose, not just invented examples: `runs/_preflight-do-in-steps/…9ryVMmH` ends its final message with "Which approach would you prefer? Or shall I continue with the current orchestration pace?" after offering the operator a numbered menu under budget pressure — the abandonment this whole gate exists for — while the other two recorded trials end on a bolded status line and a progress note and are correctly left alone (`tests/test_collect_completion_gate.py` pins all three). There is no "spent most of its budget" condition, because there is no spend cap in this harness for a cost to approach — cost anomalies surface through `cost_usd`/`max_cost_usd` instead.
+
+Re-runnable any time; it rebuilds both output files from scratch rather than merging.
 
 ### 6. Generate the report
 
@@ -218,11 +257,18 @@ python3 report.py
 cd benchmarks/deep-swe && python3 -m unittest discover
 ```
 
-(equivalently, from the repo root: `python3 -m unittest discover -s benchmarks/deep-swe`). No third-party install needed — 160 stdlib-`unittest` tests, runs in well under a second.
+(equivalently, from the repo root: `python3 -m unittest discover -s benchmarks/deep-swe`). No third-party install needed — the whole suite is stdlib `unittest` and runs in about a second. Nothing fails without the optional pieces; some tests skip instead, and none of them is a rule this harness decides anything by:
 
-**Test coverage is narrower than "the test suite passes" might suggest — don't overclaim it.** Most of the 160 tests cover pure functions in `collect.py` and `report.py`: Wilson confidence intervals, status classification, chart-geometry math, table formatting. Two files are the exception, both covering `run.py` by stubbing the `agent` module so it imports without `pier`: `tests/test_run_dispatch.py` pins the preflight dispatch predicate (`has_subagent_dispatch`) — the tool-name matcher that decides whether a sub-agent was ever dispatched, there because that predicate silently broke on a claude-code tool rename (`Task` → `Agent`) while the whole suite stayed green — and `tests/test_run_arm_matrix.py` pins the `--skill` and `--model` flags' arm-matrix filtering, preflight arm/job-name selection, and argparse validation.
+- **7 skip in a tree that has `runs/`.** 6 need `pier`: 2 check that the cost override is what inheritance resolves to and that it still delegates to the pure rule, 3 cover the file-opening shell around that rule, and 1 compares the override against pier's own implementation on the recorded stream. The 7th renders a prompt template through `jinja2`; the specific property it proves — that pier can render every arm's template with only `instruction` bound — is *also* checked by a stdlib equivalent that always runs, so that one property does not depend on jinja2 being installed.
+- **19 skip in a fresh clone**, because `.gitignore` is exactly `runs/`: the recorded evidence is untracked, so 12 more tests that read it skip too. The test count is unchanged and the suite is still green — this is a visibility gap, not a correctness one. Fix 1's regression proof in particular survives: 13 of `tests/test_stream_cost.py`'s 14 tests still run from the committed 3 KB fixture, including the 22-event, `$0.392`-first, `$26.530`-max assertions; only the fixture-versus-original drift check needs `runs/`.
 
-**Everything else in `run.py`, and all of `agent.py`, remains not unit-tested**: building the `pier run` command, checking out the plugin into a container, driving the container lifecycle. Those are exercised instead by `run.py --dry-run` (prints every command without executing anything) and `run.py --preflight` (actually runs one trial and verifies the plugin loaded and a sub-agent was dispatched). If you change `run.py`'s command-building or `agent.py`'s install steps, `--preflight` — not the test suite — is what tells you whether it still works.
+Run `uv run --with pytest python3 -m pytest tests/ -q` to execute everything (`pier` and `jinja2` both present), and re-measure any of the counts above with `python3 -m unittest discover -v`.
+
+**Test coverage is narrower than "the test suite passes" might suggest — don't overclaim it.** Most tests cover pure functions in `collect.py`, `report.py` and `stream_cost.py`: Wilson confidence intervals, status classification, the completion-gate/question heuristic, cost-stream parsing, chart-geometry math, table formatting.
+
+Judgment logic is deliberately kept out of `agent.py` for this reason. Anything importing `pier` is unreachable under the default command above, so a rule living there would have tests that *skip* rather than run — a green suite proving nothing. The cost rule therefore lives in `stream_cost.py` (stdlib `json` only) with `tests/test_stream_cost.py` covering it unconditionally, and `ClaudeCodeSadd._parse_total_cost_from_stream_json` is reduced to opening the file and calling it. Same split `collect.py` already uses for `plugin_load_error_from_init_event` / `incompleteness_reason_from_signals`. `tests/test_status_contract.py` closes the other end, deriving its expectations from `typing.get_args(collect.Status)` so a fifth trial status cannot be added without wiring it through `ArmAggregate` and `report.py`'s arm table. `tests/test_readme_claims.py` does the same for this file: it checks the cost table and the bounded claim drawn from it against the artifacts under `runs/`, that the quoted transcript line is verbatim, that the `error_reason` values line up with the code in both directions (every reason the code emits is named here, and every reason named here — including the templated `pier_exception:<category>:<type>` form — is one the code can produce), and that no superseded "nothing below is measured" disclaimer has crept back in — the two documentation defects this harness actually shipped. It does not check the test counts in this section; those are maintained by hand. Four files cover `run.py`, importing it via `tests/run_fixtures.py` (which stubs the `agent` module when `pier` isn't installed): `tests/test_run_dispatch.py` pins the preflight dispatch predicate (`has_subagent_dispatch`) — the tool-name matcher that decides whether a sub-agent was ever dispatched, there because that predicate silently broke on a claude-code tool rename (`Task` → `Agent`) while the whole suite stayed green — `tests/test_run_arm_matrix.py` pins the `--skill` and `--model` flags' arm-matrix filtering, preflight arm/job-name selection, and argparse validation, `tests/test_run_completion_gate.py` pins the PASS/INCOMPLETE/FAIL contract and its exit codes, and `tests/test_run_prompt_template.py` pins the prompt template (plugin arms still start with their slash command, both arm types carry identical contract text). `tests/test_agent_cost_parsing.py` is the one file covering `agent.py`, and now only what genuinely needs pier: the override's resolution order, that the method stayed a shell delegating to `stream_cost`, its file-reading edge cases, and an end-to-end comparison against upstream on the real recorded stream in `runs/`.
+
+**Everything else in `run.py`, and the rest of `agent.py`, remains not unit-tested**: building the `pier run` command, checking out the plugin into a container, driving the container lifecycle. Those are exercised instead by `run.py --dry-run` (prints every command without executing anything) and `run.py --preflight` (actually runs one trial and verifies the plugin loaded and a sub-agent was dispatched). If you change `run.py`'s command-building or `agent.py`'s install steps, `--preflight` — not the test suite — is what tells you whether it still works.
 
 ## Regenerating `data/leaderboard.json`
 

@@ -99,7 +99,7 @@ def make_trial(
         task_name="task-1",
         task_checksum="checksum-1",
         resolved=status == "resolved",
-        reward={"resolved": 1.0, "unresolved": 0.0}.get(status),
+        reward={"resolved": 1.0, "unresolved": 0.0, "incomplete": 0.0}.get(status),
         cost_usd=cost_usd,
         output_tokens=output_tokens,
         input_tokens=None,
@@ -110,5 +110,7 @@ def make_trial(
         plugin_ref="cek@abc123",
         claude_code_version="1.0.0",
         trial_id=trial_id or f"trial-{status}-{id(object())}",
-        error_reason="some_infra_error" if status == "errored" else None,
+        # Both non-attempt statuses carry a reason in real records; only
+        # resolved/unresolved leave it None. See collect.py's TrialRecord.
+        error_reason={"errored": "some_infra_error", "incomplete": "no_model_patch"}.get(status),
     )
