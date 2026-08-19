@@ -589,7 +589,7 @@ wheels = [
 
 [[package]]
 name = "datacurve-pier"
-version = "0.3.0"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anthropic" },
@@ -614,9 +614,9 @@ dependencies = [
     { name = "typer" },
     { name = "uvicorn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/2b/db/287380c0c168603d552877782307965745a2f2e2759bab29df9555f2604b/datacurve_pier-0.3.0.tar.gz", hash = "sha256:1730d7939a01c3ad852bd740784fc7aa57cb73b8f67022677083eb989a5ceea6", size = 772522, upload-time = "2026-06-14T08:01:59.5Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/b7/47/80a079a106027b8bce47a2353579cf4812fa374328a5ec57bd93120a58e3/datacurve_pier-0.3.1.tar.gz", hash = "sha256:f0ce5b676f3fa6e0ace71c932372ca605de8368efc738116e0cc6cf8c58aec78", size = 257798, upload-time = "2026-08-11T21:36:49.45Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8b/12/40c0a3f0414095bb732cbc10eab27ae76af08ce09114d46593500a333f5f/datacurve_pier-0.3.0-py3-none-any.whl", hash = "sha256:a8b43377774bc45fa20520d6c1aad9e244f2c6bdcd04155dddabd753fe443251", size = 845595, upload-time = "2026-06-14T08:01:58.11Z" },
+    { url = "https://files.pythonhosted.org/packages/f3/70/9b9d587f98cc383aa1e481510c924fbfb5d3c98260ec77068b1adee92185/datacurve_pier-0.3.1-py3-none-any.whl", hash = "sha256:6986b3cb5f66aada5ed6edcc9f045cdf62d19f66b95ff99c706ec8e835981ae1", size = 310256, upload-time = "2026-08-11T21:36:48.432Z" },
 ]
 
 [[package]]
@@ -756,7 +756,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "datacurve-pier", specifier = "==0.3.0" }]
+requires-dist = [{ name = "datacurve-pier", specifier = "==0.3.1" }]
 
 [[package]]
 name = "deprecated"

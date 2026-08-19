@@ -7,7 +7,17 @@ dependencies = [
     # Pinned to the exact release `run.py`'s flags were verified against (see
     # README's "Prerequisites" section) -- not a floor, an exact pin, so a
     # newer pier release can't silently change flag behavior underneath us.
-    "datacurve-pier==0.3.0",
+    #
+    # 0.3.1 is a FLOOR-IN-SPIRIT, not a preference: the deep-swe task set
+    # declares `schema_version = "1.3"`, and pier 0.3.0 (schema 1.2) has no
+    # `[[verifier.collect]]` field on `VerifierConfig`. Pydantic's default
+    # `extra="ignore"` therefore DROPPED the task's collect hook -- the very
+    # command that writes `/logs/artifacts/model.patch` -- with no warning, so
+    # every trial was graded against a pristine repo (f2p 0/N, p2p N/N) and
+    # then reported INCOMPLETE/no_model_patch as if the agent had abandoned
+    # the task. 0.3.0 also silently ignored the task's `network_mode`
+    # declarations; 0.3.1 honors both. Never downgrade below 0.3.1.
+    "datacurve-pier==0.3.1",
 ]
 
 [tool.uv]
