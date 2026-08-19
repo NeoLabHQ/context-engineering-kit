@@ -585,7 +585,7 @@ Launch agent:
   Task File: <TASK_FILE>
   Task Title: <title from task file>
 
-  Execute your own Core Process (STAGES 1-10) in full. Its STAGE 2 runs the business requirements analysis (sub-steps 2.1-2.4) internally; that stage writes ONLY to the scratchpad.
+  Execute your own Core Process (STAGES 1-10) in full. 
 
   CRITICAL: DO NOT OUTPUT YOUR BUSINESS ANALYSIS. Create the scratchpad, then write the task file's `# Description` and the single `## Acceptance Criteria` section at your STAGE 10.
   ```
