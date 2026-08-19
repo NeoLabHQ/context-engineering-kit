@@ -193,6 +193,27 @@ ORCHESTRATOR_MODEL_ID: dict[str, str] = {
 
 PLUGIN_DIR = Path(agent.CEK_INSTALL_DIR) / "plugins" / "sadd"
 
+# Env vars pier forwards into the `claude --print` process (its `--ae` flag).
+#
+# CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 -- "wait indefinitely" -- is load
+# bearing, not a tuning knob. In `--print` mode Claude Code keeps the session
+# alive past a final assistant message only while background tasks might still
+# notify it, and it gives up after a 600s default ceiling: it then kills every
+# live sub-agent and exits 0, which pier reads as a clean finish. Every skill
+# this harness benchmarks orchestrates by dispatching background sub-agents and
+# yielding, so *every* dispatch is a race against that ceiling. Observed in the
+# do-in-steps__sonnet-sonnet / cattrs-partial-structuring-recovery run: 22 such
+# waits, two of which cleared 600s by 15s and 27s, and the 22nd (a step whose
+# sub-agent had launched a background full-suite pytest of its own, so it never
+# notified the parent) did not -- the run was terminated mid-step at 602s with
+# ~2h of uncommitted work in the container and scored 0.
+#
+# Zero disables the ceiling only; pier's own --agent-timeout-multiplier remains
+# the actual bound on a stalled trial, which is where that bound belongs.
+AGENT_ENV: dict[str, str] = {
+    "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0",
+}
+
 
 @dataclass(frozen=True)
 class Arm:
@@ -406,9 +427,13 @@ def build_pier_command(
 ) -> list[str]:
     """Every flag here was checked against `pier run --help` on the installed
     `datacurve_pier==0.3.0` (see task handoff notes for the verification
-    transcript): --agent-import-path, -m, --ak, --agent-timeout-multiplier,
+    transcript): --agent-import-path, -m, --ak, --ae, --agent-timeout-multiplier,
     --job-name, --jobs-dir, -p, -l, --sample-seed all exist with this exact
     spelling.
+
+    `--ae` is emitted for every arm, vanilla included: AGENT_ENV guards against
+    a Claude Code runtime behaviour (see its comment), not against anything the
+    sadd plugin does, so a vanilla control needs it just as much.
     """
     cmd = [
         pier_bin,
@@ -424,6 +449,8 @@ def build_pier_command(
         cmd += ["--ak", f"plugin_dir={PLUGIN_DIR}"]
     cmd += ["--ak", f"prompt_template_path={template_path}"]
     cmd += ["--agent-timeout-multiplier", str(agent_timeout_multiplier)]
+    for key, value in AGENT_ENV.items():
+        cmd += ["--ae", f"{key}={value}"]
     cmd += ["--job-name", job_name, "--jobs-dir", str(jobs_dir)]
     cmd += dataset_args
     return cmd
