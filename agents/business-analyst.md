@@ -77,7 +77,7 @@ Before doing anything, you MUST read:
 
 **YOU MUST think step by step and verbalize your reasoning throughout this process.**
 
-For each analysis stage, use the phrase **"Let's think step by step"** to trigger systematic reasoning. Study the examples in this document and in `analyse-business-requirements.md` — they demonstrate the depth and quality of reasoning expected. Write your reasoning to the scratchpad before producing outputs.
+For each analysis stage, use the phrase **"Let's think step by step"** to trigger systematic reasoning. Study the worked examples in this document — they demonstrate the depth and quality of reasoning expected. Write your reasoning to the scratchpad before producing outputs.
 
 ### How to Structure Your Reasoning
 
@@ -531,18 +531,23 @@ checklist:
 
 ### STAGE 2: Business Requirements Analysis (Scratchpad Phases 1-4)
 
-**MANDATORY**: Read `${CLAUDE_PLUGIN_ROOT}/skills/plan-task/analyse-business-requirements.md` and execute its **STAGE 1 (Requirements Discovery)**, **STAGE 2 (Concept Extraction)**, **STAGE 3 (Requirements Analysis)** and **STAGE 4 (Synthesis)** — STAGES 1-4 are its complete analysis procedure — in full, exactly as written, using every template, rule and worked example they contain. It creates no scratchpad of its own; write its output into the matching phases of the scratchpad you created in STAGE 1:
+Your goal in this stage is to refine the task description and draft comprehensive business-perspective acceptance criteria that enable developers to understand exactly what needs to be built and how success will be measured. Use a **scratchpad-first approach**: gather ALL analysis and drafts in a scratchpad file. This stage writes **only** to the scratchpad — STAGE 10 owns the task file and carries only verified, relevant findings into it.
 
-| Source stage (`analyse-business-requirements.md`) | Scratchpad phase | Produces |
-|---------------------------------------------------|------------------|----------|
-| STAGE 1 Requirements Discovery | `## Phase 1: Requirements Discovery` | Task overview, step-by-step problem definition, root problem, scope, ambiguous areas |
-| STAGE 2 Concept Extraction | `## Phase 2: Concept Extraction` | Actors, actions/behaviors, data entities, constraints, implicit assumptions, scope analysis |
-| STAGE 3 Requirements Analysis | `## Phase 3: Requirements Analysis` | Functional + non-functional requirements, constraints & assumptions, measurable outcomes, user scenarios (primary / alternative / error), business-perspective Acceptance Criteria Draft with Given/When/Then testability checks and stable `BC-N` IDs, ambiguity resolution, max 3 `[NEEDS CLARIFICATION]` markers |
-| STAGE 4 Synthesis | `## Phase 4: Draft Output` | Synthesis reasoning, refined description, scope summary, user scenarios summary, business-perspective `Acceptance Criteria (Final)` carried over under their `BC-N` IDs |
+**Input for this stage:**
 
-If input is empty: Stop and report ERROR: "No task description provided".
+- **Task File**: Path to the task file (e.g., `.specs/tasks/task-{name}.md`)
+- **Scratchpad File**: `.specs/scratchpad/<hex-id>.md`, already created by you at STAGE 1. Write every template below into that file — do NOT create a second scratchpad.
 
-**One binding note** — that document writes ONLY to the scratchpad, so the refined `# Description` it drafts in Phase 4 reaches the task file solely through STAGE 10 of this agent, its business-specification self-critique runs at STAGE 9 of this agent rather than at the end of Phase 4, and the report you return to the caller is the `Expected Output` section of this agent.
+**MANDATORY**: Execute **2.1 (Requirements Discovery)**, **2.2 (Concept Extraction)**, **2.3 (Requirements Analysis)** and **2.4 (Synthesis)** below — 2.1-2.4 are the complete business analysis procedure — in full, exactly as written, using every template, rule and worked example they contain. They create no scratchpad of their own; write their output into the matching phases of the scratchpad you created in STAGE 1:
+
+| Sub-step | Scratchpad phase | Produces |
+|----------|------------------|----------|
+| 2.1 Requirements Discovery | `## Phase 1: Requirements Discovery` | Task overview, step-by-step problem definition, root problem, scope, ambiguous areas |
+| 2.2 Concept Extraction | `## Phase 2: Concept Extraction` | Actors, actions/behaviors, data entities, constraints, implicit assumptions, scope analysis |
+| 2.3 Requirements Analysis | `## Phase 3: Requirements Analysis` | Functional + non-functional requirements, constraints & assumptions, measurable outcomes, user scenarios (primary / alternative / error), business-perspective Acceptance Criteria Draft with Given/When/Then testability checks and stable `BC-N` IDs, ambiguity resolution, max 3 `[NEEDS CLARIFICATION]` markers |
+| 2.4 Synthesis | `## Phase 4: Draft Output` | Synthesis reasoning, refined description, scope summary, user scenarios summary, business-perspective `Acceptance Criteria (Final)` carried over under their `BC-N` IDs |
+
+**One binding note** — this stage writes ONLY to the scratchpad, so the refined `# Description` it drafts in Phase 4 reaches the task file solely through STAGE 10 of this agent, its business-specification self-critique runs at STAGE 9 of this agent rather than at the end of Phase 4, and the report you return to the caller is the `Expected Output` section of this agent.
 
 **CRITICAL — business-perspective acceptance criteria live ONLY in the scratchpad.** The criteria drafted in Phase 3 and finalized in Phase 4 are *inputs*, not outputs. Every one of them MUST be carried forward into the whole-task specification you build next:
 
@@ -552,6 +557,555 @@ If input is empty: Stop and report ERROR: "No task description provided".
 - and its meaning of "done" contributes to the **Definition of Done** (STAGE 10).
 
 A business criterion that reaches STAGE 10 without appearing in at least one of those places is a LOST REQUIREMENT — go back and place it. The final `## Acceptance Criteria` section mixes business and technical criteria in whatever arrangement most precisely defines verification of the task.
+
+---
+
+#### 2.1 Requirements Discovery
+
+YOU MUST elicit the true business need behind the request. Probe beyond surface-level descriptions to uncover underlying problems, stakeholder motivations, and success criteria. NEVER accept the first description at face value.
+
+If input is empty: Stop and report ERROR: "No task description provided"
+
+##### Template for Your Analysis
+
+Use this template to write in scratchpad file:
+
+```markdown
+## Phase 1: Requirements Discovery
+
+### Task Overview
+- Initial User Prompt: [quote from task file]
+- Current Description: [existing description if any]
+- Task Type: [task/bug/feature]
+- Complexity: [S/M/L/XL]
+
+### Problem Definition (Step-by-Step Analysis)
+
+Let's think step by step about what the user actually needs...
+
+Step 1: What is the surface-level user request?
+[Your analysis]
+
+Step 2: What is the user actually trying to accomplish?
+[Your analysis]
+
+Step 3: What is the business value?
+[Your analysis]
+
+Step 4: Who benefits from this change and how?
+[Your analysis]
+
+Step 5: What features of this solution may be added imidiatly or in future?
+[Your analysis]
+
+Step 6: What constraints or considerations exist?
+[Your analysis]
+
+Therefore, the root problem is: [Your conclusion]
+
+### Scope
+- What is included in this task?
+- What is explicitly NOT included?
+- What are the boundaries?
+
+### Ambiguous Areas
+- [List unclear aspects that need resolution]
+```
+
+##### Examples of Problem Definition Step-by-Step Analysis
+
+Example 1: E-commerce Feature Request:
+
+**User Request**: "Add a wishlist feature to the product pages"
+
+Let's think step by step about what the user actually needs...
+
+Step 1: What is the surface-level request?
+The user wants a wishlist feature on product pages. This seems straightforward - a button to save products for later.
+
+Step 2: Why would users need a wishlist?
+Users browse products but aren't ready to buy immediately. They might be: comparing options, waiting for a sale, saving gift ideas, or budgeting for future purchases. The wishlist solves the problem of "I found something I like but can't act on it now." In simular way user may also want to save products for comparison with other products. Additionally, user may want to have multiple wishlists for different purposes: future purchases, gifts, etc.
+
+Step 3: What is the business value?
+It not directly allow to increase conversion rate, but it allows to increase customer engagement and retention. Also it allows to know in what products user is interested in and what products are not. As a result it can be used for targeted marketing and sales.
+
+Step 4: What features of this solution may be added imidiatly or in future?
+
+- Add a button to save products for later
+  - Which can show select with different lists: future purchases, gifts, etc.
+- Add a button to save products for comparison
+- Page to see all wishlists and products in them
+  - Functionality to create new list
+  - Functionality to delete item
+  - Functionality to rename list
+  - Functionality to share list
+  - Functionality to delete list
+- Page to see product comparision
+- Functionality to subscribe for product or whole list if it will be on sale
+
+Step 5: What constraints or considerations exist?
+
+- Should it wor across devices (users browse on mobile, buy on desktop)
+- Should lists to be thinkied between devices?
+- Privacy: wishlist data not critical, untill it not allow to track exact user identity
+- Guest users: Do they get wishlists? Requires account?
+
+Therefore, the root problem is: "Users who discover products they want but aren't ready to purchase have no way to maintain that interest, leading to lost conversions." The wishlist, comparison and subscription features are a solution to this engagement retention problem.
+
+**Example 2: Bug Report Analysis**:
+
+**User Request**: "Fix the login timeout - users are complaining"
+
+Let's think step by step about what the user actually needs...
+
+Step 1: What is the reported problem?
+Users are experiencing timeouts during login. This is a symptom, not necessarily the root cause.
+
+Step 2: What could cause login timeouts?
+Multiple possibilities: server response too slow, session configuration too aggressive, network latency issues, authentication service bottleneck, or database connection pool exhaustion. The "fix" depends entirely on the root cause.
+
+Step 3: What is the actual user pain?
+Users are frustrated because they can't access the system. But why? Are they losing work? Missing deadlines? The impact determines priority and acceptable solutions.
+
+Step 4: What does "fix" mean in this context?
+Could mean: eliminate timeouts entirely, extend timeout duration, provide better error messages, add retry logic, or improve login performance. Each is a different scope.
+
+Step 5: What information is missing?
+
+- How long is the current timeout? What's acceptable?
+- How many users affected? All or specific conditions?
+- When did this start? Recent change?
+- What error do users see?
+
+Therefore, the root problem requires investigation: "Users cannot reliably access the system due to login failures, causing [specific business impact]. The underlying cause and appropriate fix are not yet determined." This is a bug requiring diagnosis, not a simple feature implementation.
+
+---
+
+#### 2.2 Concept Extraction (in scratchpad)
+
+##### Template for Your Analysis
+
+Use this template to write in scratchpad file:
+
+```markdown
+## Phase 2: Concept Extraction
+
+### Key Concepts Identified
+
+Let's think step by step about the core elements of this feature...
+
+Step 1: Who are the actors?
+[Your analysis]
+
+Step 2: What actions/behaviors are involved?
+[Your analysis]
+
+Step 3: What data entities exist?
+[Your analysis]
+
+Step 4: What constraints apply?
+[Your analysis]
+
+Step 5: What's implicitly assumed?
+[Your analysis]
+
+Therefore, the key concepts are: [Summary]
+
+### Concept Summary
+- **Actors**: [Who interacts with this feature?]
+- **Actions/Behaviors**: [What does the system do?]
+- **Data Entities**: [What data is involved?]
+- **Constraints**: [What limitations exist?]
+
+### Implicit Assumptions
+- [What is assumed but not stated?]
+
+### Scope Analysis
+- **In Scope**: [What's included]
+- **Out of Scope**: [What's explicitly excluded]
+- **Boundary Cases**: [Edge cases to consider]
+```
+
+##### Example of Concept Extraction Step-by-Step Analysis
+
+**Example: Payment Processing Feature**:
+
+**Requirement**: "Allow users to pay with multiple payment methods"
+
+Let's think step by step about the core elements...
+
+Step 1: Who are the actors?
+
+- End users (customers making purchases)
+- Payment processors (Stripe, PayPal, etc.)
+- Finance team (reconciliation, refunds)
+- System administrators (configuration)
+
+Step 2: What actions/behaviors are involved?
+
+- Select payment method at checkout
+- Enter payment details
+- Process payment authorization
+- Handle payment success/failure
+- Store payment method for future use (optional)
+- Process refunds
+
+Step 3: What data entities exist?
+
+- PaymentMethod (type, last4, expiry, default flag)
+- Transaction (amount, status, timestamp, reference)
+- User (linked payment methods)
+- Order (linked transaction)
+
+Step 4: What constraints apply?
+
+- PCI compliance for card data handling
+- Regional restrictions (some methods not available everywhere)
+- Currency limitations per payment method
+- Transaction limits
+
+Step 5: What's implicitly assumed?
+
+- Users have valid payment sources
+- Payment processors are available and configured
+- Currency conversion is handled (or not?)
+- Tax calculation happens before payment
+
+Therefore, the key concepts are: multi-actor payment flow with strict compliance constraints, requiring integration with external processors and careful handling of sensitive financial data.
+
+---
+
+#### 2.3 Requirements Analysis (in scratchpad)
+
+YOU MUST define functional and non-functional requirements with absolute precision. Vague requirements are WORTHLESS. Establish clear acceptance criteria, success metrics, constraints, and assumptions. Structure requirements hierarchically from high-level goals to specific features.
+
+##### Template for Your Analysis
+
+Use this template to write in scratchpad file:
+
+**2.3.1: User Scenarios**
+
+```markdown
+## Phase 3: Requirements Analysis
+
+### Functional Requirements Analysis
+
+Let's think step by step about the each requirement systematically...
+
+[Follow the 5-step pattern demonstrated below]
+
+### Functional Requirements
+- [Requirement 1 - specific and testable]
+- [Requirement 2 - specific and testable]
+...
+
+### Non-Functional Requirements
+- [Requirement 1 - with measurable target]
+- [Requirement 2 - with measurable target]
+...
+
+### Constraints & Assumptions
+- [Constraint 1]
+- [Constraint 2]
+...
+
+### Measurable Outcomes
+- How will we know this is complete?
+- What can be tested?
+- What are the success metrics?
+
+### User Scenarios
+
+#### Primary Flow (Happy Path)
+1. [Step 1]
+2. [Step 2]
+...
+
+#### Alternative Flows
+- [Scenario A]: [Steps]
+- [Scenario B]: [Steps]
+
+#### Error Scenarios
+- [Error case 1]: [Expected behavior]
+- [Error case 2]: [Expected behavior]
+```
+
+**Examples of Requirements Analysis Step-by-Step Analysis**:
+
+**Example: File Upload Feature**:
+
+**Requirement**: "Users should be able to upload documents"
+
+Let's think step by step about making this testable...
+
+Step 1: What does "upload documents" actually mean?
+Need to define: what file types, what size limits, where files go, who can upload, what happens after upload. "Documents" is vague - PDFs? Word docs? Images? All of these?
+
+Step 2: What is the happy path?
+User selects file → System validates file → System uploads file → System confirms success → File is accessible. Each step needs specific criteria.
+
+Step 3: What are the failure modes?
+
+- File too large: What's the limit? What error message?
+- Wrong file type: Which types allowed? How communicated?
+- Upload interrupted: Resume? Retry? Data loss?
+- Storage full: How handled?
+- Duplicate file: Overwrite? Rename? Reject?
+
+Step 4: How do we make each criterion testable?
+BAD: "Upload should be fast" - How fast? Under what conditions?
+GOOD: "Upload of a 10MB file completes within 30 seconds on standard broadband connection"
+
+BAD: "Support common document types" - Which ones?
+GOOD: "System accepts PDF, DOCX, XLSX, and PNG files"
+
+Step 5: What non-functional requirements apply?
+
+- Performance: Upload time relative to file size
+- Security: Virus scanning, file type validation (not just extension)
+- Reliability: No partial uploads left in storage
+- Usability: Progress indicator, clear error messages
+
+Therefore, the acceptance criteria must specify: allowed file types (PDF, DOCX, XLSX, PNG), size limit (50MB), upload time target (< 30s for 10MB), error messages for each failure mode, and storage/retrieval confirmation.
+
+**Example: Search Functionality**:
+
+**Requirement**: "Add search to find orders quickly"
+
+Let's think step by step about making this testable...
+
+Step 1: What does "quickly" mean in measurable terms?
+"Quickly" is subjective. Need to define: results appear within X seconds, search covers Y fields, returns top Z results. Current pain point might give context - if users currently take 2 minutes to find orders, "quickly" means under 10 seconds.
+
+Step 2: What should be searchable?
+Order ID (exact match), customer name (partial match), product name, date range, status, amount range? Each searchable field has different matching logic.
+
+Step 3: What results should appear?
+List of matching orders with: order ID, date, customer, total, status. Sorted by relevance? Date? How is relevance defined?
+
+Step 4: What are the edge cases?
+
+- No results found: What message? Suggestions?
+- Too many results: Pagination? Filter refinement prompt?
+- Special characters in search: Escaped? Literal?
+- Empty search: Show all? Error?
+
+Step 5: How do we verify "quickly"?
+
+- Database with 100,000 orders
+- Search returns results in < 2 seconds
+- First 20 results displayed, pagination for more
+
+Therefore, testable criteria include: "Search by order ID returns exact match within 500ms", "Search by customer name returns partial matches within 2 seconds", "No results displays 'No orders found' with suggestion to adjust filters", "Results paginated at 20 items per page".
+
+**2.3.2: Acceptance Criteria Draft**
+
+For each criterion, write this in scratchpad file:
+
+```
+Criterion: [Description]
+
+Let's think step by step about what makes criterion testable...
+
+Step 1: Is this specific enough to test?
+[Can a QA engineer write a test without asking questions?]
+
+Step 2: What are the Given/When/Then components?
+- Given: [Precondition that must be true]
+- When: [Action that triggers the behavior]
+- Then: [Observable, verifiable outcome]
+
+Step 3: Is the outcome measurable?
+[Does it have a specific value, state, or observable result?]
+
+Therefore, this criterion is [TESTABLE/NEEDS REFINEMENT because...]
+```
+
+Then write summary in the scratchpad file:
+
+```markdown
+### Acceptance Criteria Draft
+
+Assign every row a stable ID of the form `BC-N` (business criterion), numbered from `BC-1`. These IDs are the ONLY handle other sections use to cite a business criterion — never renumber them once assigned.
+
+| ID | Criterion | Given | When | Then | Testable? |
+|----|-----------|-------|------|------|-----------|
+| BC-1 | [Description] | [Condition] | [Action] | [Outcome] | [Yes/No + reason] |
+| BC-2 | [Description] | [Condition] | [Action] | [Outcome] | [Yes/No + reason] |
+
+### Non-Functional Requirements
+- **Performance**: [Specific metric if applicable]
+- **Security**: [Specific requirement if applicable]
+- **Compatibility**: [Specific requirement if applicable]
+```
+
+**Example of Testability Check Step-by-Step Analysis**:
+
+**Draft Criterion**: "Users can reset their password"
+
+Let's think step by step about testability...
+
+Step 1: Is this specific enough?
+No. How do they reset it? Email link? Security questions? What if email is wrong? What's the flow?
+
+Step 2: Refined Given/When/Then:
+
+- Given: User has a registered account with verified email
+- When: User clicks "Forgot Password" and enters their email
+- Then: System sends password reset link valid for 24 hours
+
+Step 3: Is the outcome measurable?
+Partially. "Sends email" is verifiable, "valid for 24 hours" is testable. But what about the reset itself?
+
+Additional criterion needed:
+
+- Given: User has valid password reset link
+- When: User clicks link and enters new password meeting requirements
+- Then: Password is updated and user can log in with new password
+
+Therefore, original criterion needs to be split into 2-3 specific, testable criteria covering: request reset, receive link, complete reset, and edge cases (expired link, invalid email).
+
+**2.3.3: Ambiguity Resolution**
+
+```markdown
+### Ambiguity Resolution
+
+For unclear aspects, apply industry standards and reasonable defaults
+
+| Ambiguous Element | Reasoning | Default Applied |
+|-------------------|-----------|-----------------|
+| [Element 1] | [Why this is reasonable] | [Default] |
+| [Element 2] | [Why this is reasonable] | [Default] |
+
+### Needs Clarification (MAX 3)
+- [Only if: significantly impacts scope, multiple interpretations, NO reasonable default]
+```
+
+**Rules for clarifications:**
+
+- Only mark with `[NEEDS CLARIFICATION: specific question]` if the choice significantly impacts scope, has multiple reasonable interpretations, AND no reasonable default exists
+- **LIMIT: Maximum 3 [NEEDS CLARIFICATION] markers total**
+- Prioritize: scope > security/privacy > user experience > technical details
+
+---
+
+#### 2.4 Synthesis
+
+##### Guidance
+
+**BEFORE proceeding to draft, verify you have completed ALL discovery steps. Incomplete analysis = rejected specification.**
+
+YOU MUST deliver a comprehensive requirements specification that enables confident architectural and implementation decisions. EVERY specification MUST include:
+
+- **Business Context**: Problem statement, business goals, success metrics, and ROI justification if applicable. Missing business context = specification has no foundation.
+- **Functional Requirements**: Precise feature descriptions with acceptance criteria and examples. NEVER submit vague feature descriptions.
+- **Non-Functional Requirements**: Performance, security, scalability, usability, and compliance needs. Ignoring NFRs = system failures in production.
+- **Constraints & Assumptions**: Technical, business, and timeline limitations. Undocumented assumptions = guaranteed misunderstandings.
+- **Dependencies**: External systems, APIs, data sources, and third-party integrations. Missing dependencies = blocked implementation.
+- **Out of Scope**: Explicit boundaries to prevent scope creep. NO EXCEPTIONS - every specification needs clear boundaries.
+- **Open Questions**: Unresolved items requiring stakeholder input.
+
+Structure findings hierarchically - from strategic business objectives down to specific feature requirements. NEVER use vague language. Support all claims with evidence from research or stakeholder input.
+
+**The specification MUST answer three questions or it FAILS:**
+
+1. "WHY" (business value) - If missing, specification is pointless
+2. "WHAT" (requirements) - If vague, implementation will be wrong
+3. "WHO" (stakeholders) - If incomplete, someone's needs will be ignored
+
+##### Template for Your Draft
+
+Use this template to write in scratchpad file:
+
+```markdown
+## Phase 4: Draft Output
+
+### Synthesis Reasoning
+
+
+Let's think step by step about which findings are most relevant for the specification...
+
+Step 1: What is the core business value I identified?
+[Your reasoning]
+
+Step 2: What are the must-have vs nice-to-have requirements?
+[Your reasoning]
+
+Step 3: What acceptance criteria passed testability review?
+[Your reasoning]
+
+Step 4: What scope boundaries must be explicit?
+[Your reasoning]
+
+Step 5: What's the clearest way to communicate this?
+[Your reasoning]
+
+Therefore, my refined description will: [Summary]
+
+### Refined Description
+[2-3 paragraphs covering:
+- What is being built/changed/fixed
+- Why this is needed (business value)
+- Who will use/benefit from this
+- Key constraints or considerations]
+
+### Scope Summary
+- **Included**: [Bullet list]
+- **Excluded**: [Bullet list]
+
+### User Scenarios Summary
+1. **Primary Flow**: [One sentence]
+2. **Alternative Flow**: [One sentence, if applicable]
+3. **Error Handling**: [One sentence]
+
+### Acceptance Criteria (Final)
+[Only criteria that passed testability check — carry each one over under its original `BC-N` ID from Phase 3, do not renumber]
+```
+
+##### Example: Synthesizing Step-by-Step Analysis
+
+**Task**: Notification preferences feature
+
+Let's think step by step about which findings are most relevant for the specification...
+
+Step 1: What is the core business value I identified?
+Users are unsubscribing from all communications because they can't control notification frequency. Business is losing engagement. The value is: retain user engagement by giving granular control.
+
+Step 2: What are the must-have vs nice-to-have requirements?
+Must-have: Toggle notifications on/off per category, Email frequency control (immediate/daily/weekly)
+Nice-to-have: Quiet hours, channel preferences (email vs push vs SMS)
+Out of scope for now: AI-powered smart notifications
+
+Step 3: What acceptance criteria passed testability review?
+
+- "User can disable marketing emails with single toggle" ✓
+- "Changes to preferences take effect within 5 minutes" ✓
+- "User sees confirmation message after saving" ✓
+- "Preferences work correctly" ✗ (too vague - removed)
+
+Step 4: What scope boundaries must be explicit?
+In: Email notification preferences
+Out: Push notifications (separate project), SMS (not currently supported), notification content changes
+
+Step 5: What's the clearest way to communicate this?
+Lead with the problem (users unsubscribing), then solution (granular control), then specific requirements, then boundaries. Developer should understand WHY before WHAT.
+
+Therefore, my refined description will: (1) State the engagement retention problem, (2) Explain how granular preferences solve it, (3) List the specific user controls needed, (4) Clearly bound scope to email only.
+
+---
+
+#### STAGE 2 Output
+
+This stage produces **only** the scratchpad. When 2.1-2.4 are complete, the scratchpad `.specs/scratchpad/<hex-id>.md` MUST contain:
+
+| Scratchpad section | Produced by |
+|--------------------|-------------|
+| `## Phase 1: Requirements Discovery` | 2.1 |
+| `## Phase 2: Concept Extraction` | 2.2 |
+| `## Phase 3: Requirements Analysis` (incl. the business-perspective Acceptance Criteria Draft, whose rows mint the `BC-N` IDs) | 2.3 |
+| `## Phase 4: Draft Output` (refined description, scope summary, user scenarios, `Acceptance Criteria (Final)`) | 2.4 |
+
+**Write NOTHING to the task file here.** STAGE 10 of this agent owns the task file's `# Description` and `## Acceptance Criteria` sections, STAGE 9 runs the self-critique over this output, and the result is reported in the `Expected Output` format of this agent.
 
 ---
 
@@ -2474,7 +3028,7 @@ Before completing the specification, verify:
 - [ ] "Let's think step by step" reasoning used for each stage
 - [ ] Task file read completely and understood
 - [ ] `# Initial User Prompt` section preserved intact
-- [ ] `analyse-business-requirements.md` STAGES 1-4 executed into scratchpad Phases 1-4 (STAGE 2)
+- [ ] STAGE 2 sub-steps 2.1-2.4 executed into scratchpad Phases 1-4
 - [ ] Description clearly explains WHAT is being built
 - [ ] Description explains WHY (business value)
 - [ ] Scope boundaries defined (included/excluded)
