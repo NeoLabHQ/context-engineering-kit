@@ -2,7 +2,7 @@
 
 Build project-specific commands and skills to automate team workflows and extend Claude Code capabilities.
 
-For testing existing prompts or skills, use the `/customaize-agent:test-prompt` command directly.
+For testing existing prompts or skills, use the `/test-prompt` command directly.
 
 ## When to Use
 
@@ -43,20 +43,20 @@ For testing existing prompts or skills, use the `/customaize-agent:test-prompt` 
 
 ### 1. Create command
 
-Use the `/customaize-agent:create-command` command to interactively create a new Claude command. The assistant will guide you through understanding purpose, choosing patterns, and generating the command file.
+Use the `/create-command` command to interactively create a new Claude command. The assistant will guide you through understanding purpose, choosing patterns, and generating the command file.
 
 ```bash
-/customaize-agent:create-command validate API documentation
+/create-command validate API documentation
 ```
 
 After LLM completes, you will have a command file with proper frontmatter, structure, and patterns. Review and adjust the generated command as needed.
 
 ### 2. Test command
 
-Use the `/customaize-agent:test-prompt` command to verify your command works correctly using the RED-GREEN-REFACTOR cycle with subagents.
+Use the `/test-prompt` command to verify your command works correctly using the RED-GREEN-REFACTOR cycle with subagents.
 
 ```bash
-/customaize-agent:test-prompt
+/test-prompt
 ```
 
 After LLM completes, it will report whether the command handles scenarios correctly. If issues are found, iterate on the command and re-test.
@@ -105,30 +105,30 @@ After LLM completes, your command will be documented and discoverable by the tea
 
 ### 1. Create skill
 
-Use the `/customaize-agent:create-skill` command to create a new skill. This follows a TDD approach where you first understand concrete use cases before writing the skill.
+Use the `/create-skill` command to create a new skill. This follows a TDD approach where you first understand concrete use cases before writing the skill.
 
 ```bash
-/customaize-agent:create-skill image-editor
+/create-skill image-editor
 ```
 
 After LLM completes, it will guide you through understanding use cases, planning reusable contents (scripts, references, assets), and generating the SKILL.md file with proper frontmatter and structure.
 
 ### 2. Test skill effectiveness
 
-Use the `/customaize-agent:test-skill` command to verify skills work under pressure and resist rationalization. This is critical for discipline-enforcing skills.
+Use the `/test-skill` command to verify skills work under pressure and resist rationalization. This is critical for discipline-enforcing skills.
 
 ```bash
-/customaize-agent:test-skill
+/test-skill
 ```
 
 After LLM completes, it will run pressure scenarios with subagents, document failures, and help you close loopholes. Continue iterating until the skill is bulletproof.
 
 ### 3. Apply best practices
 
-Use the `/customaize-agent:apply-anthropic-skill-best-practices` command to review and optimize your skill according to Anthropic's official guidelines.
+Use the `/apply-anthropic-skill-best-practices` command to review and optimize your skill according to Anthropic's official guidelines.
 
 ```bash
-/customaize-agent:apply-anthropic-skill-best-practices
+/apply-anthropic-skill-best-practices
 ```
 
 After LLM completes, your skill will be optimized for discoverability, progressive disclosure, and Claude Search Optimization (CSO).
@@ -184,10 +184,10 @@ After LLM completes, your skill will be documented and the team can discover and
 
 ### 1. Analyze environment
 
-The `/customaize-agent:create-hook` command automatically detects your project tooling and suggests relevant hooks:
+The `/create-hook` command automatically detects your project tooling and suggests relevant hooks:
 
 ```bash
-/customaize-agent:create-hook
+/create-hook
 ```
 
 The assistant will scan for:
@@ -302,10 +302,10 @@ Make skills discoverable:
 
 | Task | Command |
 |------|---------|
-| Create command | `/customaize-agent:create-command` |
-| Create skill | `/customaize-agent:create-skill` |
-| Test any prompt | `/customaize-agent:test-prompt` |
-| Test skill under pressure | `/customaize-agent:test-skill` |
-| Apply Anthropic best practices | `/customaize-agent:apply-anthropic-skill-best-practices` |
-| Create git hook | `/customaize-agent:create-hook` |
+| Create command | `/create-command` |
+| Create skill | `/create-skill` |
+| Test any prompt | `/test-prompt` |
+| Test skill under pressure | `/test-skill` |
+| Apply Anthropic best practices | `/apply-anthropic-skill-best-practices` |
+| Create git hook | `/create-hook` |
 | Document changes | `/update-docs` |

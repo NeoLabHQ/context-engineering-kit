@@ -1,4 +1,4 @@
-# /customaize-agent:test-prompt - Prompt Testing with Subagents
+# /test-prompt - Prompt Testing with Subagents
 
 Test any prompt (commands, hooks, skills, subagent instructions) using the RED-GREEN-REFACTOR cycle with subagents for isolated testing.
 
@@ -6,20 +6,20 @@ Test any prompt (commands, hooks, skills, subagent instructions) using the RED-G
 - Output - Test results with improvement recommendations
 
 ```bash
-/customaize-agent:test-prompt ["prompt path or content"]
+/test-prompt ["prompt path or content"]
 ```
 
 ## Usage Examples
 
 ```bash
 # Test a command before deployment
-> /customaize-agent:test-prompt .claude/commands/deploy.md
+> /test-prompt .claude/commands/deploy.md
 
 # Test inline prompt content
-> /customaize-agent:test-prompt "Review this code for security issues"
+> /test-prompt "Review this code for security issues"
 
 # Start interactive testing workflow
-> /customaize-agent:test-prompt
+> /test-prompt
 ```
 
 ## Arguments
