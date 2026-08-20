@@ -276,7 +276,15 @@ When using `gh api repos/{owner}/{repo}/pulls/{pr_number}/comments`, post just o
 
 #### If you found no issues
 
-Do not post any comments. Simply report to the user that no issues were found.
+Do not post inline review comments. But you MUST still end with a clear final
+verdict in the sticky progress comment — never leave it on the interim
+"I'll analyze this and get back to you" placeholder. Finish with a short line
+such as:
+
+> ✅ Reviewed — no issues found.
+
+This is the tracking/sticky comment, not a separate overall review report, so it
+does not violate the "inline comments only" rule above.
 
 ## Remember
 
