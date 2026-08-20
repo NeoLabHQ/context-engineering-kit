@@ -1,0 +1,119 @@
+<!doctype html><html lang='en'><head><meta charset='utf-8'/><meta name='viewport' content='width=device-width, initial-scale=1'/><title>Deep-SWE benchmark report</title><style>
+:root {
+  color-scheme: light;
+  --surface-page: #f9f9f7;
+  --surface-1: #fcfcfb;
+  --text-primary: #0b0b0b;
+  --text-secondary: #52514e;
+  --text-muted: #898781;
+  --grid-line: #e1e0d9;
+  --axis-line: #c3c2b7;
+  --border: rgba(11, 11, 11, 0.10);
+  --official-outline: #52514e;
+  --accent: #2a78d6;
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --surface-page: #0d0d0d;
+    --surface-1: #1a1a19;
+    --text-primary: #ffffff;
+    --text-secondary: #c3c2b7;
+    --text-muted: #898781;
+    --grid-line: #2c2c2a;
+    --axis-line: #383835;
+    --border: rgba(255, 255, 255, 0.10);
+    --official-outline: #c3c2b7;
+    --accent: #3987e5;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --surface-page: #0d0d0d;
+  --surface-1: #1a1a19;
+  --text-primary: #ffffff;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --grid-line: #2c2c2a;
+  --axis-line: #383835;
+  --border: rgba(255, 255, 255, 0.10);
+  --official-outline: #c3c2b7;
+  --accent: #3987e5;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  padding: 32px 24px 64px;
+  background: var(--surface-page);
+  color: var(--text-primary);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+main { max-width: 880px; margin: 0 auto; }
+h1 { font-size: 20px; margin: 0 0 4px; }
+h2 { font-size: 15px; margin: 32px 0 12px; color: var(--text-primary); }
+p.subtitle { color: var(--text-secondary); margin: 0 0 24px; }
+.theme-toggle {
+  position: fixed; top: 16px; right: 16px;
+  border: 1px solid var(--border); background: var(--surface-1);
+  color: var(--text-primary); border-radius: 6px; padding: 6px 10px;
+  font: 12px system-ui, sans-serif; cursor: pointer;
+}
+.theme-toggle:focus-visible { outline: 2px solid var(--accent); }
+dl.run-metadata {
+  display: grid; grid-template-columns: max-content 1fr;
+  column-gap: 12px; row-gap: 4px; margin: 0 0 32px;
+  font-variant-numeric: tabular-nums;
+}
+dl.run-metadata dt { color: var(--text-muted); }
+dl.run-metadata dd { margin: 0; color: var(--text-secondary); }
+.chart-figure {
+  margin: 0 0 8px; padding: 16px; background: var(--surface-1);
+  border: 1px solid var(--border); border-radius: 8px;
+}
+.chart-figure figcaption { font-weight: 600; margin-bottom: 8px; }
+.chart-scroll { overflow-x: auto; }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 12px 16px; padding: 0; margin: 0 0 8px; color: var(--text-secondary); }
+.legend li { display: flex; align-items: center; gap: 6px; }
+.swatch { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
+.swatch-outline { border: 2px solid var(--official-outline); background: transparent; box-sizing: border-box; }
+/* --text-secondary, not --text-muted: this footnote carries the official-bar
+   honesty caveat, normal-size body text that must clear WCAG AA's 4.5:1 --
+   --text-muted (#898781 vs light surface #f9f9f7) only reaches 3.41:1. */
+.footnote { color: var(--text-secondary); font-size: 12px; margin: 12px 0 0; }
+.footnote a { color: var(--text-secondary); }
+.empty-state { color: var(--text-muted); font-style: italic; }
+.gridline { stroke: var(--grid-line); stroke-width: 1; }
+.baseline { stroke: var(--axis-line); stroke-width: 1; }
+.axis-label { fill: var(--text-muted); font-size: 10px; font-family: system-ui, sans-serif; }
+.group-label { fill: var(--text-secondary); font-size: 11px; }
+.table-scroll { overflow-x: auto; }
+table.arm-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+table.arm-table th, table.arm-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+table.arm-table th.num, table.arm-table td.num { text-align: right; }
+table.arm-table td.has-errors { font-weight: 600; }
+table.arm-table td.muted-cell { color: var(--text-muted); font-size: 12px; }
+table.arm-table thead th { color: var(--text-muted); font-weight: 500; font-size: 12px; }
+</style></head><body><button id='theme-toggle' class='theme-toggle' type='button'>Toggle theme</button><main><h1>Deep-SWE benchmark report</h1><p class='subtitle'>claude-code + sadd plugin arms vs. the official DeepSWE leaderboard</p><dl class='run-metadata'><dt>Run started</dt><dd>2026-08-15 16:45 UTC</dd><dt>Report generated</dt><dd>2026-08-20 17:33 UTC</dd><dt>Tasks</dt><dd>3</dd><dt>Trials</dt><dd>5</dd><dt>Arms</dt><dd>3</dd><dt>Sample seed</dt><dd>not applicable (run mode was not 'sample')</dd><dt>Plugin ref (CEK)</dt><dd>v3.8.1</dd><dt>Claude Code version</dt><dd>2.1.233, 2.1.237</dd></dl><figure class='chart-figure'><figcaption>Matched arms (orchestrator = impl) vs. official baseline</figcaption><ul class="legend"><li><span class="swatch" style="background:var(--series-1)"></span>do-and-judge</li><li><span class="swatch" style="background:var(--series-2)"></span>do-in-steps</li><li><span class="swatch swatch-outline"></span>official (mini-swe-agent)</li></ul><div class='chart-scroll'><svg viewBox="0 0 318.0 252.0" width="318" height="252" role="img"><line x1="46.0" y1="230.0" x2="302.0" y2="230.0" class="baseline"/><text class="axis-label" x="38.0" y="233.0" text-anchor="end">0%</text><line x1="46.0" y1="180.0" x2="302.0" y2="180.0" class="gridline"/><text class="axis-label" x="38.0" y="183.0" text-anchor="end">25%</text><line x1="46.0" y1="130.0" x2="302.0" y2="130.0" class="gridline"/><text class="axis-label" x="38.0" y="133.0" text-anchor="end">50%</text><line x1="46.0" y1="80.0" x2="302.0" y2="80.0" class="gridline"/><text class="axis-label" x="38.0" y="83.0" text-anchor="end">75%</text><line x1="46.0" y1="30.0" x2="302.0" y2="30.0" class="gridline"/><text class="axis-label" x="38.0" y="33.0" text-anchor="end">100%</text><g><title>haiku · do-and-judge: 0%</title><path d="" fill="var(--series-1)"/><g class="whisker" stroke="var(--text-secondary)" stroke-width="1.5" stroke-linecap="round"><line x1="78.0" y1="71.3" x2="78.0" y2="230.0"/><line x1="73.0" y1="71.3" x2="83.0" y2="71.3"/><line x1="73.0" y1="230.0" x2="83.0" y2="230.0"/></g></g><g><title>haiku · do-in-steps: 0%</title><path d="" fill="var(--series-2)"/><g class="whisker" stroke="var(--text-secondary)" stroke-width="1.5" stroke-linecap="round"><line x1="100.0" y1="71.3" x2="100.0" y2="230.0"/><line x1="95.0" y1="71.3" x2="105.0" y2="71.3"/><line x1="95.0" y1="230.0" x2="105.0" y2="230.0"/></g></g><g><title>sonnet · official: 54%</title><path d="M142.0,230.0 L142.0,126.3076923076923 Q142.0,122.3076923076923 146.0,122.3076923076923 L158.0,122.3076923076923 Q162.0,122.3076923076923 162.0,126.3076923076923 L162.0,230.0 Z" fill="transparent" stroke="var(--official-outline)" stroke-width="2"/><g class="whisker" stroke="var(--text-secondary)" stroke-width="1.5" stroke-linecap="round"><line x1="152.0" y1="113.8" x2="152.0" y2="130.8"/><line x1="147.0" y1="113.8" x2="157.0" y2="113.8"/><line x1="147.0" y1="130.8" x2="157.0" y2="130.8"/></g></g><g><title>sonnet · do-in-steps: 67%</title><path d="M186.0,230.0 L186.0,100.66666666666667 Q186.0,96.66666666666667 190.0,96.66666666666667 L202.0,96.66666666666667 Q206.0,96.66666666666667 206.0,100.66666666666667 L206.0,230.0 Z" fill="var(--series-2)"/><g class="whisker" stroke="var(--text-secondary)" stroke-width="1.5" stroke-linecap="round"><line x1="196.0" y1="42.3" x2="196.0" y2="188.5"/><line x1="191.0" y1="42.3" x2="201.0" y2="42.3"/><line x1="191.0" y1="188.5" x2="201.0" y2="188.5"/></g></g><g><title>opus · official: 74%</title><path d="M238.0,230.0 L238.0,86.7027027027027 Q238.0,82.7027027027027 242.0,82.7027027027027 L254.0,82.7027027027027 Q258.0,82.7027027027027 258.0,86.7027027027027 L258.0,230.0 Z" fill="transparent" stroke="var(--official-outline)" stroke-width="2"/><g class="whisker" stroke="var(--text-secondary)" stroke-width="1.5" stroke-linecap="round"><line x1="248.0" y1="75.0" x2="248.0" y2="90.4"/><line x1="243.0" y1="75.0" x2="253.0" y2="75.0"/><line x1="243.0" y1="90.4" x2="253.0" y2="90.4"/></g></g><text class="axis-label group-label" x="78.0" y="246.0" text-anchor="middle">haiku</text><text class="axis-label group-label" x="174.0" y="246.0" text-anchor="middle">sonnet</text><text class="axis-label group-label" x="270.0" y="246.0" text-anchor="middle">opus</text></svg></div><p class="footnote">Every official number below was produced with mini-swe-agent, a minimal single-agent scaffold -- NOT claude-code / the sadd plugin this benchmark harness measures. mini-swe-agent and claude-code differ in tool access, context management, and prompting, so these numbers are context for where a model tier sits on an independent benchmark, not a like-for-like comparison against this harness&#x27;s own arms. Snapshot date: 2026-08-09. Source: <a href="https://deepswe.datacurve.ai/">https://deepswe.datacurve.ai/</a>. DeepSWE&#x27;s own 95% CI: run-to-run standard error across repeated whole-benchmark passes (1.96 * std(runs) / sqrt(n_runs)) -- NOT a Wilson interval, so do not plot it interchangeably with this harness&#x27;s own pass_at_1_ci_low/high without noting the different method.</p></figure><figure class='chart-figure'><figcaption>Mixed arms (orchestrator ≠ impl) vs. official baseline</figcaption><ul class="legend"></ul><div class='chart-scroll'><p class="empty-state">No arms recorded for this chart yet.</p></div></figure><h2>Official baseline (mini-swe-agent, not claude-code)</h2><div class='table-scroll'><table class='arm-table'><thead><tr><th>Tier</th><th class='num'>Pass@1 ± CI</th><th class='num'>Avg cost</th><th class='num'>Avg output tokens</th><th class='num'>Avg steps</th><th>Note</th></tr></thead><tbody><tr><td>haiku</td><td class='num'>—</td><td class='num'>—</td><td class='num'>—</td><td class='num'>—</td><td class='muted-cell'>No claude-haiku-* row exists anywhere in the fetched v1.1 dataset (53 rows spanning 21 distinct models, checked across every reasoning_effort). DeepSWE has not benchmarked a Haiku-tier Claude model as of the snapshot date. Recording this absence explicitly rather than inventing a number.</td></tr><tr><td>sonnet</td><td class='num'>54% ± 4%</td><td class='num'>$26.40</td><td class='num'>214,118</td><td class='num'>268</td><td class='muted-cell'>reasoning_effort=max</td></tr><tr><td>opus</td><td class='num'>74% ± 4%</td><td class='num'>$11.84</td><td class='num'>117,566</td><td class='num'>99</td><td class='muted-cell'>reasoning_effort=max</td></tr></tbody></table></div><h2>Arm results</h2><div class='table-scroll'><table class='arm-table'><thead><tr><th>Arm</th><th class='num'>Pass@1 ± CI</th><th class='num'>Avg cost</th><th class='num'>Max cost</th><th class='num'>Avg output tokens</th><th class='num'>Avg steps</th><th class='num'>Incomplete</th><th class='num'>Errored</th></tr></thead><tbody><tr><td>do-and-judge__haiku-haiku</td><td class='num'>0% ± 40%</td><td class='num'>$1.86</td><td class='num'>$1.86</td><td class='num'>16,170</td><td class='num'>11</td><td class='num has-errors'>1</td><td class='num'>0</td></tr><tr><td>do-in-steps__haiku-haiku</td><td class='num'>0% ± 40%</td><td class='num'>$0.14</td><td class='num'>$0.14</td><td class='num'>24,303</td><td class='num'>20</td><td class='num has-errors'>1</td><td class='num'>0</td></tr><tr><td>do-in-steps__sonnet-sonnet</td><td class='num'>67% ± 37%</td><td class='num'>$31.60</td><td class='num'>$36.50</td><td class='num'>142,422</td><td class='num'>41</td><td class='num'>0</td><td class='num'>0</td></tr></tbody></table></div></main><script>
+(function () {
+  var root = document.documentElement;
+  var stored = localStorage.getItem('deep-swe-report-theme');
+  if (stored) root.setAttribute('data-theme', stored);
+  var button = document.getElementById('theme-toggle');
+  button.addEventListener('click', function () {
+    var current = root.getAttribute('data-theme')
+      || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    var next = current === 'dark' ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    localStorage.setItem('deep-swe-report-theme', next);
+  });
+})();
+</script></body></html>
