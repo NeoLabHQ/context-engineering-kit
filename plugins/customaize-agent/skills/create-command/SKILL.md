@@ -215,7 +215,6 @@ Slash commands can trigger extended thinking by including extended thinking keyw
 allowed-tools: Bash(git add:*), Bash(git status:*), Bash(git commit:*)
 argument-hint: [message]
 description: Create a git commit
-model: claude-3-5-haiku-20241022
 ---
 
 Create a git commit with message: $ARGUMENTS
