@@ -133,6 +133,23 @@ class FindIncompleteTrialsTests(unittest.TestCase):
         )
 
 
+def write_finished_result(job_dir: Path) -> None:
+    """Mark `job_dir` as a pier job that ran to completion.
+
+    `finished_at` set == pier ran this job to completion; see `is_arm_complete`.
+    """
+    (job_dir / "result.json").write_text(json.dumps({"finished_at": "2026-08-18T20:03:01"}))
+
+
+def write_single_task_config(job_dir: Path, task: str) -> None:
+    """The one field of pier's own `config.json` `is_arm_complete`'s
+    task-aware backward-compatibility check reads: a `tasks` list with this
+    job's one task. Simulates the pre-fix flat `jobs_dir/<arm-id>` layout,
+    where `--mode single` always planned exactly one task per job.
+    """
+    (job_dir / "config.json").write_text(json.dumps({"tasks": [{"path": f"/data/{task}"}]}))
+
+
 class MainSummaryTests(unittest.TestCase):
     """`main()`'s end-of-run summary and exit code, with pier stubbed out.
 
@@ -145,11 +162,25 @@ class MainSummaryTests(unittest.TestCase):
     `pier`-on-PATH check. Everything between them is the real `main()`.
     """
 
-    def run_main(self, jobs_dir: Path, *, pier_exit_code: int = 0) -> tuple[int, str, str]:
+    ARM = run.Arm("do-in-steps", "sonnet", "sonnet")
+
+    def job_dir_for(self, jobs_dir: Path, task: str) -> Path:
+        """Where `main()` itself will look for `task`'s completion state --
+        computed through the real `arm_job_dir`, not a hardcoded string, so
+        these tests can't silently drift from what the code under test
+        actually does.
+        """
+        return run.arm_job_dir(
+            jobs_dir, self.ARM, mode="single", task=task, dataset_dir=run.SCRIPT_DIR / "data"
+        )
+
+    def run_main(
+        self, jobs_dir: Path, *, pier_exit_code: int = 0, task: str = "task-1"
+    ) -> tuple[int, str, str]:
         """Invoke `main()` for one arm against `jobs_dir`; capture (code, out, err)."""
         argv = [
             "--mode", "single",
-            "--task", "task-1",
+            "--task", task,
             "--skill", "do-in-steps",
             "--model", "sonnet",
             "--jobs-dir", str(jobs_dir),
@@ -165,7 +196,7 @@ class MainSummaryTests(unittest.TestCase):
     def test_a_clean_arm_still_reports_success_and_exits_zero(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             jobs_dir = Path(tmp) / "runs"
-            job_dir = jobs_dir / "do-in-steps__sonnet-sonnet"
+            job_dir = self.job_dir_for(jobs_dir, "task-1")
             write_trial(job_dir, "task-a__1", model_patch=True, final_message=FINISHED_MESSAGE)
 
             exit_code, stdout, stderr = self.run_main(jobs_dir)
@@ -178,7 +209,7 @@ class MainSummaryTests(unittest.TestCase):
     def test_an_incomplete_trial_stops_the_summary_claiming_success(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             jobs_dir = Path(tmp) / "runs"
-            job_dir = jobs_dir / "do-in-steps__sonnet-sonnet"
+            job_dir = self.job_dir_for(jobs_dir, "task-1")
             write_trial(job_dir, "task-a__1", model_patch=False, final_message=FINISHED_MESSAGE)
 
             exit_code, stdout, stderr = self.run_main(jobs_dir)
@@ -192,7 +223,7 @@ class MainSummaryTests(unittest.TestCase):
     def test_a_pier_failure_reports_failure_not_incompleteness(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             jobs_dir = Path(tmp) / "runs"
-            job_dir = jobs_dir / "do-in-steps__sonnet-sonnet"
+            job_dir = self.job_dir_for(jobs_dir, "task-1")
             write_trial(job_dir, "task-a__1", model_patch=False, final_message=FINISHED_MESSAGE)
 
             exit_code, stdout, stderr = self.run_main(jobs_dir, pier_exit_code=1)
@@ -208,13 +239,9 @@ class MainSummaryTests(unittest.TestCase):
         # success for them.
         with tempfile.TemporaryDirectory() as tmp:
             jobs_dir = Path(tmp) / "runs"
-            job_dir = jobs_dir / "do-in-steps__sonnet-sonnet"
+            job_dir = self.job_dir_for(jobs_dir, "task-1")
             write_trial(job_dir, "task-a__1", model_patch=False, final_message=FINISHED_MESSAGE)
-            # `finished_at` set == pier ran this job to completion; see
-            # run.py's is_arm_complete.
-            (job_dir / "result.json").write_text(
-                json.dumps({"finished_at": "2026-08-18T20:03:01"})
-            )
+            write_finished_result(job_dir)
 
             exit_code, stdout, stderr = self.run_main(jobs_dir)
 
@@ -223,6 +250,74 @@ class MainSummaryTests(unittest.TestCase):
             self.assertNotIn("completed successfully", stdout)
             self.assertIn("no_model_patch", stderr)
             self.assertEqual(exit_code, run.EXIT_TRIALS_INCOMPLETE)
+
+    def test_a_never_run_task_is_not_skipped_by_a_different_completed_task(self) -> None:
+        # The regression this fix closes: `do-in-steps__sonnet-sonnet` (the
+        # bare arm-id dir) had already finished "task-1" -- asking for the
+        # never-run "task-2" under the same skill+model must still execute
+        # it, not report a false SKIP because the two tasks share an arm-id.
+        with tempfile.TemporaryDirectory() as tmp:
+            jobs_dir = Path(tmp) / "runs"
+            legacy_job_dir = jobs_dir / self.ARM.id
+            write_trial(legacy_job_dir, "task-1__1", model_patch=True, final_message=FINISHED_MESSAGE)
+            write_finished_result(legacy_job_dir)
+            write_single_task_config(legacy_job_dir, "task-1")
+
+            exit_code, stdout, stderr = self.run_main(jobs_dir, task="task-2")
+
+            self.assertNotIn("SKIP", stdout)
+            self.assertIn("$ pier run", stdout)
+            self.assertIn("completed successfully", stdout)
+            self.assertEqual(exit_code, 0)
+
+    def test_a_legacy_flat_job_dir_still_skips_a_genuine_rerun_of_its_own_task(self) -> None:
+        # Runs recorded before task-aware job dirs existed (the flat
+        # `jobs_dir/<arm-id>`, with no task suffix) must still be recognized
+        # as complete when the SAME task is asked for again -- this is the
+        # "genuine re-run" case the fix must not turn into wasted work.
+        with tempfile.TemporaryDirectory() as tmp:
+            jobs_dir = Path(tmp) / "runs"
+            legacy_job_dir = jobs_dir / self.ARM.id
+            write_trial(legacy_job_dir, "task-1__1", model_patch=True, final_message=FINISHED_MESSAGE)
+            write_finished_result(legacy_job_dir)
+            write_single_task_config(legacy_job_dir, "task-1")
+
+            exit_code, stdout, stderr = self.run_main(jobs_dir, task="task-1")
+
+            self.assertIn("SKIP", stdout)
+            self.assertIn("completed successfully", stdout)
+            self.assertEqual(exit_code, 0)
+
+    def test_force_reruns_a_legacy_completed_task(self) -> None:
+        # --force must still override even the backward-compatibility path,
+        # exactly as it overrides the primary one.
+        with tempfile.TemporaryDirectory() as tmp:
+            jobs_dir = Path(tmp) / "runs"
+            legacy_job_dir = jobs_dir / self.ARM.id
+            write_trial(legacy_job_dir, "task-1__1", model_patch=True, final_message=FINISHED_MESSAGE)
+            write_finished_result(legacy_job_dir)
+            write_single_task_config(legacy_job_dir, "task-1")
+
+            argv = [
+                "--mode", "single",
+                "--task", "task-1",
+                "--skill", "do-in-steps",
+                "--model", "sonnet",
+                "--jobs-dir", str(jobs_dir),
+                "--force",
+            ]
+            stdout_io, stderr_io = io.StringIO(), io.StringIO()
+            with mock.patch.object(run, "run_pier", return_value=0), mock.patch.object(
+                run,
+                "run_arm",
+                side_effect=lambda arm, args, dataset_args: (jobs_dir, ["pier", "run"]),
+            ), mock.patch.object(run.shutil, "which", return_value="/usr/bin/pier"):
+                with contextlib.redirect_stdout(stdout_io), contextlib.redirect_stderr(stderr_io):
+                    exit_code = run.main(argv)
+
+            self.assertNotIn("SKIP", stdout_io.getvalue())
+            self.assertIn("$ pier run", stdout_io.getvalue())
+            self.assertEqual(exit_code, 0)
 
 
 class PreflightCompletionGateTests(unittest.TestCase):

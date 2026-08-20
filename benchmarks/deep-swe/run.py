@@ -36,6 +36,13 @@ RUN LAYOUT (see bottom of file / task handoff notes for the authoritative
 version of this -- kept here too so the two can be diffed against drift):
 
     runs/<arm-id>/                     <- pier's --jobs-dir/--job-name, i.e. its job_dir
+                                           (--mode single suffixes this with
+                                           "__<task-slug>" -- see arm_job_dir --
+                                           so two different tasks for the same
+                                           skill+model never share a job_dir;
+                                           --mode sample/full run their whole
+                                           dataset filter as one job and keep
+                                           the bare <arm-id> name)
         prompt.j2                      <- this arm's rendered slash-command template
         arm.json                       <- (skill, orchestrator, impl) metadata for collect.py
         config.json                    <- pier's own job config (written by pier)
@@ -347,8 +354,9 @@ def write_prompt_template(job_dir: Path, arm: Arm) -> Path:
 def write_arm_metadata(job_dir: Path, arm: Arm, *, orchestrator_model_id: str, mode: str) -> None:
     """Archive (skill, orchestrator, impl) so collect.py never has to parse arm.id.
 
-    Written as `runs/<arm-id>/arm.json`, a sibling of pier's own config.json/
-    result.json in the same job directory.
+    Written as `<job_dir>/arm.json`, a sibling of pier's own config.json/
+    result.json in the same job directory (see `arm_job_dir` for what
+    `job_dir` is named for a given mode).
 
     `sample_seed` mirrors the pinned `SAMPLE_SEED` module constant, but only
     when this invocation's dataset filter actually used it -- `--mode single`
@@ -388,6 +396,19 @@ def resolve_task_path(dataset_dir: Path, task: str) -> Path:
     if candidate.exists():
         return candidate.resolve()
     return (dataset_dir / task).resolve()
+
+
+def task_slug(dataset_dir: Path, task: str) -> str:
+    """Filesystem-safe id for one `--mode single` task: its resolved task
+    directory's own basename.
+
+    Going through `resolve_task_path` rather than using `task` verbatim means
+    a bare name ("foo") and an equivalent path ("tasks/foo") resolve to the
+    same on-disk task directory and therefore produce the same slug -- see
+    `arm_job_dir`, which keys a job dir on this so two different tasks for
+    the same skill+model never collide.
+    """
+    return resolve_task_path(dataset_dir, task).name
 
 
 def build_dataset_args(
@@ -501,6 +522,65 @@ def is_arm_complete(job_dir: Path) -> bool:
     except (OSError, json.JSONDecodeError):
         return False
     return data.get("finished_at") is not None
+
+
+def recorded_single_task_name(job_dir: Path) -> str | None:
+    """The one task pier's own `config.json` ran in `job_dir`, or `None`.
+
+    `None` covers every case where that answer isn't a single unambiguous
+    task name: no `config.json`, an unreadable one, or a job whose `tasks`
+    list doesn't have exactly one entry (as `--mode sample`/`--mode full`
+    jobs never do -- those run many tasks per job, on purpose). Only
+    `resolve_completed_job_dir`'s pre-fix-compatibility check needs this,
+    since a `--mode single` job always plans exactly one task.
+    """
+    config_path = job_dir / "config.json"
+    try:
+        config = json.loads(config_path.read_text())
+    except (OSError, json.JSONDecodeError):
+        return None
+    tasks = config.get("tasks") or []
+    if len(tasks) != 1:
+        return None
+    task_path = tasks[0].get("path")
+    return Path(task_path).name if task_path else None
+
+
+def resolve_completed_job_dir(
+    job_dir: Path, *, mode: str, jobs_dir: Path, arm: Arm, task: str | None, dataset_dir: Path
+) -> Path | None:
+    """The job dir whose on-disk state already covers `job_dir`'s task, or
+    `None` when nothing does (this task must run).
+
+    Usually `job_dir` itself, once its own `result.json` says finished. For
+    `--mode sample`/`--mode full` that is the whole answer: one pier job
+    covers the entire dataset filter, so there is nowhere else to look.
+
+    For `--mode single`, `job_dir` is keyed by task (see `arm_job_dir`), so a
+    task that has never run under that naming has nothing to check there yet
+    -- but a run recorded before task-aware naming existed (the pre-fix flat
+    `jobs_dir/<arm-id>` directory, still on disk for every arm this harness
+    ran before this fix) must still count as complete for the one task it
+    actually ran, or the very next invocation would silently re-run it.
+    `recorded_single_task_name` confirms that directory's own `config.json`
+    ran THIS task before trusting its `finished_at` -- without that check,
+    the exact bug this function exists to close (one arm-id's completion
+    state leaking across every task ever single-run under it) would just
+    move one call frame deeper. Returning the legacy dir (not just `True`)
+    lets the caller run `find_incomplete_trials` against wherever the
+    trials actually live, rather than the (possibly empty) new job_dir.
+    """
+    if is_arm_complete(job_dir):
+        return job_dir
+    if mode != "single":
+        return None
+
+    assert task is not None  # enforced by validate_args for --mode single
+    legacy_job_dir = jobs_dir / arm.id
+    legacy_ran_this_task = recorded_single_task_name(legacy_job_dir) == task_slug(dataset_dir, task)
+    if legacy_ran_this_task and is_arm_complete(legacy_job_dir):
+        return legacy_job_dir
+    return None
 
 
 # --------------------------------------------------------------------------
@@ -980,14 +1060,35 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
     # with --skill, --with-vanilla, --preflight, and every --mode in any combination.
 
 
-def arm_job_dir(jobs_dir: Path, arm: Arm) -> Path:
-    """Where pier will write this arm's job output: jobs_dir/<arm-id>."""
-    return jobs_dir / arm.id
+def arm_job_dir(
+    jobs_dir: Path, arm: Arm, *, mode: str, task: str | None = None, dataset_dir: Path | None = None
+) -> Path:
+    """Where pier will write this arm's job output.
+
+    `--mode sample`/`--mode full` run their whole dataset filter as one pier
+    job, so `jobs_dir/<arm-id>` names it uniquely on its own -- unchanged from
+    before this function took `mode`/`task`/`dataset_dir`.
+
+    `--mode single` runs exactly one task per invocation, but a later
+    invocation of the same skill+model against a DIFFERENT task is exactly as
+    likely as a genuine re-run of the same one. Suffixing with `task_slug`
+    gives each task its own job dir, so pier never sees two different task
+    sets show up under one job (which it treats as an unresumable config
+    conflict -- see pier's `Job._maybe_init_existing_job`) and
+    `resolve_completed_job_dir` never mistakes "this arm finished task A"
+    for "this arm finished task B".
+    """
+    if mode != "single":
+        return jobs_dir / arm.id
+    assert task is not None and dataset_dir is not None  # enforced by validate_args
+    return jobs_dir / f"{arm.id}__{task_slug(dataset_dir, task)}"
 
 
 def run_arm(arm: Arm, args: argparse.Namespace, dataset_args: list[str]) -> tuple[Path, list[str]]:
     """Write one arm's template + metadata and return (job_dir, pier command)."""
-    job_dir = arm_job_dir(args.jobs_dir, arm)
+    job_dir = arm_job_dir(
+        args.jobs_dir, arm, mode=args.mode, task=args.task, dataset_dir=args.dataset_dir
+    )
     orchestrator_model_id = ORCHESTRATOR_MODEL_ID[arm.orchestrator]
     template_path = write_prompt_template(job_dir, arm)
     write_arm_metadata(job_dir, arm, orchestrator_model_id=orchestrator_model_id, mode=args.mode)
@@ -996,7 +1097,10 @@ def run_arm(arm: Arm, args: argparse.Namespace, dataset_args: list[str]) -> tupl
         pier_bin=args.pier_bin,
         orchestrator_model_id=orchestrator_model_id,
         template_path=template_path,
-        job_name=arm.id,
+        # job_dir.name, not arm.id: for --mode single this carries the
+        # task-slug suffix `arm_job_dir` added, and pier's --job-name must
+        # agree with the job_dir we just wrote prompt.j2/arm.json into.
+        job_name=job_dir.name,
         jobs_dir=args.jobs_dir,
         agent_timeout_multiplier=args.agent_timeout_multiplier,
         dataset_args=dataset_args,
@@ -1006,13 +1110,15 @@ def run_arm(arm: Arm, args: argparse.Namespace, dataset_args: list[str]) -> tupl
 
 def preview_arm_command(arm: Arm, args: argparse.Namespace, dataset_args: list[str]) -> list[str]:
     """Build the command --dry-run prints, without writing prompt.j2/arm.json to disk."""
-    job_dir = arm_job_dir(args.jobs_dir, arm)
+    job_dir = arm_job_dir(
+        args.jobs_dir, arm, mode=args.mode, task=args.task, dataset_dir=args.dataset_dir
+    )
     return build_pier_command(
         arm,
         pier_bin=args.pier_bin,
         orchestrator_model_id=ORCHESTRATOR_MODEL_ID[arm.orchestrator],
         template_path=job_dir / "prompt.j2",
-        job_name=arm.id,
+        job_name=job_dir.name,
         jobs_dir=args.jobs_dir,
         agent_timeout_multiplier=args.agent_timeout_multiplier,
         dataset_args=dataset_args,
@@ -1068,13 +1174,30 @@ def main(argv: list[str] | None = None) -> int:
     exit_codes: dict[str, int] = {}
     incomplete_by_arm: dict[str, dict[str, str]] = {}
     for arm in arms:
-        job_dir = arm_job_dir(args.jobs_dir, arm)
-        if not args.force and is_arm_complete(job_dir):
+        job_dir = arm_job_dir(
+            args.jobs_dir, arm, mode=args.mode, task=args.task, dataset_dir=args.dataset_dir
+        )
+        completed_job_dir = (
+            None
+            if args.force
+            else resolve_completed_job_dir(
+                job_dir,
+                mode=args.mode,
+                jobs_dir=args.jobs_dir,
+                arm=arm,
+                task=args.task,
+                dataset_dir=args.dataset_dir,
+            )
+        )
+        if completed_job_dir is not None:
             # A skipped arm is still checked: pier finished it, but "finished"
             # is exactly the state that used to hide abandoned trials, and a
             # resumed run must not report success for trials an earlier
-            # invocation left incomplete.
-            skipped_incomplete = find_incomplete_trials(job_dir)
+            # invocation left incomplete. Checked against completed_job_dir,
+            # not job_dir -- for a --mode single task recognized only through
+            # the pre-fix flat directory (see resolve_completed_job_dir),
+            # that is where the trials actually live.
+            skipped_incomplete = find_incomplete_trials(completed_job_dir)
             if skipped_incomplete:
                 incomplete_by_arm[arm.id] = skipped_incomplete
             note = f" -- {len(skipped_incomplete)} INCOMPLETE trials" if skipped_incomplete else ""
