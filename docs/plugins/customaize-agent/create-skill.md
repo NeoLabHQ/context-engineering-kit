@@ -1,4 +1,4 @@
-# /customaize-agent:create-skill - Skill Development Guide
+# /create-skill - Skill Development Guide
 
 Guide for creating effective skills using a TDD-based approach. This command treats skill creation as Test-Driven Development applied to process documentation.
 
@@ -6,7 +6,7 @@ Guide for creating effective skills using a TDD-based approach. This command tre
 - Output - Complete skill directory with SKILL.md and optional resources
 
 ```bash
-/customaize-agent:create-skill ["skill name"]
+/create-skill ["skill name"]
 ```
 
 ## Arguments
@@ -17,13 +17,13 @@ Optional skill name (e.g., "image-editor", "pdf-processing", "code-review").
 
 ```bash
 # Create an image editing skill
-> /customaize-agent:create-skill image-editor
+> /create-skill image-editor
 
 # Create a database query skill
-> /customaize-agent:create-skill bigquery-analysis
+> /create-skill bigquery-analysis
 
 # Start the skill creation workflow
-> /customaize-agent:create-skill
+> /create-skill
 ```
 
 ## How It Works

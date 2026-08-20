@@ -1,4 +1,4 @@
-# /customaize-agent:test-skill - Skill Pressure Testing
+# /test-skill - Skill Pressure Testing
 
 Verify skills work under pressure and resist rationalization using the RED-GREEN-REFACTOR cycle. Critical for discipline-enforcing skills.
 
@@ -6,20 +6,20 @@ Verify skills work under pressure and resist rationalization using the RED-GREEN
 - Output - Verification report with rationalization table
 
 ```bash
-/customaize-agent:test-skill ["skill path or name"]
+/test-skill ["skill path or name"]
 ```
 
 ## Usage Examples
 
 ```bash
 # Test a TDD enforcement skill
-> /customaize-agent:test-skill tdd
+> /test-skill tdd
 
 # Test a custom skill by path
-> /customaize-agent:test-skill ~/.claude/skills/code-review/
+> /test-skill ~/.claude/skills/code-review/
 
 # Start testing workflow
-> /customaize-agent:test-skill
+> /test-skill
 ```
 
 ## Arguments

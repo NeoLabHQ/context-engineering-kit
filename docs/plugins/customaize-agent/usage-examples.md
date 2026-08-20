@@ -10,7 +10,7 @@ Real-world scenarios demonstrating effective use of the Customaize Agent plugin 
 
 ```bash
 # Start the command creation assistant
-> /customaize-agent:create-command validate API documentation
+> /create-command validate API documentation
 ```
 
 **Expected Flow**:
@@ -54,7 +54,7 @@ Flag for manual review:
 
 ```bash
 # Test the command before deployment
-> /customaize-agent:test-prompt .claude/commands/validate-api.md
+> /test-prompt .claude/commands/validate-api.md
 
 # Document the new command
 > /update-docs
@@ -68,7 +68,7 @@ Flag for manual review:
 
 ```bash
 # Start skill creation with TDD approach
-> /customaize-agent:create-skill bigquery-analysis
+> /create-skill bigquery-analysis
 ```
 
 **Expected Flow**:
@@ -128,7 +128,7 @@ WHERE account_type != 'test'
 
 ```bash
 # Verify skill works correctly
-> /customaize-agent:test-skill bigquery-analysis
+> /test-skill bigquery-analysis
 ```
 
 ---
@@ -139,7 +139,7 @@ WHERE account_type != 'test'
 
 ```bash
 # Start pressure testing
-> /customaize-agent:test-skill tdd-enforcement
+> /test-skill tdd-enforcement
 ```
 
 **RED Phase - Baseline Testing**:
@@ -211,7 +211,7 @@ Cited: "The Iron Law" and "No exceptions" sections
 
 ```bash
 # Let the assistant analyze your project and suggest hooks
-> /customaize-agent:create-hook
+> /create-hook
 ```
 
 **Expected Flow**:
@@ -280,7 +280,7 @@ exit 0
 
 ```bash
 # Review and optimize the skill
-> /customaize-agent:apply-anthropic-skill-best-practices pdf-processing
+> /apply-anthropic-skill-best-practices pdf-processing
 ```
 
 **Issues Found**:
@@ -323,7 +323,7 @@ pdf-processing/
 
 ```bash
 # Test the command with subagents
-> /customaize-agent:test-prompt .claude/commands/git-commit.md
+> /test-prompt .claude/commands/git-commit.md
 ```
 
 **RED Phase - Baseline Test**:
@@ -414,8 +414,8 @@ All baseline failures resolved.
 
 ```bash
 # Create a skill, test it, then memorize learnings
-> /customaize-agent:create-skill code-review
-> /customaize-agent:test-skill code-review
+> /create-skill code-review
+> /test-skill code-review
 > /reflexion:memorize "skill testing patterns"
 ```
 
@@ -445,11 +445,11 @@ All baseline failures resolved.
 # - Required functionality
 # - Test scenarios
 
-> /customaize-agent:create-skill from-spec
+> /create-skill from-spec
 
 # Skill created based on spec
 
-> /customaize-agent:test-skill
+> /test-skill
 
 # Testing verifies against spec requirements
 
@@ -464,7 +464,7 @@ All baseline failures resolved.
 # Apply TDD to both code AND prompts
 > /write-tests src/auth.ts  # For code
 
-> /customaize-agent:test-prompt .claude/commands/auth-flow.md  # For prompts
+> /test-prompt .claude/commands/auth-flow.md  # For prompts
 
 # Same RED-GREEN-REFACTOR cycle, different artifacts
 ```
@@ -478,7 +478,7 @@ All baseline failures resolved.
 Test multiple scenarios simultaneously to find failure patterns faster:
 
 ```bash
-> /customaize-agent:test-prompt --parallel
+> /test-prompt --parallel
 
 # Launches 3-5 subagents with different scenarios:
 # - Edge case A
@@ -493,7 +493,7 @@ Test multiple scenarios simultaneously to find failure patterns faster:
 Compare two prompt variations:
 
 ```bash
-> /customaize-agent:test-prompt --compare
+> /test-prompt --compare
 
 # Subagent A: Original prompt
 # Subagent B: Revised prompt
@@ -505,14 +505,14 @@ Compare two prompt variations:
 
 ```bash
 # Initial skill creation
-> /customaize-agent:create-skill data-analysis
+> /create-skill data-analysis
 
 # First iteration - test and refine
-> /customaize-agent:test-skill data-analysis
-> /customaize-agent:apply-anthropic-skill-best-practices data-analysis
+> /test-skill data-analysis
+> /apply-anthropic-skill-best-practices data-analysis
 
 # After real usage - iterate based on observations
-> /customaize-agent:test-skill data-analysis --scenario "user asked about Q4 metrics"
+> /test-skill data-analysis --scenario "user asked about Q4 metrics"
 
 # Capture learnings
 > /reflexion:memorize "data analysis skill improvements"
@@ -524,12 +524,12 @@ Compare two prompt variations:
 
 | Task | Command |
 |------|---------|
-| Create a command | `/customaize-agent:create-command` |
-| Create a skill | `/customaize-agent:create-skill` |
-| Create a hook | `/customaize-agent:create-hook` |
-| Test a skill under pressure | `/customaize-agent:test-skill` |
-| Test any prompt | `/customaize-agent:test-prompt` |
-| Apply Anthropic best practices | `/customaize-agent:apply-anthropic-skill-best-practices` |
+| Create a command | `/create-command` |
+| Create a skill | `/create-skill` |
+| Create a hook | `/create-hook` |
+| Test a skill under pressure | `/test-skill` |
+| Test any prompt | `/test-prompt` |
+| Apply Anthropic best practices | `/apply-anthropic-skill-best-practices` |
 
 ---
 
@@ -542,7 +542,7 @@ Compare two prompt variations:
 **Solution**: Apply CSO optimization:
 
 ```bash
-> /customaize-agent:apply-anthropic-skill-best-practices my-skill
+> /apply-anthropic-skill-best-practices my-skill
 ```
 
 Check:
@@ -575,7 +575,7 @@ echo '{"tool_input": {"file_path": "test.ts"}}' | ~/.claude/hooks/my-hook.sh
 
 ```bash
 # Always use Task tool for testing
-> /customaize-agent:test-prompt --fresh-subagent
+> /test-prompt --fresh-subagent
 
 # Never test in current conversation context
 ```
@@ -588,7 +588,7 @@ echo '{"tool_input": {"file_path": "test.ts"}}' | ~/.claude/hooks/my-hook.sh
 
 ```bash
 # Re-run pressure tests
-> /customaize-agent:test-skill my-skill
+> /test-skill my-skill
 
 # Add new rationalizations to table
 # Re-test until no new ones appear

@@ -1,4 +1,4 @@
-# /customaize-agent:create-hook - Claude Code Hook Configuration
+# /create-hook - Claude Code Hook Configuration
 
 Create and configure Claude Code lifecycle hooks with intelligent project analysis, suggestions, and automated testing. Automate workflows like code formatting, validation, security checks, and notifications by running scripts when Claude edits files, executes commands, or needs user input.
 
@@ -6,7 +6,7 @@ Create and configure Claude Code lifecycle hooks with intelligent project analys
 - Output - Working hook script registered in Claude Code settings
 
 ```bash
-/customaize-agent:create-hook ["hook type or description"]
+/create-hook ["hook type or description"]
 ```
 
 ## Arguments
@@ -17,16 +17,16 @@ Optional hook type or description of desired behavior (e.g., "type-check on afte
 
 ```bash
 # Create a TypeScript type-checking hook (runs after Claude edits .ts files)
-> /customaize-agent:create-hook type-check TypeScript files
+> /create-hook type-check TypeScript files
 
 # Create a security scanning hook (blocks dangerous Bash commands)
-> /customaize-agent:create-hook prevent dangerous shell commands
+> /create-hook prevent dangerous shell commands
 
 # Create auto-formatting hook (runs Prettier after file edits)
-> /customaize-agent:create-hook auto-format with Prettier
+> /create-hook auto-format with Prettier
 
 # Let the assistant analyze project and suggest hooks
-> /customaize-agent:create-hook
+> /create-hook
 ```
 
 ## How It Works

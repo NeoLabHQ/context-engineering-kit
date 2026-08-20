@@ -1,4 +1,4 @@
-# /customaize-agent:create-workflow-command - Workflow Command Builder
+# /create-workflow-command - Workflow Command Builder
 
 Create commands that orchestrate multi-step workflows by dispatching sub-agents with task-specific instructions stored in separate files. Solves the **context bloat problem** by keeping orchestrator commands lean.
 
@@ -6,7 +6,7 @@ Create commands that orchestrate multi-step workflows by dispatching sub-agents 
 - Output - Complete workflow structure: orchestrator command, task files, and optional custom agents
 
 ```bash
-/customaize-agent:create-workflow-command [workflow-name] [description]
+/create-workflow-command [workflow-name] [description]
 ```
 
 ## Arguments
@@ -17,13 +17,13 @@ Optional workflow name (kebab-case) and description of what the workflow accompl
 
 ```bash
 # Create a feature implementation workflow
-> /customaize-agent:create-workflow-command feature-implementation "Research, plan, and implement features"
+> /create-workflow-command feature-implementation "Research, plan, and implement features"
 
 # Create a code review workflow
-> /customaize-agent:create-workflow-command code-review "Multi-phase code analysis and feedback"
+> /create-workflow-command code-review "Multi-phase code analysis and feedback"
 
 # Start interactive workflow creation
-> /customaize-agent:create-workflow-command
+> /create-workflow-command
 ```
 
 ## How It Works

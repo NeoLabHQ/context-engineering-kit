@@ -1,4 +1,4 @@
-# /customaize-agent:apply-anthropic-skill-best-practices - Skill Optimization
+# /apply-anthropic-skill-best-practices - Skill Optimization
 
 Comprehensive guide for skill development based on Anthropic's official best practices. Use for complex skills requiring detailed structure and optimization.
 
@@ -6,7 +6,7 @@ Comprehensive guide for skill development based on Anthropic's official best pra
 - Output - Optimized skill with improved discoverability
 
 ```bash
-/customaize-agent:apply-anthropic-skill-best-practices ["skill path"]
+/apply-anthropic-skill-best-practices ["skill path"]
 ```
 
 ## Arguments
@@ -17,13 +17,13 @@ Optional skill name or path to skill being reviewed.
 
 ```bash
 # Optimize an existing skill
-> /customaize-agent:apply-anthropic-skill-best-practices pdf-processing
+> /apply-anthropic-skill-best-practices pdf-processing
 
 # Review a skill by path
-> /customaize-agent:apply-anthropic-skill-best-practices ~/.claude/skills/bigquery/
+> /apply-anthropic-skill-best-practices ~/.claude/skills/bigquery/
 
 # Start optimization workflow
-> /customaize-agent:apply-anthropic-skill-best-practices
+> /apply-anthropic-skill-best-practices
 ```
 
 ## How It Works

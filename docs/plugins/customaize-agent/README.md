@@ -28,33 +28,33 @@ The plugin is built on Anthropic's official skill authoring best practices and r
 /plugin install customaize-agent@NeoLabHQ/context-engineering-kit
 
 # Create a new agent
-> /customaize-agent:create-agent code-reviewer "Review code for quality"
+> /create-agent code-reviewer "Review code for quality"
 
 # Create a new command
-> /customaize-agent:create-command validate API documentation
+> /create-command validate API documentation
 
 # Create a new skill
-> /customaize-agent:create-skill image-editor
+> /create-skill image-editor
 
 # Test a prompt before deployment
-> /customaize-agent:test-prompt
+> /test-prompt
 
 # Apply Anthropic's best practices to a skill
-> /customaize-agent:apply-anthropic-skill-best-practices
+> /apply-anthropic-skill-best-practices
 ```
 
 [Usage Examples](./usage-examples.md)
 
 ## Commands
 
-- [/customaize-agent:create-agent](./create-agent.md) - Comprehensive guide for creating Claude Code agents with proper structure, triggering conditions, system prompts, and validation. Combines official Anthropic best practices with proven patterns.
-- [/customaize-agent:create-command](./create-command.md) - Interactive assistant for creating new Claude commands with proper structure, patterns, and MCP tool integration.
-- [/customaize-agent:create-workflow-command](./create-workflow-command.md) - Create commands that orchestrate multi-step workflows by dispatching sub-agents with task-specific instructions stored in separate files. Solves the **context bloat problem** by keeping orchestrator commands lean.
-- [/customaize-agent:create-skill](./create-skill.md) - Guide for creating effective skills using a TDD-based approach. This command treats skill creation as Test-Driven Development applied to process documentation.
-- [/customaize-agent:create-hook](./create-hook.md) - Analyze the project, suggest practical Claude Code hooks, and create them with proper testing. Intelligent project analysis detects tooling and suggests relevant hooks.
-- [/customaize-agent:test-prompt](./test-prompt.md) - Test any prompt (commands, hooks, skills, subagent instructions) using the RED-GREEN-REFACTOR cycle with subagents for isolated testing.
-- [/customaize-agent:test-skill](./test-skill.md) - Verify skills work under pressure and resist rationalization using the RED-GREEN-REFACTOR cycle. Critical for discipline-enforcing skills.
-- [/customaize-agent:apply-anthropic-skill-best-practices](./apply-anthropic-skill-best-practices.md) - Comprehensive guide for skill development based on Anthropic's official best practices. Use for complex skills requiring detailed structure and optimization.
+- [/create-agent](./create-agent.md) - Comprehensive guide for creating Claude Code agents with proper structure, triggering conditions, system prompts, and validation. Combines official Anthropic best practices with proven patterns.
+- [/create-command](./create-command.md) - Interactive assistant for creating new Claude commands with proper structure, patterns, and MCP tool integration.
+- [/create-workflow-command](./create-workflow-command.md) - Create commands that orchestrate multi-step workflows by dispatching sub-agents with task-specific instructions stored in separate files. Solves the **context bloat problem** by keeping orchestrator commands lean.
+- [/create-skill](./create-skill.md) - Guide for creating effective skills using a TDD-based approach. This command treats skill creation as Test-Driven Development applied to process documentation.
+- [/create-hook](./create-hook.md) - Analyze the project, suggest practical Claude Code hooks, and create them with proper testing. Intelligent project analysis detects tooling and suggests relevant hooks.
+- [/test-prompt](./test-prompt.md) - Test any prompt (commands, hooks, skills, subagent instructions) using the RED-GREEN-REFACTOR cycle with subagents for isolated testing.
+- [/test-skill](./test-skill.md) - Verify skills work under pressure and resist rationalization using the RED-GREEN-REFACTOR cycle. Critical for discipline-enforcing skills.
+- [/apply-anthropic-skill-best-practices](./apply-anthropic-skill-best-practices.md) - Comprehensive guide for skill development based on Anthropic's official best practices. Use for complex skills requiring detailed structure and optimization.
 
 ## Skills
 

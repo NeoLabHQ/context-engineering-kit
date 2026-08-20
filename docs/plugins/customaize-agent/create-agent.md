@@ -1,4 +1,4 @@
-# /customaize-agent:create-agent - Agent Creation Guide
+# /create-agent - Agent Creation Guide
 
 Comprehensive guide for creating Claude Code agents with proper structure, triggering conditions, system prompts, and validation. Combines official Anthropic best practices with proven patterns.
 
@@ -6,7 +6,7 @@ Comprehensive guide for creating Claude Code agents with proper structure, trigg
 - Output - Complete agent file with frontmatter, triggering examples, and system prompt
 
 ```bash
-/customaize-agent:create-agent [agent-name] [optional description]
+/create-agent [agent-name] [optional description]
 ```
 
 ## Arguments
@@ -17,13 +17,13 @@ Optional agent name (kebab-case) and description of the agent's purpose.
 
 ```bash
 # Create a code review agent
-> /customaize-agent:create-agent code-reviewer "Review code for quality and security"
+> /create-agent code-reviewer "Review code for quality and security"
 
 # Create a test generation agent
-> /customaize-agent:create-agent test-generator
+> /create-agent test-generator
 
 # Start interactive agent creation
-> /customaize-agent:create-agent
+> /create-agent
 ```
 
 ## How It Works

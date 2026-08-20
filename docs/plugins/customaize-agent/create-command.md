@@ -1,4 +1,4 @@
-# /customaize-agent:create-command - Command Creation Assistant
+# /create-command - Command Creation Assistant
 
 Interactive assistant for creating new Claude commands with proper structure, patterns, and MCP tool integration.
 
@@ -6,7 +6,7 @@ Interactive assistant for creating new Claude commands with proper structure, pa
 - Output - Complete command file with frontmatter, sections, and patterns
 
 ```bash
-/customaize-agent:create-command ["command name or description"]
+/create-command ["command name or description"]
 ```
 
 ## Arguments
@@ -17,13 +17,13 @@ Optional command name or description of the command's purpose (e.g., "validate A
 
 ```bash
 # Create an API validation command
-> /customaize-agent:create-command validate API documentation
+> /create-command validate API documentation
 
 # Create a deployment command
-> /customaize-agent:create-command deploy feature to staging
+> /create-command deploy feature to staging
 
 # Start without a specific idea
-> /customaize-agent:create-command
+> /create-command
 ```
 
 ## How It Works
