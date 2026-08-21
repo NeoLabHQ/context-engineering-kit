@@ -90,7 +90,7 @@ skills:
 # Suffixes: s / m / h. A bare integer is read as seconds.
 # ---------------------------------------------------------------------------
 duration:
-  between_runs: 2h
+  between_runs: 1h
   technical_failure_backoff: 2h
 
 # ---------------------------------------------------------------------------
@@ -102,12 +102,12 @@ duration:
 # question is where each arm stops coping, and that needs a gradient.
 # ---------------------------------------------------------------------------
 tasks:
-  - name: kombu-single-active-consumer-priority
-    complexity: high
-  - name: cattrs-partial-structuring-recovery
-    complexity: medium
   - name: abs-stepped-slices
     complexity: low
+  - name: cattrs-partial-structuring-recovery
+    complexity: medium
+  - name: kombu-single-active-consumer-priority
+    complexity: high
 
 # ---------------------------------------------------------------------------
 # skips -- combinations deliberately left unrun, each with its reason.
