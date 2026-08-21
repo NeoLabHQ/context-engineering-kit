@@ -134,5 +134,60 @@ class ChartGeometryTests(unittest.TestCase):
         self.assertEqual(positions, [("sonnet", 67.0), ("opus", 141.0)])
 
 
+class FlooredBarExtentTests(unittest.TestCase):
+    """The visible-zero floor is a rendering decision layered on top of
+    `bar_vertical_extent`, so it gets its own function and its own tests --
+    the plain arithmetic below it must stay exactly as it was."""
+
+    def setUp(self) -> None:
+        self.geometry = report.ChartGeometry()  # min_measured_height defaults to 0.0
+        self.floored = report.ChartGeometry(min_measured_height=4.0)
+
+    def test_the_default_geometry_applies_no_floor_at_all(self) -> None:
+        # What keeps the two pre-existing charts rendering byte-for-byte as
+        # they did before the floor existed.
+        self.assertEqual(report.floored_bar_extent(0.0, self.geometry), (230.0, 0.0))
+        self.assertEqual(
+            report.floored_bar_extent(0.0, self.geometry), report.bar_vertical_extent(0.0, self.geometry)
+        )
+
+    def test_a_zero_is_lifted_to_the_floor_and_still_rests_on_the_baseline(self) -> None:
+        # plot_top(30) + plot_height(200) = baseline 230; a 4px floor puts the
+        # top at 226 so the mark grows upward from the baseline, not downward.
+        self.assertEqual(report.floored_bar_extent(0.0, self.floored), (226.0, 4.0))
+
+    def test_a_bar_taller_than_the_floor_is_left_exactly_where_it_was(self) -> None:
+        self.assertEqual(
+            report.floored_bar_extent(0.5, self.floored), report.bar_vertical_extent(0.5, self.geometry)
+        )
+
+    def test_the_floor_respects_an_absolute_axis_maximum(self) -> None:
+        # 18 of 36 is half the axis: 100px tall, well above the floor.
+        self.assertEqual(report.floored_bar_extent(18.0, self.floored, max_value=36.0), (130.0, 100.0))
+
+
+class AbsoluteAxisTickTests(unittest.TestCase):
+    """`y_axis_value_ticks` is the absolute-axis twin of `y_axis_ticks`; the
+    percentage version must keep behaving exactly as it always has."""
+
+    def setUp(self) -> None:
+        self.geometry = report.ChartGeometry()
+
+    def test_percentage_ticks_are_unchanged(self) -> None:
+        self.assertEqual(
+            report.y_axis_ticks(self.geometry),
+            [(230.0, "0%"), (180.0, "25%"), (130.0, "50%"), (80.0, "75%"), (30.0, "100%")],
+        )
+
+    def test_absolute_ticks_step_evenly_from_zero_to_the_maximum(self) -> None:
+        ticks = report.y_axis_value_ticks(self.geometry, 36.0, report.format_usd)
+        self.assertEqual([y for y, _ in ticks], [230.0, 180.0, 130.0, 80.0, 30.0])
+        self.assertEqual([label for _, label in ticks], ["$0.00", "$9.00", "$18.00", "$27.00", "$36.00"])
+
+    def test_absolute_ticks_use_whatever_unit_formatter_they_are_given(self) -> None:
+        labels = [label for _, label in report.y_axis_value_ticks(self.geometry, 100.0, report.format_count)]
+        self.assertEqual(labels, ["0", "25", "50", "75", "100"])
+
+
 if __name__ == "__main__":
     unittest.main()

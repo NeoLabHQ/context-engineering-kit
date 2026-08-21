@@ -73,9 +73,18 @@ class StatusContractTests(unittest.TestCase):
                 self.assertIn(f"n_{status}", row)
                 self.assertIn(f"<th class='num'>{status.capitalize()}</th>", table_html)
 
-    def test_report_expects_the_schema_version_collect_writes(self) -> None:
+    def test_the_mirrored_schema_version_has_not_drifted(self) -> None:
         # report.py mirrors the constant rather than importing it (see its
-        # docstring); this is what keeps the copy honest.
+        # docstring); this is the only thing keeping the copy honest, so it is
+        # an EQUALITY. A `<=` here would pass forever with any gap, including a
+        # future non-additive bump that forgets report.py -- which is precisely
+        # the drift a duplicated constant exists to detect.
+        #
+        # Keeping equality achievable is a constraint on the bump, not on this
+        # test: collect.py's own criterion is "bump when TrialRecord/
+        # ArmAggregate's field set or meaning changes", and a purely ADDITIVE
+        # section (new top-level keys, no field touched) is detectable by key
+        # presence and does not qualify. See RESULTS_SCHEMA_VERSION's comment.
         self.assertEqual(
             report.EXPECTED_RESULTS_SCHEMA_VERSION, collect.RESULTS_SCHEMA_VERSION
         )

@@ -18,6 +18,18 @@ dependencies = [
     # the task. 0.3.0 also silently ignored the task's `network_mode`
     # declarations; 0.3.1 honors both. Never downgrade below 0.3.1.
     "datacurve-pier==0.3.1",
+    # `schedule.py` parses schedule.yaml -- the source of truth for which
+    # (task, model, skill) trials `--mode scheduled` runs. PyYAML was already
+    # importable here, but only TRANSITIVELY, via datacurve-pier. That is a
+    # dependency on someone else's dependency graph: pier dropping or
+    # repinning PyYAML would break a core code path of ours for a reason with
+    # nothing to do with us. Declared directly because we import it directly.
+    #
+    # Lower bound, not a pin (unlike pier above, whose exact pin is explained
+    # there): we use only `yaml.safe_load` and `yaml.YAMLError`, an API stable
+    # across the whole 6.x line, so there is nothing here for a patch release
+    # to change underneath us.
+    "pyyaml>=6.0",
 ]
 
 [tool.uv]

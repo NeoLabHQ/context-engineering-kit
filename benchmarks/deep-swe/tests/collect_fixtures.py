@@ -83,27 +83,37 @@ def make_trial(
     impl: str | None = "sonnet",
     cost_usd: float | None = None,
     output_tokens: int | None = None,
+    input_tokens: int | None = None,
+    cache_tokens: int | None = None,
     n_agent_steps: int | None = None,
     trial_id: str | None = None,
+    task_name: str | None = "task-1",
 ) -> collect.TrialRecord:
     """Build one TrialRecord with every required field filled in, so
     aggregation tests can vary just the fields they care about (status,
     cost/token/step figures) without restating TrialRecord's full 19-field
     shape at every call site.
+
+    `task_name` defaults to the same placeholder every arm-level test has
+    always used, so those tests are unaffected; the per-task cell tests pass
+    the real pier-namespaced spelling (`datacurve/<task>`) to exercise
+    `collect.resolve_trial_task_name`. `input_tokens`/`cache_tokens` became
+    parameters for the same reason -- the per-cell token rollups need them,
+    and defaulting to None keeps every existing call site identical.
     """
     return collect.TrialRecord(
         arm_id=arm_id,
         skill=skill,
         orchestrator=orchestrator,
         impl=impl,
-        task_name="task-1",
+        task_name=task_name,
         task_checksum="checksum-1",
         resolved=status == "resolved",
         reward={"resolved": 1.0, "unresolved": 0.0, "incomplete": 0.0}.get(status),
         cost_usd=cost_usd,
         output_tokens=output_tokens,
-        input_tokens=None,
-        cache_tokens=None,
+        input_tokens=input_tokens,
+        cache_tokens=cache_tokens,
         n_agent_steps=n_agent_steps,
         duration_sec=None,
         status=status,

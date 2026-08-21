@@ -1,0 +1,158 @@
+# ===========================================================================
+# Deep-SWE benchmark schedule -- the source of truth for `--mode scheduled`.
+# ===========================================================================
+#
+# WHAT THIS FILE IS
+# ------------------
+# A declarative statement of the full benchmark matrix: which tasks, against
+# which model pairs, under which skill, how fast to walk through them, and
+# which combinations are deliberately NOT run. `schedule.py` loads and
+# validates it; `run.py --mode scheduled` executes what it expands to; and
+# `report.py` groups its charts by the task complexities declared here.
+#
+# Nothing downstream re-derives any of this. If a combination is not in the
+# matrix this file expands to, it does not run -- and if a cell is missing
+# from the report, the answer is here.
+#
+# WHY IT IS SO STRICT
+# --------------------
+# `schedule.py` rejects unknown keys, unknown names, duplicate names and
+# unparseable durations rather than defaulting past them. A misconfigured
+# schedule does not crash a benchmark; it produces a clean, complete-looking
+# run that measured the wrong thing. A typo like `model:` for `models:` in a
+# skip rule would silently widen that rule from one model to all five. So
+# every field here is checked, and a mistake stops the run before it starts.
+#
+# EDITING THIS FILE
+# ------------------
+# `tests/test_schedule.py` loads this exact file and asserts it validates, so
+# a bad edit is caught by `python3 -m unittest discover` before it is caught
+# by a wasted benchmark night.
+
+# ---------------------------------------------------------------------------
+# models -- the 5 (orchestrator, impl) tier pairs from `run.py`'s CELLS.
+#
+# The orchestrator tier is what pier passes as `-m` (the model that reads the
+# task and runs the slash command); the impl tier is what the slash command
+# hands to the sub-agents it dispatches. Both are spelled out per model
+# rather than being split out of the name, because "sonnet-haiku" split on
+# "-" is a heuristic and `run.py`'s task names contain hyphens too -- there
+# is no reason to make the tier mapping guessable when it can be stated.
+#
+# `schedule.py` rejects any pair that is not literally one of run.py's CELLS.
+# ---------------------------------------------------------------------------
+models:
+  - name: haiku
+    orchestrator: haiku
+    impl: haiku
+  - name: sonnet
+    orchestrator: sonnet
+    impl: sonnet
+  - name: opus
+    orchestrator: opus
+    impl: opus
+  - name: sonnet-haiku
+    orchestrator: sonnet
+    impl: haiku
+  - name: opus-sonnet
+    orchestrator: opus
+    impl: sonnet
+
+# ---------------------------------------------------------------------------
+# skills -- the three arm types, from the operator's point of view.
+#
+# NOTE the deliberate mismatch with the code: `run.py`'s SKILLS constant
+# holds only the two plugin skills, and models the no-plugin control as
+# `Arm.skill is None` / `Arm.is_vanilla`. From here, though, vanilla is a
+# third thing you can schedule a task under, so it is listed as a peer.
+# `schedule.py` translates `vanilla` back to run.py's `None` at the boundary
+# (see its module docstring); run.py itself is untouched.
+# ---------------------------------------------------------------------------
+skills:
+  - vanilla
+  - do-and-judge
+  - do-in-steps
+
+# ---------------------------------------------------------------------------
+# duration -- two independent pacing knobs, not one.
+#
+#   between_runs              the gap after a trial that finished (however it
+#                             scored -- a legitimate 0 is still a finished
+#                             trial) before the next one starts.
+#
+#   technical_failure_backoff the gap after a trial that failed for reasons
+#                             that are not the agent's: container/API/quota
+#                             errors. It is separate because its purpose is
+#                             different -- it waits for a transient external
+#                             fault to clear, so it must stay tunable
+#                             independently even though both read 2h today.
+#
+# Suffixes: s / m / h. A bare integer is read as seconds.
+# ---------------------------------------------------------------------------
+duration:
+  between_runs: 2h
+  technical_failure_backoff: 2h
+
+# ---------------------------------------------------------------------------
+# tasks -- the three deep-swe tasks in the sweep, one per complexity band.
+#
+# `complexity` is an ordered label (low < medium < high), not free text. It is
+# the axis `report.py` plots results against, which is the whole reason the
+# sweep spans three bands rather than three arbitrary tasks: the interesting
+# question is where each arm stops coping, and that needs a gradient.
+# ---------------------------------------------------------------------------
+tasks:
+  - name: kombu-single-active-consumer-priority
+    complexity: high
+  - name: cattrs-partial-structuring-recovery
+    complexity: medium
+  - name: abs-stepped-slices
+    complexity: low
+
+# ---------------------------------------------------------------------------
+# skips -- combinations deliberately left unrun, each with its reason.
+#
+# A skip is not the same as a missing result, which is why the reason is
+# mandatory: the report shows these cells as "deliberately not run, because
+# X" rather than as a gap the reader has to guess about.
+#
+# Selectors (`tasks`, `models`, `skills`) are all optional and AND together.
+# An omitted selector means "every one of them"; a stated one means "only
+# these". An empty list is rejected rather than being read as either.
+# ---------------------------------------------------------------------------
+skips:
+  # `tasks` omitted => all three tasks.
+  - reason: >-
+      Too complex for haiku at the vanilla level: with no plugin
+      orchestration, haiku has no mechanism for decomposing a task of this
+      size, so these trials would measure the absence of a strategy rather
+      than the strategy's effect.
+    models:
+      - haiku
+    skills:
+      - vanilla
+
+  - reason: >-
+      Too complex for sonnet: kombu-single-active-consumer-priority. Official benchmarks show that sonnet does not able to run it.
+    tasks:
+      - kombu-single-active-consumer-priority
+    models:
+      - sonnet
+    skills:
+      - vanilla
+
+  # `tasks` omitted => all three tasks.
+  - reason: >-
+      A vanilla arm has no implementer tier -- with no plugin, nothing
+      dispatches sub-agents for a second model to serve. So a mixed pair's
+      vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at
+      vanilla is byte-for-byte the sonnet vanilla trial (same arm id
+      vanilla__sonnet, same job directory, same pier invocation), as
+      opus-sonnet is the opus one. Running it would pay twice for one
+      measurement and would let a mixed cell quietly re-run a trial that a
+      skip rule written against the symmetric model had excluded.
+    models:
+      - sonnet-haiku
+      - opus-sonnet
+    skills:
+      - vanilla

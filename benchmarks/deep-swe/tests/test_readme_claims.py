@@ -374,6 +374,29 @@ class DocumentedStatusContractTests(unittest.TestCase):
     def test_the_readme_documents_how_to_re_run_an_incomplete_arm(self) -> None:
         self.assertRegex(readme(), r"re-run it with `--force`")
 
+    def test_the_incomplete_recipe_pairs_force_with_deleting_the_trial_directory(
+        self,
+    ) -> None:
+        """Pins the fragment that makes the `--force` recipe above correct.
+
+        The assertion above only pins "...re-run it with `--force`" in
+        isolation. On its own that fragment is *wrong* -- README lines just
+        above it explain `--force` alone cannot re-attempt an INCOMPLETE
+        trial, because pier's per-trial resume still skips a trial directory
+        that already has a `result.json`. The step that makes `--force`
+        correct is deleting that trial's own directory first, so `result.json`
+        stops existing for pier to skip.
+
+        A future edit could delete that directory-deletion clause and leave
+        "...re-run it with `--force`" standing alone; the assertion above
+        would keep passing while the recipe silently regressed to the wrong
+        claim it currently corrects. Requiring "own directory" to appear
+        shortly before "re-run it with `--force`" (bounded, so it cannot
+        match the unrelated STUCK recipe's "job directory" elsewhere in this
+        file) catches that regression.
+        """
+        self.assertRegex(readme(), r"own directory.{0,60}re-run it with `--force`")
+
 
 class NoSpendCapTests(unittest.TestCase):
     """The forbidden flag must not reappear in the docs either."""

@@ -753,10 +753,14 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "datacurve-pier" },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "datacurve-pier", specifier = "==0.3.1" }]
+requires-dist = [
+    { name = "datacurve-pier", specifier = "==0.3.1" },
+    { name = "pyyaml", specifier = ">=6.0" },
+]
 
 [[package]]
 name = "deprecated"

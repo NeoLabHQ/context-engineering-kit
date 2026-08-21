@@ -35,6 +35,10 @@ select exactly one arm.
 RUN LAYOUT (see bottom of file / task handoff notes for the authoritative
 version of this -- kept here too so the two can be diffed against drift):
 
+    runs/scheduler-state.json          <- `--mode scheduled`'s resume record ONLY; not
+                                           pier's, not per-arm. One entry per planned
+                                           run of schedule.yaml -- see scheduler.py's
+                                           module docstring for the schema.
     runs/<arm-id>/                     <- pier's --jobs-dir/--job-name, i.e. its job_dir
                                            (--mode single suffixes this with
                                            "__<task-slug>" -- see arm_job_dir --
@@ -42,7 +46,10 @@ version of this -- kept here too so the two can be diffed against drift):
                                            skill+model never share a job_dir;
                                            --mode sample/full run their whole
                                            dataset filter as one job and keep
-                                           the bare <arm-id> name)
+                                           the bare <arm-id> name; --mode
+                                           scheduled runs one task per arm and
+                                           so shares --mode single's naming
+                                           exactly -- see single_task_args)
         prompt.j2                      <- this arm's rendered slash-command template
         arm.json                       <- (skill, orchestrator, impl) metadata for collect.py
         config.json                    <- pier's own job config (written by pier)
@@ -83,6 +90,17 @@ to tell "you invoked me wrong" from "the agents abandoned their tasks".
 verdict covers the plugin checks it exists to make, and an unfinished preflight
 trial is reported and exits 3 rather than being folded into either PASSED or a
 plugin failure -- see `run_preflight`.
+
+`--mode scheduled` reports on the same three-state contract, but per planned
+run rather than per arm, and adds one distinction the other modes have no need
+for: whether a failure was the model's. A trial the agent attempted and lost
+is the benchmark's product and is recorded once; a trial that never got a fair
+attempt (dead container, quota denial, API 529) is backed off and retried, at
+most `scheduler.MAX_TECHNICAL_RETRIES` times. `triage.py` draws that line and
+explains at length what evidence it is drawn from; `scheduler.py` owns the
+pacing, the retry bound and the resume record. Neither knows what pier is --
+this file supplies every side effect they drive, which is what lets both be
+tested without a container or a two-hour wait.
 
 SEED PINNING
 ------------
@@ -141,6 +159,14 @@ import agent  # noqa: E402 -- must follow the sys.path patch above
 # because those need `pier` and collect.py is required to run (and be tested)
 # without it -- see collect.py's own module docstring.
 import collect  # noqa: E402 -- must follow the sys.path patch above
+
+# The `--mode scheduled` stack. All three import only stdlib + collect/yaml,
+# so they stay importable (and testable) without `pier` -- the same property
+# collect.py has, and the reason the scheduling policy lives there rather
+# than in this file. See scheduler.py's module docstring.
+import schedule  # noqa: E402
+import scheduler  # noqa: E402
+import triage  # noqa: E402
 
 # --------------------------------------------------------------------------
 # The matrix. This is the single source of truth for every arm this script
@@ -949,8 +975,20 @@ def build_arg_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--mode",
-        choices=["single", "sample", "full"],
-        help="Dataset filter to apply to every arm. Required unless --preflight.",
+        choices=["single", "sample", "full", "scheduled"],
+        help="Dataset filter to apply to every arm. Required unless --preflight. "
+        "'scheduled' is the odd one out: instead of applying one filter across the "
+        "arm matrix, it walks the (task, model, skill) plan in --schedule, running "
+        "each cell as its own single-task job, pacing between them and retrying "
+        "technical failures. See --schedule.",
+    )
+    parser.add_argument(
+        "--schedule",
+        type=Path,
+        default=schedule.DEFAULT_SCHEDULE_PATH,
+        help="Schedule file --mode scheduled executes (default: %(default)s). It "
+        "declares the tasks, model pairs, skills, pacing and deliberate skips; "
+        "nothing else re-derives them.",
     )
     parser.add_argument(
         "--task",
@@ -1042,6 +1080,39 @@ def build_arg_parser() -> argparse.ArgumentParser:
     return parser
 
 
+# `--mode scheduled` takes its whole matrix from the schedule file, so the
+# flags that filter or extend the matrix for the other modes have nothing left
+# to mean. Each is REJECTED rather than ignored: a flag that silently does
+# nothing is how an operator ends up believing they ran a subset when they ran
+# everything (or the reverse), and this mode's runs cost hours each.
+#
+# Rejecting is also the honest choice over inventing a filtering semantic.
+# schedule.yaml already has one -- `skips`, with a mandatory reason attached --
+# and a second, undocumented one reachable only from the command line would
+# make the file stop being the answer to "why did this cell not run".
+_SCHEDULED_INCOMPATIBLE_FLAGS: tuple[tuple[str, str], ...] = (
+    ("task", "--task"),
+    ("n_tasks", "--n-tasks"),
+    ("skill", "--skill"),
+    ("model", "--model"),
+    ("with_vanilla", "--with-vanilla"),
+)
+
+
+def _reject_matrix_flags_under_scheduled(
+    parser: argparse.ArgumentParser, args: argparse.Namespace
+) -> None:
+    """Refuse the matrix flags that `--mode scheduled` cannot honour."""
+    offenders = [flag for attribute, flag in _SCHEDULED_INCOMPATIBLE_FLAGS if getattr(args, attribute)]
+    if not offenders:
+        return
+    parser.error(
+        f"--mode scheduled takes its tasks, models and skills from {args.schedule}, so "
+        f"{', '.join(offenders)} cannot apply. To run a subset, edit that file's `skips` "
+        f"(the reason is recorded and shown in the report) or point --schedule at another file."
+    )
+
+
 def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     """Cross-argument requirements argparse's own `required=` can't express."""
     if args.preflight:
@@ -1054,6 +1125,8 @@ def validate_args(parser: argparse.ArgumentParser, args: argparse.Namespace) -> 
         parser.error("--mode single requires --task")
     if args.mode == "sample" and not args.n_tasks:
         parser.error("--mode sample requires --n-tasks")
+    if args.mode == "scheduled":
+        _reject_matrix_flags_under_scheduled(parser, args)
     # --model needs no cross-argument check here: argparse's `choices=MODEL_CHOICES`
     # (derived from CELLS' symmetric entries, see MODEL_CHOICES's definition) already
     # guarantees any accepted value selects a non-empty arm set, so it composes freely
@@ -1125,6 +1198,367 @@ def preview_arm_command(arm: Arm, args: argparse.Namespace, dataset_args: list[s
     )
 
 
+# --------------------------------------------------------------------------
+# --mode scheduled: bind scheduler.py's policy to this file's mechanisms
+#
+# Everything below is the side-effecting half. `scheduler.py` decides WHEN a
+# run happens, whether it is retried and what is written down; these functions
+# are WHAT it does when it decides to. Keeping the split at this boundary is
+# what lets the loop be tested without pier, a container or a two-hour wait.
+# --------------------------------------------------------------------------
+
+COLLECT_SCRIPT = SCRIPT_DIR / "collect.py"
+REPORT_SCRIPT = SCRIPT_DIR / "report.py"
+
+
+def single_task_args(args: argparse.Namespace, task_name: str) -> argparse.Namespace:
+    """`args` restated as the equivalent `--mode single --task <task_name>` run.
+
+    A scheduled run IS a single-task run of one arm: same pier invocation,
+    same `<arm-id>__<task-slug>` job directory, same `arm.json`. Handing the
+    existing single-mode helpers a Namespace that says exactly that keeps the
+    claim literally true rather than approximately true -- `run_arm`,
+    `arm_job_dir` and `resolve_completed_job_dir` are then used unchanged, so
+    a scheduled run and a hand-typed `--mode single` of the same cell land in
+    the same directory and resume one another.
+
+    Copied rather than mutated: `args` is walked once per planned run, and a
+    loop that left `args.task` pointing at whichever task it happened to touch
+    last would be a resumability bug waiting to happen.
+    """
+    single = argparse.Namespace(**vars(args))
+    single.mode = "single"
+    single.task = task_name
+    return single
+
+
+def arm_for_planned_run(planned: schedule.PlannedRun) -> Arm:
+    """The `Arm` one planned run corresponds to.
+
+    Performs schedule.yaml's `vanilla` -> `Arm(skill=None, impl=None)`
+    translation (see schedule.py's module docstring for why the file and the
+    code spell the control arm differently). `schedule.arm_id_for` already
+    mirrors `Arm.id` for the same pair and
+    `tests/test_schedule.py::ArmIdResolutionTests` pins the two together, so
+    this builds the arm rather than parsing an id back into one.
+    """
+    if planned.is_vanilla:
+        return Arm(skill=None, orchestrator=planned.model.orchestrator, impl=None)
+    return Arm(
+        skill=planned.skill, orchestrator=planned.model.orchestrator, impl=planned.model.impl
+    )
+
+
+def scheduled_job_dir(args: argparse.Namespace, planned: schedule.PlannedRun) -> Path:
+    """Where this planned run's pier job lives -- `--mode single`'s naming."""
+    return arm_job_dir(
+        args.jobs_dir,
+        arm_for_planned_run(planned),
+        mode="single",
+        task=planned.task.name,
+        dataset_dir=args.dataset_dir,
+    )
+
+
+def execute_planned_run(
+    planned: schedule.PlannedRun, args: argparse.Namespace
+) -> scheduler.RunAttempt:
+    """Run one planned cell through pier, then triage what it left on disk.
+
+    The pier exit code is printed but deliberately NOT fed into the triage.
+    Every way pier can fail already reaches `triage.py` through an artifact:
+    a job that died before producing a trial leaves no `result.json`
+    (-> `no_trial_result`), and one that died during a trial leaves
+    `exception_info` set. Adding the exit code as a fourth signal would mean
+    inventing a rule for a combination -- pier non-zero over a clean, scored,
+    resolved trial -- that nothing in `runs/` demonstrates, which is exactly
+    the speculative generality this harness has been cutting back.
+    """
+    single = single_task_args(args, planned.task.name)
+    arm = arm_for_planned_run(planned)
+    dataset_args = build_dataset_args(
+        "single", dataset_dir=single.dataset_dir, task=single.task, n_tasks=None
+    )
+    job_dir, cmd = run_arm(arm, single, dataset_args)
+
+    print(f"[{arm.id}] $ {shlex.join(cmd)}")
+    exit_code = run_pier(cmd)
+    print(f"[{arm.id}] pier exited {exit_code}")
+
+    return scheduler.RunAttempt(
+        verdict=triage.triage_job_dir(job_dir),
+        incomplete_trials=find_incomplete_trials(job_dir),
+    )
+
+
+def find_completed_planned_run(
+    planned: schedule.PlannedRun, args: argparse.Namespace
+) -> scheduler.RunAttempt | None:
+    """An already-finished attempt for this cell, or `None` if it must run.
+
+    Reuses `resolve_completed_job_dir` verbatim, so a scheduled run inherits
+    both of its behaviours for free: it recognises its own completed job dirs,
+    and it recognises the pre-task-naming flat `runs/<arm-id>` directories
+    left by earlier invocations of this harness. Those are re-triaged from
+    their artifacts rather than assumed successful -- a finished job is not
+    the same as a solved task, which is the confusion the completion gate was
+    added to end.
+    """
+    arm = arm_for_planned_run(planned)
+    completed = resolve_completed_job_dir(
+        scheduled_job_dir(args, planned),
+        mode="single",
+        jobs_dir=args.jobs_dir,
+        arm=arm,
+        task=planned.task.name,
+        dataset_dir=args.dataset_dir,
+    )
+    if completed is None:
+        return None
+    return scheduler.RunAttempt(
+        verdict=triage.triage_job_dir(completed),
+        incomplete_trials=find_incomplete_trials(completed),
+    )
+
+
+def describe_completed(planned: schedule.PlannedRun, args: argparse.Namespace) -> str | None:
+    """How an already-finished cell would be reported, or `None` if it must run.
+
+    `--dry-run`'s read-only view of `find_completed_planned_run`. Reading the
+    artifacts is still writing nothing and running nothing, which is what
+    `--dry-run` promises; showing a stale count instead would make the preview
+    the one place that disagrees with what the run will do.
+
+    Mirrors `scheduler._resume`'s rule that a technical verdict does NOT count
+    as done, for exactly that reason -- a preview that promised to skip a cell
+    the run will actually execute would misstate the schedule's length in the
+    one direction an operator cannot afford.
+    """
+    completed = find_completed_planned_run(planned, args)
+    if completed is None or completed.verdict.is_technical:
+        return None
+    return f"{completed.verdict} (job dir already complete)"
+
+
+def run_collect_and_report(jobs_dir: Path, out_dir: Path = SCRIPT_DIR) -> str | None:
+    """Re-derive results.json/results.csv and report.html; describe any failure.
+
+    Returns `None` on success and a one-line description otherwise -- it never
+    raises, because `scheduler.py` calls this after every single run and a
+    reporting failure must not be able to end a multi-day benchmark. The
+    artifacts both scripts read stay on disk regardless, so a run whose report
+    step failed can always be re-derived afterwards by invoking them by hand.
+
+    Shells out with `sys.executable` rather than importing and calling
+    `collect.main()`/`report.main()` in-process for the reason `run_pier`
+    already shells out: a crash, a leaked file handle or a `sys.exit` inside
+    either script is then that subprocess's problem and not the scheduler's.
+    Output is left uncaptured, same as `run_pier`, so an operator watching a
+    multi-day run sees each step happen.
+
+    `out_dir` defaults to this directory -- the location both scripts default
+    to on their own, and where README.md tells operators to look for
+    `results.json`/`report.html`. It is a parameter only so the test suite can
+    exercise this wiring for real against a scratch directory instead of
+    overwriting the committed artifacts; nothing in production passes it.
+    Every path is made explicit on both command lines rather than relying on
+    those defaults, so the two steps cannot end up pointing at different
+    directories.
+    """
+    steps = (
+        ("collect.py", [sys.executable, str(COLLECT_SCRIPT),
+                        "--runs-dir", str(jobs_dir), "--out-dir", str(out_dir)]),
+        ("report.py", [sys.executable, str(REPORT_SCRIPT),
+                       "--results", str(out_dir / "results.json"),
+                       "--out", str(out_dir / "report.html")]),
+    )
+    for name, cmd in steps:
+        try:
+            exit_code = subprocess.run(cmd, cwd=SCRIPT_DIR).returncode
+        except OSError as error:
+            return f"{name} could not be started: {error}"
+        if exit_code != 0:
+            return f"{name} exited {exit_code}"
+    return None
+
+
+def build_schedule_harness(args: argparse.Namespace) -> scheduler.Harness:
+    """Bind the scheduler's abstract side effects to this file's real ones.
+
+    `sleep`/`monotonic` are left at their defaults (the real ones) -- only the
+    test suite ever substitutes those.
+    """
+    return scheduler.Harness(
+        execute=lambda planned: execute_planned_run(planned, args),
+        find_completed=lambda planned: find_completed_planned_run(planned, args),
+        collect_and_report=lambda: run_collect_and_report(args.jobs_dir),
+    )
+
+
+def stuck_technical_reports(outcome: scheduler.ScheduleOutcome) -> list[scheduler.RunReport]:
+    """Technical failures whose job directory already holds a finished trial
+    -- the ones no future `--mode scheduled` invocation will clear on its own.
+
+    `triage.NO_TRIAL_RESULT_REASON` is the one technical reason where pier
+    never wrote a trial `result.json` at all (the container/environment never
+    came up); with nothing on disk yet, the NEXT `pier run` for that cell
+    genuinely attempts it. Every OTHER technical reason -- an API fault, a
+    missing verifier reward, an ambiguous nonzero exit -- means a trial DID
+    finish and write a `result.json`, and that is exactly what pier's own
+    per-trial resume (`Job._maybe_init_existing_job`) treats as already done:
+    it skips re-running that trial regardless of how many more times
+    `scheduler.py` retries or how many later invocations run. So these cells
+    keep re-triaging the same stale verdict forever unless their job
+    directory is removed by hand first -- see `report_scheduled_summary`.
+    """
+    return [
+        report
+        for report in outcome.reports
+        if report.verdict is not None
+        and report.verdict.outcome == triage.TECHNICAL_FAILURE
+        and report.verdict.reason != triage.NO_TRIAL_RESULT_REASON
+    ]
+
+
+def report_scheduled_summary(
+    outcome: scheduler.ScheduleOutcome, args: argparse.Namespace | None = None
+) -> int:
+    """Print `--mode scheduled`'s end-of-run summary; return main()'s exit code.
+
+    Extends `report_run_summary`'s conventions rather than inventing a second
+    scheme: every bucket is printed before any of them decides the exit code,
+    so an operator sees everything that went wrong instead of only the worst
+    of it, and the success line prints on exactly one condition -- nothing in
+    any failure bucket.
+
+    The exit codes are the existing two, mapped by what they already mean:
+
+      EXIT_ARM_FAILED (1)         a run the harness could not obtain a fair
+                                  attempt for (technical failure, retries
+                                  spent), or a collect/report step that
+                                  failed. Both are "this invocation did not
+                                  do its job", which is what 1 means for the
+                                  other three modes.
+      EXIT_TRIALS_INCOMPLETE (3)  every run was attempted, but at least one
+                                  agent abandoned its task (no model.patch,
+                                  or a final message that ends in a
+                                  question) -- identical to the other modes.
+      0                           everything ran. Note that a MODEL failure
+                                  alone is a 0: an agent that attempted a
+                                  task and scored it wrong is a successful
+                                  benchmark measurement, exactly as an
+                                  unresolved `--mode single` trial is today.
+
+    No new exit code is introduced. "The model lost" is a result, not a
+    harness error, and giving it a code of its own would break every caller
+    that reads non-zero as "something needs fixing".
+
+    `args` names the run's `--jobs-dir`/`--dataset-dir`, so a STUCK cell (see
+    `stuck_technical_reports`) can be reported with its exact job directory
+    and the exact recipe that clears it. Optional and defaulting to `None`
+    only so callers that never had an `args.Namespace` to hand -- the test
+    suite's synthetic outcomes -- still get a summary; production always
+    passes it (see `run_scheduled`).
+    """
+    skipped = outcome.with_disposition(scheduler.SKIPPED)
+    resumed = outcome.with_disposition(scheduler.RESUMED)
+    executed = outcome.with_disposition(scheduler.RAN)
+    technical = [report for report in outcome.reports if report.verdict is not None
+                 and report.verdict.outcome == triage.TECHNICAL_FAILURE]
+    stuck = stuck_technical_reports(outcome)
+    model_failed = outcome.with_outcome(triage.MODEL_FAILURE)
+    succeeded = outcome.with_outcome(triage.SUCCESS)
+
+    print(
+        f"[schedule] {len(executed)} run(s) executed, {len(resumed)} already done, "
+        f"{len(skipped)} deliberately skipped; {len(succeeded)} resolved, "
+        f"{len(model_failed)} model failures, {len(technical)} technical failures. "
+        f"Waited {sum(outcome.waits_requested):.0f}s across {len(outcome.waits_requested)} "
+        f"pause(s); elapsed {outcome.elapsed_seconds:.0f}s."
+    )
+    for report in skipped:
+        print(f"[schedule] SKIPPED {report.label}: {report.planned.skip_reason}")
+    for report in model_failed:
+        print(f"[schedule] MODEL FAILURE {report.label}: {report.verdict.reason} (not retried)")
+    for report in technical:
+        print(
+            f"[schedule] TECHNICAL FAILURE {report.label}: {report.verdict.reason} "
+            f"after {report.attempts} attempt(s)",
+            file=sys.stderr,
+        )
+    for report in stuck:
+        job_dir = str(scheduled_job_dir(args, report.planned)) if args is not None else "<job-dir>"
+        print(
+            f"[schedule] STUCK {report.label}: {report.verdict.reason} -- pier will keep "
+            f"skipping this trial's existing result.json on every future invocation, so "
+            f"retries alone will not clear it. `--force` alone will not either: it only "
+            f"skips run.py's own already-done check, and pier's per-trial resume still "
+            f"skips the trial underneath it. Remove the job directory first, then re-run "
+            f"WITHOUT --force (every other cell is still terminal and settles instantly "
+            f"from the state file; --force would instead replay all of them through pier "
+            f"and re-pay the pacing wait between each one):\n"
+            f"    rm -rf {job_dir} && uv run python3 run.py --mode scheduled",
+            file=sys.stderr,
+        )
+    for failure in outcome.collect_failures:
+        print(f"[schedule] COLLECT/REPORT FAILURE: {failure}", file=sys.stderr)
+
+    incomplete_by_arm = outcome.incomplete_by_arm
+    if incomplete_by_arm:
+        print(
+            f"[schedule] {len(incomplete_by_arm)} arm(s) have INCOMPLETE trials "
+            f"(no artifacts/model.patch, or a final message that ends in a "
+            f"question): {incomplete_by_arm}",
+            file=sys.stderr,
+        )
+
+    if technical or outcome.collect_failures:
+        return EXIT_ARM_FAILED
+    if incomplete_by_arm:
+        return EXIT_TRIALS_INCOMPLETE
+    print(f"[schedule] all {len(outcome.reports)} planned run(s) accounted for.")
+    return 0
+
+
+def run_scheduled(args: argparse.Namespace) -> int:
+    """`--mode scheduled`: walk `--schedule`'s plan, pacing and triaging as it goes.
+
+    The schedule file is read exactly once, here, and its pacing travels with
+    the plan it came from -- a second read could pick up a mid-run edit and
+    pace the back half of a sweep differently from the front half.
+    """
+    declared = schedule.load_schedule(args.schedule)
+    plan = schedule.expand_schedule(declared)
+    state_path = scheduler.state_path_for(args.jobs_dir)
+    runnable = sum(1 for planned in plan if not planned.skipped)
+    print(
+        f"[schedule] {args.schedule}: {len(plan)} planned run(s), {runnable} runnable, "
+        f"{len(plan) - runnable} skipped by rule"
+    )
+
+    if args.dry_run:
+        for line in scheduler.preview_schedule(
+            plan,
+            between_runs_seconds=declared.between_runs_seconds,
+            backoff_seconds=declared.technical_failure_backoff_seconds,
+            state=None if args.force else scheduler.load_state(state_path),
+            already_done=None if args.force else lambda planned: describe_completed(planned, args),
+        ):
+            print(line)
+        print("[schedule] dry-run complete -- nothing executed, nothing written.")
+        return 0
+
+    outcome = scheduler.run_schedule(
+        plan,
+        harness=build_schedule_harness(args),
+        between_runs_seconds=declared.between_runs_seconds,
+        backoff_seconds=declared.technical_failure_backoff_seconds,
+        state_path=state_path,
+        force=args.force,
+    )
+    return report_scheduled_summary(outcome, args)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_arg_parser()
     args = parser.parse_args(argv)
@@ -1152,6 +1586,12 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.preflight:
         return run_preflight(args)
+
+    # Dispatched before the arm matrix is built: `--mode scheduled` has no
+    # matrix of its own -- it derives one arm per planned run from the
+    # schedule file instead (see run_scheduled).
+    if args.mode == "scheduled":
+        return run_scheduled(args)
 
     arms = build_arms(include_vanilla=args.with_vanilla, skill=args.skill, model=args.model)
     dataset_args = build_dataset_args(

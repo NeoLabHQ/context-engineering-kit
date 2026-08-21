@@ -73,5 +73,60 @@ class ArmBarTests(unittest.TestCase):
         self.assertEqual(bar.value, 0.0)
 
 
+class BarFieldDefaultsTests(unittest.TestCase):
+    """`Bar` gained `absence` for the per-cell charts, defaulting to `None` so
+    every aggregation-chart bar stays exactly the bar it built before that
+    field existed -- no cell there ever knows a schedule-derived reason.
+
+    `display`, by contrast, is now ALWAYS populated for a present bar on
+    these two charts (Fix 1): `render_bar_mark` no longer has a percentage
+    fallback to fall back to, so a `None` here would surface as a rendering
+    crash, not a quietly-wrong "0%".
+    """
+
+    def test_an_arm_bar_carries_no_absence_mark_but_does_carry_display(self) -> None:
+        bar = report._arm_bar("skill-a", make_arm())
+        self.assertIsNone(bar.absence)
+        self.assertEqual(
+            bar.display,
+            report.format_pass_at_1_with_ci(0.5, 0.4, 0.6),  # make_arm()'s defaults
+        )
+
+    def test_an_absent_arm_bar_carries_no_absence_mark(self) -> None:
+        # An arm with no data has no *reason* recorded anywhere -- unlike a
+        # cell, which always knows why it is empty. Inventing a mark here
+        # would draw a hatched slot claiming an explanation nobody wrote.
+        bar = report._arm_bar("skill-a", None)
+        self.assertFalse(bar.present)
+        self.assertIsNone(bar.absence)
+
+    def test_an_official_bar_carries_no_absence_mark_but_does_carry_display(self) -> None:
+        leaderboard = load_real_leaderboard()
+        bar = report._official_bar("sonnet", leaderboard)
+        tier_data = leaderboard["tiers"]["sonnet"]
+        self.assertIsNone(bar.absence)
+        self.assertEqual(
+            bar.display,
+            report.format_pass_at_1_with_ci(
+                tier_data["pass_at_1"], tier_data["ci_low"], tier_data["ci_high"]
+            ),
+        )
+
+    def test_an_official_bar_carries_no_ci_bounds(self) -> None:
+        # Fix 2: leaderboard.json's own ci_low/ci_high is a run-to-run
+        # standard error, not a Wilson interval -- drawing it into the same
+        # whisker channel as this harness's own bars would plot two
+        # different statistics as if they were peers. The real vendored
+        # sonnet tier DOES carry non-null ci_low/ci_high, so this only holds
+        # if `_official_bar` deliberately leaves them off the Bar it builds.
+        leaderboard = load_real_leaderboard()
+        tier_data = leaderboard["tiers"]["sonnet"]
+        self.assertIsNotNone(tier_data["ci_low"])
+        self.assertIsNotNone(tier_data["ci_high"])
+        bar = report._official_bar("sonnet", leaderboard)
+        self.assertIsNone(bar.ci_low)
+        self.assertIsNone(bar.ci_high)
+
+
 if __name__ == "__main__":
     unittest.main()

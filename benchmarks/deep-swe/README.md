@@ -85,9 +85,11 @@ uv run python3 run.py --preflight --task <task-name> --dataset-dir /path/to/deep
 ```
 
 Example: 
-- high complexity: `uv run python3 run.py --preflight --task "abs-stepped-slices" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
-- medium complexity: `uv run python3 run.py --preflight --task "bandit-incremental-cache-control" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
-- low complexity: `uv run python3 run.py --preflight --skill do-in-steps --task "cattrs-partial-structuring-recovery" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
+- max complexity: `uv run python3 run.py --preflight --task --skill do-in-steps  "gql-incremental-graphql-delivery" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
+- high complexity: `uv run python3 run.py --preflight --task --skill do-in-steps "kombu-single-active-consumer-priority" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
+- medium-high complexity: `uv run python3 run.py --preflight --task --skill do-in-steps "cattrs-partial-structuring-recovery" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
+- medium complexity: `uv run python3 run.py --preflight --task --skill do-in-steps  "bandit-incremental-cache-control" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
+- low complexity: `uv run python3 run.py --preflight --skill do-in-steps --task "abs-stepped-slices" --dataset-dir ../../../../../../benchmarks/deep-swe/tasks`
 
 Pass `--skill do-in-steps` to preflight that skill's cheapest arm (haiku/haiku) instead of the default `do-and-judge`:
 
@@ -214,6 +216,45 @@ Every arm's prompt — plugin and vanilla control alike — also carries a short
 
 Useful flags: `--dry-run` prints every arm's `pier` command and the arm count without writing anything or executing anything — sanity-check the matrix before spending money. It honors `--skill` and `--model` identically to a real run, so the printed commands and count reflect exactly the filtered matrix that would execute — combine `--dry-run` with `--skill`/`--model` to confirm the filter before committing budget. Resumability isn't specific to `--mode full`: any invocation that isn't `--dry-run` or `--preflight` — `--mode single` and `--mode sample` included — skips an arm whose `runs/<arm-id>/result.json` already has `finished_at` set, unless `--force` is passed.
 
+### 4b. Scheduled run (`--mode scheduled`)
+
+The other three modes apply one filter across `run.py`'s own arm matrix. `--mode scheduled` is different: it takes its *entire* matrix — which tasks, which model pairs, which skills, how fast to walk through them, and which combinations to skip — from `--schedule` (default `schedule.yaml`, see [The schedule file](#the-schedule-file-scheduleyaml) below), and walks it unattended for days: one task per model-pair-and-skill cell, paced two hours apart, retrying a cell that failed for a reason that wasn't the model's fault.
+
+```bash
+uv run python3 run.py --mode scheduled --dataset-dir /path/to/deep-swe/tasks
+# --schedule <path> to run a different schedule file instead of the committed one
+# --force re-runs every cell regardless of the state file or an on-disk result --
+#   see "The retry bound and --force" (below, under Scheduler outcomes) for the
+#   one case where this alone is NOT enough to un-stick a cell
+```
+
+Because the matrix is entirely declared in the schedule file, `--task`, `--n-tasks`, `--skill`, `--model`, and `--with-vanilla` all conflict with `--mode scheduled` and are rejected outright rather than silently ignored — a flag that quietly did nothing here is how an operator ends up believing they ran a subset when they ran everything. To run a subset, edit `schedule.yaml`'s `skips` (each one carries a mandatory reason, so the report can show "deliberately not run, because X") or point `--schedule` at a different file.
+
+`--dry-run` (combined with `--mode scheduled`) prints the full walk order, every skip with its reason, and the pacing/retry arithmetic below without executing or writing anything — read it before committing to a schedule. For the schedule committed in this repo, it prints:
+
+```
+[schedule] schedule.yaml: 45 planned run(s), 33 runnable, 12 skipped by rule
+  ...
+  pacing: 33 still to run, 7200s between runs => 230400s (64.0h) of pacing alone, excluding run time.
+  retries: at most 2 technical retries per run, 7200s backoff each => at most 99 executions and 475200s (132.0h) of extra backoff.
+```
+
+**Wall-clock cost of a full scheduled run.** Like the [Cost and time](#cost-and-time--read-this-before---mode-full) section above, every total here is a projection, not a measurement: no scheduled run of this matrix has ever executed.
+
+| Basis | Figure |
+|---|---:|
+| **Fact** — cells in the committed `schedule.yaml`'s matrix (3 tasks × 5 model pairs × 3 skills) | 45 |
+| **Fact** — runnable after `skips` (12 cells are deliberately excluded) | 33 |
+| **Fact** — pacing alone, 2h between the 33 runnable cells (deterministic: `between_runs: 2h` × 32 gaps) | 230,400s (64.0h) |
+| **Assumption** — run time per cell, carried over from [Time](#time) above's ~45 min/trial blended estimate (this mode runs exactly one task per cell, i.e. one trial) | ~24.75h (33 × 45 min) |
+| **Assumption + Fact** — baseline total with zero technical failures (pacing + run time) | ~88.75h (**~3.7 days**) |
+| **Fact** — worst-case EXTRA backoff if every runnable cell exhausts its retries (deterministic: 33 cells × 2 retries × 2h backoff) | 475,200s (132.0h) |
+| **Assumption + Fact** — worst-case total (baseline + worst-case backoff + up to 2 extra run-time attempts per cell) | up to ~270h (**~11.3 days**) |
+
+Both the pacing and worst-case-backoff rows are exact arithmetic over the committed `schedule.yaml` and `scheduler.MAX_TECHNICAL_RETRIES`, reproducible with `--dry-run`; the run-time rows inherit the same estimate (and the same caveat) as the rest of this README. `--skill`/`--model`/`--with-vanilla` cannot narrow a scheduled run (see above) — the only way to shrink these numbers is to edit `schedule.yaml` itself.
+
+Every executed cell is re-collected and re-reported immediately (`collect.py` then `report.py`, both re-derived from scratch) — `results.json`/`report.html` are always current as of the last cell to finish, not just at the end of the whole run. See [Scheduler outcomes, triage, and resumability](#scheduler-outcomes-triage-and-resumability) for what each cell's outcome means, [`runs/scheduler-state.json`](#runsscheduler-statejson) for what survives a restart, and [Report visual grammar](#report-visual-grammar) for how the report renders a matrix that is mostly still unrun.
+
 ### 5. Collect results
 
 Aggregates `runs/*/*/result.json` into `results.json` + `results.csv`. Runs under a plain `python3` — does not need `pier` importable:
@@ -234,7 +275,16 @@ Every trial gets one of **four** statuses, carried in the `status` column of `re
 | `incomplete` | The agent never finished: no `artifacts/model.patch` for the trial (absent or zero-byte), or its final message ends in a question asked of an operator who was never there. | `no_model_patch` or `final_message_is_question` | Yes (as a failure) |
 | `errored` | Infrastructure failure — Docker build failure, agent/verifier timeout, API rate-limit failure, plugin that didn't load. | `pier_exception:<category>:<type>`, `missing_verifier_rewards`, `malformed_result_json`, or a plugin-load reason | **No** — excluded from every average too |
 
-**Read `error_reason` to find out *why* a given trial is `incomplete` or `errored`** — it is a `results.csv` column (and a `results.json` trial field) carrying the specific reason, alongside `trial_id`, which names the `runs/<arm-id>/<trial_id>/` directory to go read. To re-attempt an arm holding INCOMPLETE trials, re-run it with `--force` (`run.py` otherwise skips an arm pier already finished; see [Full run](#4-full-run)).
+**Read `error_reason` to find out *why* a given trial is `incomplete` or `errored`** — it is a `results.csv` column (and a `results.json` trial field) carrying the specific reason, alongside `trial_id`, which names the `runs/<arm-id>/<trial_id>/` directory to go read.
+
+**`--force` alone does not re-attempt an INCOMPLETE trial.** An INCOMPLETE trial already has a `result.json` — the agent and verifier both ran to completion; it is only the model-patch/final-message heuristic above that flags it after the fact — so pier's own per-trial resume skips it on every subsequent invocation exactly like a STUCK technical-failure trial does (see "The retry bound and `--force`" under [Scheduler outcomes, triage, and resumability](#scheduler-outcomes-triage-and-resumability) for the full mechanism). And unlike that STUCK recipe, re-running *without* `--force` will not help here either: `run.py`'s own arm-level skip check (`is_arm_complete`, [Full run](#4-full-run)) reads only the arm's own `runs/<arm-id>/result.json`, whose `finished_at` stays set no matter what you delete inside the arm's directory — so without `--force` the whole arm is skipped before pier ever gets a chance to resume it. To actually re-attempt one INCOMPLETE trial: remove *just that trial's* own directory, then re-run it with `--force` — the missing directory has no `result.json` left for pier to skip, while every other trial in the arm still has its own intact `result.json` and resolves instantly without re-running:
+
+```bash
+rm -rf runs/<arm-id>/<trial-id>
+uv run python3 run.py --force  # plus whichever --mode/--dataset-dir/--skill/--model flags produced this arm originally
+```
+
+For example, against a trial actually recorded in this tree: `rm -rf runs/do-in-steps__sonnet-sonnet__abs-stepped-slices/abs-stepped-slices__tqkGk6o`.
 
 `n_incomplete` and `n_errored` are both reported per arm, and never summed: an `incomplete` trial is the agent's own abandonment and counts against the arm, while an `errored` one is the harness's fault and is dropped from the numbers entirely (so nothing silently disappears either way). Keeping `incomplete` in the denominator is deliberate — excluding it would let an arm raise its Pass@1 by walking away from the tasks it was losing. A verifier-certified success is never downgraded to `incomplete`, and an infra failure is never relabelled as one; see `classify_status()` in `collect.py` for the full precedence table.
 
@@ -250,6 +300,8 @@ Renders `results.json` + the vendored `data/leaderboard.json` into a single self
 python3 report.py
 # --results / --leaderboard / --out override the defaults
 ```
+
+Run it as a plain `python3 report.py`, not under `-O`/`PYTHONOPTIMIZE=1`: `render_bar_mark`'s `assert bar.display is not None` is the only thing standing between a forgotten `display` field and a silently wrong percentage on the page, and `assert` statements are compiled out entirely under `-O`.
 
 ## Running the tests
 
@@ -270,6 +322,117 @@ Judgment logic is deliberately kept out of `agent.py` for this reason. Anything 
 
 **Everything else in `run.py`, and the rest of `agent.py`, remains not unit-tested**: building the `pier run` command, checking out the plugin into a container, driving the container lifecycle. Those are exercised instead by `run.py --dry-run` (prints every command without executing anything) and `run.py --preflight` (actually runs one trial and verifies the plugin loaded and a sub-agent was dispatched). If you change `run.py`'s command-building or `agent.py`'s install steps, `--preflight` — not the test suite — is what tells you whether it still works.
 
+## The schedule file (`schedule.yaml`)
+
+`schedule.yaml` is the single source of truth for everything `--mode scheduled` runs: the task/model/skill matrix, the pacing between runs, the combinations deliberately left unrun, and the complexity label each task carries. `schedule.py` is the only code that reads it; `run.py --mode scheduled` executes exactly what it expands to, `collect.py` records every cell it declares (even an unrun one, with an honest absence reason — see [`results.json` schema v4](#resultsjson-schema-v4) below), and `report.py` groups its per-complexity charts by the labels it carries. Nothing downstream re-derives any of this: if a combination is not in the matrix the file expands to, it does not run, and if a cell is missing from the report, the schedule file is where the answer is.
+
+It has five top-level sections, all required:
+
+| Section | What it declares | Committed value |
+|---|---|---|
+| `models` | Named `(orchestrator, impl)` tier pairs, each pinned to one of `run.py`'s `CELLS` | 5: `haiku`, `sonnet`, `opus`, `sonnet-haiku`, `opus-sonnet` |
+| `skills` | The arm types to schedule a task under | 3: `vanilla`, `do-and-judge`, `do-in-steps` |
+| `duration` | Two pacing knobs: `between_runs` (gap after any finished trial, success or failure) and `technical_failure_backoff` (gap before a technical retry) | both `2h` |
+| `tasks` | The deep-swe tasks in the sweep, each with an ordered `complexity` (`low`/`medium`/`high`) | 3: `kombu-single-active-consumer-priority` (high), `cattrs-partial-structuring-recovery` (medium), `abs-stepped-slices` (low) |
+| `skips` | Combinations deliberately left unrun, each with a **mandatory** reason and an optional `tasks`/`models`/`skills` selector (omitted = "all") | 3 rules, covering 12 of the 45 expanded cells |
+
+The matrix is every `(task, model, skill)` triple — 3 × 5 × 3 = **45 cells** for the committed file — and `expand_schedule` walks it in file declaration order (tasks outer, then models, then skills), checking each cell against the skip rules in the order they're written; the first rule that matches supplies the reason. A skipped cell stays in the expansion rather than being dropped, so the report can draw it as "deliberately not run, because X" instead of a gap the reader has to guess about.
+
+`vanilla` is a real skill in this file's vocabulary even though `run.py` has no such string (its `SKILLS` constant holds only the two plugin skills, and models the no-plugin control as `Arm(skill=None, ...)`); `schedule.py` translates at the boundary, and `Arm.id`/`arm_id_for` agree exactly. One consequence worth knowing before editing `models` or `skips`: a vanilla arm has no implementer tier, so `sonnet-haiku` and `opus-sonnet` collapse onto their orchestrator's own vanilla arm (`vanilla__sonnet`, `vanilla__opus`) — running both would pay twice for one measurement, which is why the committed file's third skip rule excludes the two mixed pairs from `vanilla` outright.
+
+`schedule.py` is deliberately unforgiving: it rejects unknown top-level or nested keys, duplicate names, an empty (as opposed to omitted) skip selector, and an unparseable duration, rather than defaulting past any of them. This isn't caution for its own sake — a schedule file that fails to validate stops a run before it starts money moving; one that validates but means the wrong thing produces a clean-looking run that measured something other than what was intended. The example the file's own comments give: `model:` typoed for `models:` in a skip rule silently widens that rule from one named model to every model, and nothing about the resulting run would look broken. `tests/test_schedule.py` loads the exact committed file and asserts it validates, so a bad edit fails the test suite before it fails a multi-day run.
+
+## Scheduler outcomes, triage, and resumability
+
+Every executed cell settles into exactly one of three scheduler outcomes — `triage.py`'s own vocabulary, deliberately distinct from `collect.py`'s four trial `status` values (`resolved`/`unresolved`/`incomplete`/`errored`, [documented above](#5-collect-results)): those describe *what a trial was*, these describe *what the scheduler does next*.
+
+| Outcome | Meaning | Retried? |
+|---|---|---|
+| `success` | The verifier says the task was solved. | Never — terminal. |
+| `model_failure` | The agent got a fair attempt and did not solve it (a real `unresolved`, or the completion gate fired — `no_model_patch`/`final_message_is_question`). | Never — terminal. Re-running a model failure would turn this benchmark's declared n=1 sweep into a quiet best-of-N. |
+| `technical_failure` | The agent never got a fair, uncontaminated attempt: no trial `result.json` at all, a pier infrastructure exception, no verifier rewards, or an API-side refusal found in the transcript (see below). | Yes, up to the retry bound (next section) within one invocation — and again on a later invocation, since this outcome is never written down as final. |
+
+The precedence `triage.verdict_from_signals` applies — and the one place it is genuinely hard — is deciding *technical* vs. *model failure* when pier reports an abnormal, non-zero process exit with no further explanation (pier's `NonZeroAgentExitCodeError`, which covers everything from a killed container to a crashed `claude` process to a genuine agent bug, all with the same exception type). The transcript is scanned first for two concrete signals of an API-side refusal — a `result` event's `api_error_status` set to anything but `null`, or a `rate_limit_event` whose `rate_limit_info.status` isn't `"allowed"` — and if either fires, the outcome is `technical_failure` regardless of what pier's own exit code said. **When the transcript offers no such evidence, the ambiguous case defaults to `technical_failure` too** (`triage.AMBIGUOUS_NONZERO_EXIT_REASON`, `ambiguous_nonzero_exit`), not to `model_failure`. The two possible mistakes are not symmetric: calling a real model failure "technical" costs one bounded, visible retry — expensive but self-limiting, and once the retry cap is spent the cell is honestly recorded as no data. Calling a real technical failure "a model failure" writes a permanent zero for a trial the model never fairly attempted, and resumability then guarantees it is never revisited — cheap in the moment, and silently corrupts the one number this benchmark exists to produce. So the default absorbs the bounded, visible cost rather than risk the silent, permanent one.
+
+### `runs/scheduler-state.json`
+
+Written at `<jobs-dir>/scheduler-state.json` (`runs/scheduler-state.json` for the default `--jobs-dir`), rewritten in full after every cell that reaches a terminal-for-this-invocation outcome:
+
+```json
+{
+  "version": 1,
+  "updated_at": "<ISO-8601 UTC>",
+  "runs": {
+    "<task>::<model>::<skill>": {
+      "arm_id": "do-in-steps__opus-opus",
+      "outcome": "success",
+      "reason": "resolved",
+      "attempts": 2,
+      "recorded_at": "<ISO-8601 UTC>"
+    }
+  }
+}
+```
+
+Keyed on `<task>::<model>::<skill>` — `schedule.yaml`'s own vocabulary for a planned run, not `arm_id` — because that identity survives a schedule edit that renames nothing, and because a vanilla cell's collapsed `arm_id` (see above) would otherwise let one state-file entry answer for two different planned cells. A file that is missing, unreadable, or written by a future `version` is treated as no record at all (run everything) rather than a reason to refuse to start: the safe direction costs money on a re-run, but can never silently drop a cell.
+
+**`success` and `model_failure` are terminal across restarts — a cell recorded as either is never executed again short of `--force`.** `technical_failure` is deliberately NOT terminal: an operator restarting the scheduler after a quota window closed is explicitly asking for that cell to be tried again, and permanently abandoning it to a transient fault would lose real data.
+
+### The retry bound and `--force`
+
+Within one invocation, a technical failure is retried up to `scheduler.MAX_TECHNICAL_RETRIES` times — **2**, i.e. 3 attempts total per cell — waiting `technical_failure_backoff` (2h in the committed file) before each retry. There is no unbounded `while` loop anywhere in this path: the attempt count is a bounded `for` loop, so the total work one schedule can ever do is computable in advance (`len(runnable) * 3` executions, worst case). The bound is set to outlast the one quota window every recorded transcript in this repository actually shows (`"rateLimitType": "five_hour"`): two 2-hour backoffs plus the run time of the two failed attempts comfortably spans five hours, and it also caps how much the ambiguous-exit default above can cost — at most two extra executions of a cell, never an unbounded spend, if it turns out to have mis-triaged a genuine, repeated model crash as technical.
+
+`--force` re-runs a cell (or, since `--mode scheduled` has no per-cell filter, every cell) even when the state file or an on-disk job directory already says it's done. **It is not, by itself, the fix for a stuck technical cell.** A cell whose job directory is already complete but keeps triaging `technical_failure` gets re-attempted on *every* invocation regardless of `--force` — the scheduler's own resume logic already falls through to executing it, because a technical verdict never counts as "done". The problem is that the re-attempt accomplishes nothing: pier's own resume logic (`Job._maybe_init_existing_job`) skips any trial whose directory already has a `result.json`, technical failure or not, so the "retry" just re-triages the same stale file and burns a full backoff for nothing — and `--force` changes none of that, because it only affects whether `run.py`/`scheduler.py` skip their *own* already-done check, not what pier does with an existing trial directory underneath it.
+
+The actual fix is to remove that cell's job directory and re-run *without* `--force`, so the state-file fast path still settles every other cell instantly instead of replaying all of them through pier and re-paying the full pacing wait for each one. `report_scheduled_summary` (the end-of-run summary `--mode scheduled` prints) names these cells specifically — labelled `STUCK`, distinct from the generic `TECHNICAL FAILURE` line — and prints the exact command. Verbatim (only re-wrapped here for width; `run.py` prints it as one line):
+
+```
+[schedule] STUCK cattrs-partial-structuring-recovery / do-in-steps__opus-opus: api_fault:api_error_status=529 -- pier
+will keep skipping this trial's existing result.json on every future invocation, so retries alone will not clear it.
+`--force` alone will not either: it only skips run.py's own already-done check, and pier's per-trial resume still
+skips the trial underneath it. Remove the job directory first, then re-run WITHOUT --force (every other cell is
+still terminal and settles instantly from the state file; --force would instead replay all of them through pier
+and re-pay the pacing wait between each one):
+    rm -rf runs/do-in-steps__opus-opus__cattrs-partial-structuring-recovery && uv run python3 run.py --mode scheduled
+```
+
+The one technical reason this does NOT apply to is `no_trial_result` — pier never wrote a trial `result.json` at all (a container or environment that never came up), so there is nothing on disk for its resume logic to skip, and the very next invocation genuinely re-attempts it. Every other technical reason (`api_fault:...`, `missing_verifier_rewards`, `pier_exception:...`, `ambiguous_nonzero_exit`) means a trial DID finish and write a `result.json`, which is exactly the STUCK case above.
+
+## `results.json` schema v4
+
+`collect.RESULTS_SCHEMA_VERSION` / `report.EXPECTED_RESULTS_SCHEMA_VERSION` are both **4**, and the two are asserted equal in the test suite so they cannot drift apart. Versions 2 and 3 are documented in `collect.py`'s own docstring (`created_at`/`sample_seed` on each arm; the `incomplete` status and its `n_incomplete`/`max_cost_usd` fields). Version 4 is the step where `report.py` learned to actually draw the three sections below — they were added as purely additive top-level keys before this version and could be safely ignored by an older reader, but from v4 on a reader is entitled to expect them:
+
+- **`cells`** — one entry per `(task, model, skill)` triple the schedule declares (plus any "extra" cell `collect.py` finds recorded under `runs/` that the schedule does not — kept, not dropped, with `in_schedule: false`). Each entry carries `state` — one of the [five cell states](#report-visual-grammar) below — plus `measured` (populated only when `state == "measured"`; `null` otherwise, so a consumer that forgets to check `state` gets a `TypeError` rather than a plausible zero) and `absence` (populated for every other state, naming why). This is what lets the report draw a matrix that is mostly still `not_yet_run` without lying about what it knows.
+- **`schedule`** — the expanded matrix itself: every declared task (with its complexity and rank), model pair, and skill; `n_planned_cells` (45 for the committed file); the path to `scheduler-state.json` and whether it currently exists; and `task_name_reconciliation`, which records how each trial's pier-side task spelling (e.g. `datacurve/abs-stepped-slices`) was resolved back to `schedule.yaml`'s own name for it.
+- **`baseline`** — the vendored Fable 5 snapshot (`baseline.fable5`), read for the per-task DeepSWE comparison. See [Fable 5, the per-task comparison](#fable-5-the-per-task-comparison) below for what it is and how it is (and is deliberately not) drawn.
+
+## Report visual grammar
+
+The per-task and per-complexity charts (cost, tokens, Pass@1 by complexity) draw every cell of the schedule's matrix, not just the measured ones, so most of what they draw is an explanation of absence rather than a value. Every cell is in exactly one of **five states**, each with its own mark:
+
+| Cell state | Mark |
+|---|---|
+| `measured`, value > 0 | A filled bar in the skill's categorical hue, height proportional to the value. |
+| `measured`, value == 0.0 | The same filled hue bar, clamped to a 4px minimum visible height (see below) — a real measurement, never collapsed into an absence. |
+| `deliberately_skipped` | A full-height hatched slot with a `⊘` glyph — `schedule.yaml` excluded this cell, with a stated reason. |
+| `structurally_impossible` | A full-height hatched slot with a `≡` glyph — there is no such trial to run (a mixed model pair's vanilla cell, which collapses onto its orchestrator's own vanilla arm). |
+| `technical_failure` | A full-height hatched slot with a `⚠` glyph — attempted, but never fairly attempted (every trial was an infra failure, or the scheduler recorded one). |
+| `not_yet_run` | One faint dot sitting on the baseline, still reachable on hover — no data, because nobody has run it yet. |
+
+(A sixth, `not_in_schedule`, exists only in `report.py`'s own rendering vocabulary — for a cell `results.json` carries no entry for at all, meaning the combination was never scheduled in the first place. It draws the same faint dot as `not_yet_run` but is never confused with it in the legend or the coverage table.)
+
+**The complexity chart's two-channel encoding**: hue encodes *skill* (the same categorical palette the other charts use) and marker shape encodes *model* (`assign_model_marker_shapes`, one of `circle`/`square`/`triangle`/`diamond`/`cross` per model, in schedule declaration order). Splitting the two channels is what fits up to 15 (model × skill) series onto a chart without exceeding the palette's validated 3-hue cap.
+
+**The connector rule**: a line is drawn joining one series' points ONLY across a run of two or more adjacent, measured complexity levels — never across an unmeasured level in between (a series measured at `low` and `high` but not `medium` draws as two separate marks, never one line skipping over the gap it would otherwise assert), and never for a single lone point. If every point behind a series is a single trial, the whole line is drawn faded and dashed (`connector-provisional`) rather than solid, because a line read end to end that is anchored on even one 0-or-1 observation is not a claim the data supports; a series backed entirely by multi-trial points draws a solid line (`connector-solid`).
+
+**The 4px zero-floor**: `CELL_CHART_GEOMETRY.min_measured_height` is 4px. Without it, a genuinely measured `0.0` (the agent tried and solved nothing) would render pixel-identical to an absent cell — nothing above the baseline either way. With it, every measured bar — including a true zero — gets at least 4px of visible height. The trade this makes explicit on the page (in the footnote beside every chart the floor applies to): a floored bar means "measured, and very small" rather than necessarily zero, because a genuinely tiny non-zero value (a $0.14 cost cell against a $40 axis, say) floors to the exact same height as a true zero. The exact figure is always in the per-task table underneath the chart, which never floors anything.
+
+**The empty-state sentence**: when every cell a per-task or per-complexity chart could draw is absent (`all_cells_absent`), `report.py` prepends a plain-language line above the figure — "No cell here has been measured yet: all N are `<count> <absence label>`, ..." (`empty_cell_chart_note`, built from the same per-state counts and labels the chart's own legend uses) — instead of leaving a wall of hatched marks with no summary to explain itself.
+
+**Axis ceilings**: the cost/token charts' y-axis never gridlines on the raw maximum value. `round_up_to_readable_ceiling` rounds up to the smallest "nice" ceiling (1/2/2.5/5/10 × a power of ten) whose four equal gridlines all land on round numbers, so a raw max of $22.54 labels its axis "$10, $20, $30, $40", not "$5.63, $11.27, $16.90, $22.54".
+
+**The Arm results table's `(n=N)` suffix**: every non-empty "Pass@1 ± CI" cell in the Arm results table carries its attempt count, e.g. "0% ± 40% (n=1)" (`format_arm_pass_at_1_cell`) — the same "a rate needs its denominator" rule the per-cell table already states, applied here so a wide Wilson interval over a single attempt cannot be misread as an established measurement.
+
 ## Regenerating `data/leaderboard.json`
 
 The file documents its own regeneration procedure in its `_comment` field: *"Do not hand-edit -- regenerate by re-fetching `source_data_url` and re-applying `row_selection_rule`, then update `snapshot_date`."* Concretely:
@@ -282,4 +445,14 @@ The file also records `harness` (`mini-swe-agent`), `data_version`, and per-tier
 
 ## The official leaderboard numbers are not comparable to this harness's own arms
 
-Say this plainly, because `report.html` puts both on the same chart: **every "official" number comes from `data/leaderboard.json`, which benchmarks models with `mini-swe-agent` — a minimal single-agent scaffold, not `claude-code` running the `sadd` plugin this harness measures.** `mini-swe-agent` and `claude-code` differ in tool access, context management, and prompting. The official bars are useful context for where a raw model tier sits on an independent benchmark; they are **not** a like-for-like comparison against this harness's own plugin/vanilla arms. `report.py` renders the official bars with different visual treatment specifically for this reason (unfilled/outlined, never the same categorical color as this harness's own arms) and prints the leaderboard's own `honesty_note` as a footnote wherever an official bar appears — read it there too, not just here.
+Say this plainly, because `report.html` puts both on the same chart: **every "official" number comes from `data/leaderboard.json`, which benchmarks models with `mini-swe-agent` — a minimal single-agent scaffold, not `claude-code` running the `sadd` plugin this harness measures.** `mini-swe-agent` and `claude-code` differ in tool access, context management, and prompting. The official bars are useful context for where a raw model tier sits on an independent benchmark; they are **not** a like-for-like comparison against this harness's own plugin/vanilla arms. `report.py` renders the official bars with different visual treatment specifically for this reason (unfilled/outlined, never the same categorical color as this harness's own arms, and never carrying a whisker — see below) and prints the leaderboard's own `honesty_note` as a footnote wherever an official bar appears — read it there too, not just here.
+
+## Fable 5, the per-task comparison
+
+`results.json`'s `baseline.fable5` section (vendored from DeepSWE's own published v1.1 artifacts, `data/fable5_official.json`) carries a second, more specific official comparison than the aggregate leaderboard bars above: a per-task and whole-benchmark figure for one specific model, DeepSWE's site id `claude-fable-5`. Three facts about it matter for reading the report correctly:
+
+1. **It ran on `mini-swe-agent`, not `claude-code`.** Same harness mismatch as every other official number in this file (see above) — `claude-fable-5` is a model, benchmarked with a different scaffold than the one this harness measures, so it is context for where that model sits on DeepSWE's own benchmark, not a peer arm.
+2. **Its figures are k-of-n over scored rollout attempts, never a single pass/fail.** DeepSWE runs each task 4 times per reasoning effort across 5 efforts (20 attempts per task); this harness reads two views of that — `all_efforts_pooled` (pooled across all 20) and `headline_config_max` (the 4 attempts at the site's headline `reasoning_effort`, `"max"`) — and always displays a count (`"13/20"`, `"4/4"`), never a bare rate. Every Fable 5 bar carries this count as its own printed `display` label, the same treatment every other present bar on the page carries (see [Report visual grammar](#report-visual-grammar)).
+3. **Its confidence interval is a run-to-run standard error across 4 whole-benchmark passes, NOT a Wilson interval** — a different statistic over a different denominator (`scored_rollout_attempts`, not `local_trial_attempts`) than the Wilson interval this harness computes for its own arms. `results.json` labels this explicitly (`baseline.fable5.comparability.co_plotting_intervals_allowed: false`, `interval_type: "run_to_run_standard_error_across_whole_benchmark_passes"`), and `report.py` honors it structurally: **no Fable 5 bar, anywhere in the report, ever carries `ci_low`/`ci_high`.** `fable5_pass_bar`/`fable5_measure_bar`/`fable5_aggregate_bar` never set them, so there is nothing for `render_bar_mark`'s whisker branch to draw — the interval is folded into the bar's own count/percentage label as text instead, and the aggregation charts' comparison table states the two interval types side by side in prose rather than co-plotting them as if they were peers. The aggregate leaderboard bars discussed above get the identical treatment for the identical reason: outlined, labelled by text, never a whisker in the same channel as this harness's own Wilson bounds.
+
+Where it appears: the per-task cost/token charts' outlined bar (labelled by count or dollar amount), the two aggregation charts' `Fable 5` x-axis column (the model's whole-benchmark headline figure), and the "Fable 5 vs. this harness, per task" table under "Official baseline" — which states both DeepSWE's `all_efforts_pooled`/`headline_config_max` counts and this harness's own local result side by side, with a footnote (`render_fable5_footnote`, sourced from `baseline.fable5.comparability`/`source`) repeating the harness-mismatch and interval-incomparability facts above wherever the comparison appears.

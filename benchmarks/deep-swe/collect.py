@@ -25,6 +25,21 @@ consequences of that choice, both called out at their point of use:
    in `agent.py`'s `import pier`. The duplicated logic is ~10 lines of
    stable, single-purpose JSON-line parsing; see run.py for the original.
 
+WHAT THIS FILE MAY IMPORT
+--------------------------
+`schedule.py` is safe and is imported: its only dependency is PyYAML (already
+a declared one), it performs no I/O beyond reading one config file, and it is
+the single source of truth for the matrix, the complexity labels and the
+deliberate skips -- re-deriving any of those here is exactly the duplication
+it exists to prevent.
+
+`triage.py` and `scheduler.py` are NOT, and cannot become, imports here:
+`triage.py` already imports THIS module, so the arrow only ever points one
+way. That is why `SCHEDULER_STATE_FILENAME`, `SCHEDULER_STATE_VERSION` and
+`scheduler_state_key` are mirrored copies of scheduler.py's, and why
+`tests/test_collect_task_cells.py` compares all three against the real
+module so the copies cannot drift.
+
 TRIAL-VS-JOB GLOB DEPTH
 ------------------------
 Pier writes a `result.json` at *two* depths under `runs/`:
@@ -125,6 +140,65 @@ dozens. Those figures are only worth reading at all because
 upstream parser that reported the FIRST of a stream's many cumulative
 `result` events, understating the motivating run's real spend 68x.
 
+THE PER-CELL LAYER -- and why absence needed its own vocabulary
+-----------------------------------------------------------------
+The per-arm aggregate answers "how did `do-in-steps__sonnet-sonnet` do?".
+The report is for a different question: "can THIS model do THIS task under
+THIS skill?" -- so this module also aggregates by (task, model, skill), the
+identity `schedule.yaml` itself speaks in. `build_task_cells` produces one
+`TaskCellAggregate` per cell of the declared matrix, plus one for any task
+found in `runs/` that the schedule does not declare (dropping those would be
+data loss; guessing a complexity band for them would be worse).
+
+The honest answer for most cells is "we do not know", and there are FOUR
+categorically different reasons for that:
+
+  deliberately_skipped     schedule.yaml says do not run it, and says why.
+  structurally_impossible  there is no such trial. A vanilla arm has no
+                           implementer tier, so `sonnet-haiku` + vanilla IS
+                           `sonnet` + vanilla -- one arm id, one job
+                           directory, one pier invocation.
+  technical_failure        attempted, never fairly attempted: every trial was
+                           an infra failure, or the scheduler recorded one.
+  not_yet_run              no data.
+
+None of them is `0.0`. A zero bar where the truth is "haiku was never asked"
+is not a rendering bug, it is a false claim about a model's capability -- and
+it is precisely the claim this benchmark exists to avoid making. So the
+schema does not merely *permit* a renderer to keep them apart, it forces it:
+EVERY number lives inside `TaskCellAggregate.measured`, which is `None` for
+every absent cell. A chart reaching for `cell["measured"]["pass_at_1"]`
+without branching on `state` raises `TypeError`; it cannot quietly draw a
+zero. The mirror-image field, `absence`, is `None` exactly when `measured` is
+not, and the dataclass raises if that invariant is ever broken.
+
+`structurally_impossible` is decided from the arm-id collapse
+(`schedule.arm_id_for`), not from matching the skip rule's prose -- a
+classification that depended on the wording of a YAML comment would break the
+first time someone rephrased it. The committed schedule does state that reason
+in words, and those words are carried verbatim in `absence.reason` alongside
+the derived state. Deciding it structurally also closes a real double-counting
+hazard: a mixed vanilla cell shares its arm id with the symmetric one, so a
+naive (task, arm_id) lookup would attribute one measurement to two cells.
+
+THE THREE SPELLINGS OF A TASK NAME
+------------------------------------
+Nothing may assume these match, because they do not:
+
+    schedule.yaml     cattrs-partial-structuring-recovery
+    result.json       datacurve/cattrs-partial-structuring-recovery
+    trial directory   cattrs-partial-structuring-recov__ZsbwRdJ
+
+`resolve_trial_task_name` reconciles them, preferring `task_name` (which is
+namespaced but complete) and falling back to the trial directory name (which
+is truncated) only for a record whose result.json could not be parsed at all.
+The truncated form is resolved by unique prefix extension, and an AMBIGUOUS
+prefix resolves to nothing rather than to whichever candidate came first --
+attributing trials to the wrong task is worse than leaving them unattributed.
+Every reconciliation is recorded in results.json's
+`schedule.task_name_reconciliation` so the mapping is auditable rather than
+implicit.
+
 RE-RUNNABLE BY CONSTRUCTION
 -----------------------------
 This script never reads its own previous `results.json`/`results.csv`. Every
@@ -140,11 +214,13 @@ import csv
 import json
 import math
 import sys
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import asdict, dataclass, fields
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
+
+import schedule
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
@@ -162,9 +238,121 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 # `n_incomplete` and `max_cost_usd` fields that go with it. A v2 consumer
 # reading a v3 file would silently miscount abandoned trials as `unresolved`
 # ones, which is exactly the confusion this version bump exists to surface.
-RESULTS_SCHEMA_VERSION = 3
+#
+# WHY THE PER-CELL SECTIONS DID NOT BUMP THIS TO 4
+# -------------------------------------------------
+# results.json also carries three sections this constant does not track --
+# `cells` (per-(task, model, skill) aggregates with honest absence states),
+# `schedule` (the matrix those cells came from) and `baseline` (the vendored
+# DeepSWE Fable 5 snapshot). They are purely ADDITIVE: `TrialRecord` and
+# `ArmAggregate` are untouched, so a reader of THIS version's contract sees
+# exactly the file it expects plus top-level keys it ignores, and a consumer
+# that wants the new sections detects them by key presence rather than by
+# integer. Bumping for them would have bought no consumer anything and cost
+# the mirrored-constant guard its equality (see report.py's
+# EXPECTED_RESULTS_SCHEMA_VERSION and tests/test_status_contract.py) for as
+# long as report.py had not caught up -- an unbounded window in which a real,
+# NON-additive drift could have slipped through unnoticed. The step that
+# teaches report.py to draw the cells bumps both constants together.
+#
+# v4 (this version) IS that step: report.py now reads `cells`, `schedule` and
+# `baseline` to draw the per-complexity, per-task and comparison views, so
+# those sections stopped being optional extras a consumer could ignore and
+# became part of what a reader of this file is entitled to expect. The
+# integer moved for that change of status, not for a field change -- no
+# TrialRecord/ArmAggregate field was touched here. Bumped together with
+# report.EXPECTED_RESULTS_SCHEMA_VERSION in the same change, which is the
+# equality tests/test_status_contract.py exists to enforce.
+RESULTS_SCHEMA_VERSION = 4
 
 Status = Literal["resolved", "unresolved", "incomplete", "errored"]
+
+# How a (task, model, skill) CELL stands -- deliberately NOT a `Status`.
+#
+# `Status` says how one trial turned out. `CellState` says whether a cell has
+# a measurement at all, and if not, which of four categorically different
+# reasons applies. Merging the two vocabularies would put "not yet run" into
+# the arm table's status columns, where it means nothing, and would let a
+# renderer treat "never attempted" as a kind of failure. They stay disjoint;
+# `tests/test_collect_task_cells.py` asserts the two sets do not intersect.
+CellState = Literal[
+    "measured",
+    "deliberately_skipped",
+    "structurally_impossible",
+    "technical_failure",
+    "not_yet_run",
+]
+
+# The vocabulary, written down where the consumer can read it. Emitted into
+# results.json as `cell_state_vocabulary` so a renderer never has to infer
+# what a state means from its name.
+CELL_STATE_DESCRIPTIONS: dict[str, str] = {
+    "measured": (
+        "At least one fair attempt was made and scored. This is the ONLY state "
+        "carrying numbers; `measured.pass_at_1` may legitimately be 0.0, which "
+        "means the arm tried and solved nothing."
+    ),
+    "deliberately_skipped": (
+        "schedule.yaml declares this cell unrun, with a stated reason. Nobody "
+        "asked this model to do this task, so no claim about its ability follows."
+    ),
+    "structurally_impossible": (
+        "There is no such trial to run. A vanilla arm has no implementer tier, "
+        "so a mixed model pair's vanilla cell IS its orchestrator tier's vanilla "
+        "cell -- same arm id, same job directory, same pier invocation. No budget "
+        "makes this cell measurable; see `absence.collapses_onto_model`."
+    ),
+    "technical_failure": (
+        "Attempted, but never fairly attempted: every trial was an infrastructure "
+        "failure, or the scheduler recorded the cell as `technical_failure`. The "
+        "agent did not get an uncontaminated shot at the task."
+    ),
+    "not_yet_run": "No data. The cell is runnable and simply has not been run.",
+}
+
+# The statistic behind a LOCAL per-cell interval, named in the payload so it
+# can never be silently co-plotted with DeepSWE's. See `build_fable5_baseline`.
+LOCAL_PASS_AT_1_INTERVAL_TYPE = "wilson_binomial"
+LOCAL_PASS_AT_1_DENOMINATOR_UNIT = "local_trial_attempts"
+
+# DeepSWE's, which are different statistics over different denominators.
+FABLE5_INTERVAL_TYPE = "run_to_run_standard_error_across_whole_benchmark_passes"
+FABLE5_ATTEMPT_DENOMINATOR_UNIT = "scored_rollout_attempts"
+FABLE5_TASK_DENOMINATOR_UNIT = "tasks"
+
+# Emitted into results.json alongside the numbers, so the incomparability is a
+# field a renderer must read rather than a caveat it may skip.
+INTERVAL_TYPE_DESCRIPTIONS: dict[str, str] = {
+    LOCAL_PASS_AT_1_INTERVAL_TYPE: (
+        "95% Wilson score interval over this cell's own binomial attempts "
+        "(see `wilson_score_interval`)."
+    ),
+    FABLE5_INTERVAL_TYPE: (
+        "95% run-to-run standard error across 4 whole-benchmark passes "
+        "(1.96 * std(runs)/sqrt(R)). NOT a binomial interval over tasks, and "
+        "not on the same footing as a Wilson interval from this harness -- "
+        "drawing them as peer error bars asserts something neither supports."
+    ),
+}
+
+# The vendored DeepSWE Fable 5 snapshot. Read for `results.json`'s `baseline`
+# section; see `build_fable5_baseline` for what is and is not carried over.
+DEFAULT_FABLE5_BASELINE_PATH = SCRIPT_DIR / "data" / "fable5_official.json"
+
+# Step 2's bookkeeping file, at `runs/` depth 1 (NOT inside an arm directory).
+#
+# The name and version are MIRRORED from `scheduler.py` rather than imported:
+# `triage.py` already imports this module, and `scheduler.py` imports
+# `triage.py`, so importing scheduler here would close an import cycle.
+# `tests/test_collect_task_cells.py` compares both constants -- and the key
+# format -- against the real `scheduler` module, so the copies cannot drift.
+SCHEDULER_STATE_FILENAME = "scheduler-state.json"
+SCHEDULER_STATE_VERSION = 1
+
+# The scheduler outcome that means "never fairly attempted". Its siblings
+# (`success`, `model_failure`) mean the agent DID get a fair shot, so they are
+# deliberately not mapped onto an absence state; see `_cell_absence`.
+SCHEDULER_TECHNICAL_FAILURE_OUTCOME = "technical_failure"
 
 # The stream-json event pier tees to `<trial_dir>/agent/claude-code.txt` that
 # carries plugin-load information (see run.py's `find_init_event`, verified
@@ -261,6 +449,132 @@ class ArmAggregate:
     sample_seed: int | None  # run.py's pinned SAMPLE_SEED, or None if the
     # run mode wasn't "sample" (the seed plays no role otherwise) -- see
     # run.py's write_arm_metadata docstring.
+
+
+@dataclass(frozen=True)
+class CellMeasurement:
+    """The numbers for one (task, model, skill) cell -- and the ONLY place
+    numbers live.
+
+    A `TaskCellAggregate` carries this only when `state == "measured"`, i.e.
+    when at least one fair attempt was scored. For every absent cell it is
+    `None`, so a consumer that forgets to branch on `state` gets a
+    `TypeError` rather than a plausible-looking zero. That is the whole point;
+    see the module docstring's "THE PER-CELL LAYER" section.
+
+    Cost/token/step figures follow `aggregate_arm`'s conventions exactly:
+    computed over ATTEMPTS only (errored trials are excluded, their figures
+    being contaminated by whatever infra fault occurred), and `None` rather
+    than `0` when nothing was recorded at all.
+    """
+
+    n_resolved: int
+    n_unresolved: int
+    n_incomplete: int
+    n_attempts: int  # the Pass@1 denominator: resolved + unresolved + incomplete
+    pass_at_1: float
+    # True when this cell rests on ONE attempt, which is what `schedule.yaml`
+    # plans for every (task, model, skill). A renderer reads this first and
+    # draws the outcome ("1 of 1 resolved") rather than a rate with error bars.
+    is_single_trial: bool
+    # `None` for a single-attempt cell -- see `_cell_measurement` for why an
+    # n=1 Wilson interval is not merely wide but actively misleading in these
+    # particular field names. A consumer must branch; the fields are always
+    # present and explicitly null rather than absent, matching how
+    # `_baseline_rate` reports an interval DeepSWE does not publish.
+    pass_at_1_ci_low: float | None
+    pass_at_1_ci_high: float | None
+    # What KIND of statistic the interval above is, and what its denominator
+    # counts. Carried per-measurement rather than documented once, because the
+    # baseline section of the same file carries a different interval over a
+    # different denominator and the two must never be drawn as peers.
+    #
+    # Both stay populated on a single-attempt cell, where the bounds are None:
+    # they name the statistic family and the denominator of `pass_at_1` ITSELF,
+    # which is true whether or not bounds were computed. Nulling them with the
+    # bounds would strip the local-vs-Fable-5 disambiguator from exactly the
+    # cells this file currently emits, leaving a renderer nothing to check.
+    pass_at_1_interval_type: str
+    pass_at_1_denominator_unit: str
+    total_cost_usd: float | None
+    avg_cost_usd: float | None
+    max_cost_usd: float | None
+    total_output_tokens: float | None
+    avg_output_tokens: float | None
+    total_input_tokens: float | None
+    avg_input_tokens: float | None
+    total_cache_tokens: float | None
+    avg_cache_tokens: float | None
+    avg_n_agent_steps: float | None
+
+
+@dataclass(frozen=True)
+class CellAbsence:
+    """Why one cell has no measurement -- the ONLY place absence is explained.
+
+    Carried exactly when `CellMeasurement` is not. `reason` is prose for a
+    human (verbatim from `schedule.yaml` or the scheduler where either has
+    something to say); `source` names where the claim comes from, so a reader
+    can go and check it.
+    """
+
+    reason: str
+    # One of: "schedule.yaml", "schedule.yaml + arm_id collapse (schedule.arm_id_for)",
+    # "runs/scheduler-state.json", "trial_records", "no_data".
+    source: str
+    # Set only for a `structurally_impossible` cell: the schedule model whose
+    # vanilla cell IS this one's measurement, so a report can point the reader
+    # at the number that does exist instead of leaving a blank.
+    collapses_onto_model: str | None
+
+
+@dataclass(frozen=True)
+class TaskCellAggregate:
+    """One (task, model, skill) cell of the schedule's matrix.
+
+    `measured` and `absence` are mutually exclusive and jointly exhaustive,
+    which `__post_init__` enforces rather than merely documents: every
+    construction path -- including any added later -- is checked, so the
+    schema's central promise cannot be broken by a new caller.
+
+    Everything outside those two fields is true in EVERY state and safe to
+    read unconditionally: the identity, the complexity label, the trial counts,
+    and any declaration `schedule.yaml`/the scheduler made about this cell.
+    `schedule_skip_reason` in particular is kept at this level rather than only
+    inside `absence`, so a cell that was measured despite a later-added skip
+    rule still discloses the operator's stated intent.
+    """
+
+    task: str  # schedule.yaml's plain name, reconciled from pier's spellings
+    model: str  # schedule.yaml's model name, e.g. "sonnet-haiku"
+    skill: str  # schedule.yaml's vocabulary, so "vanilla" is a peer of the plugins
+    complexity: str | None  # from schedule.yaml alone; None for an undeclared task
+    complexity_rank: int | None  # schedule.complexity_rank(complexity), for ordering
+    arm_id: str  # the run.py Arm.id whose trials land here
+    in_schedule: bool  # False for a task found in runs/ but not declared
+    state: CellState
+    measured: CellMeasurement | None  # non-null IFF state == "measured"
+    absence: CellAbsence | None  # non-null IFF state != "measured"
+    schedule_skip_reason: str | None  # whenever schedule.yaml skips this cell
+    scheduler_outcome: str | None  # whenever scheduler-state.json recorded it
+    scheduler_reason: str | None
+    scheduler_attempts: int | None
+    n_trials_seen: int  # including errored ones, which no average counts
+    n_errored_trials: int
+    trial_ids: tuple[str, ...]  # every trial directory folded into this cell
+
+    def __post_init__(self) -> None:
+        has_measurement = self.measured is not None
+        if has_measurement != (self.state == "measured"):
+            raise ValueError(
+                f"cell ({self.task}, {self.model}, {self.skill}) has state "
+                f"{self.state!r} but measured={'set' if has_measurement else 'None'}"
+            )
+        if has_measurement == (self.absence is not None):
+            raise ValueError(
+                f"cell ({self.task}, {self.model}, {self.skill}) must carry exactly "
+                "one of `measured` / `absence`"
+            )
 
 
 # --------------------------------------------------------------------------
@@ -665,6 +979,19 @@ def max_or_none(values: list[float | int | None]) -> float | None:
     return max(present) if present else None
 
 
+def sum_or_none(values: list[float | int | None]) -> float | None:
+    """Total of the non-None values, or None if there are none.
+
+    The `None`-not-`0.0` contract matters more here than anywhere else in this
+    file, because `sum([])` is `0` and Python will hand it over without
+    complaint. A cell whose cost was never recorded would then report having
+    cost nothing, which is a claim, and a false one -- so the empty case is
+    answered explicitly instead.
+    """
+    present = [v for v in values if v is not None]
+    return sum(present) if present else None
+
+
 # --------------------------------------------------------------------------
 # Filesystem walking
 # --------------------------------------------------------------------------
@@ -1046,17 +1373,1000 @@ def aggregate_all_arms(
 
 
 # --------------------------------------------------------------------------
+# Task-name reconciliation (pure, independently testable)
+#
+# One task wears three different names on the way through this harness; see
+# the module docstring's "THE THREE SPELLINGS OF A TASK NAME" section for the
+# worked example and for why an ambiguous prefix resolves to nothing.
+# --------------------------------------------------------------------------
+
+
+def strip_task_namespace(name: str) -> str:
+    """`datacurve/abs-stepped-slices` -> `abs-stepped-slices`.
+
+    pier records the task under its pier-side namespace; `schedule.yaml` names
+    it plainly. Split on the LAST separator so a namespace that ever gains a
+    second level still reduces to the bare task name.
+    """
+    return name.rsplit("/", 1)[-1]
+
+
+def task_slug_from_trial_id(trial_id: str) -> str:
+    """`cattrs-partial-structuring-recov__ZsbwRdJ` -> `cattrs-partial-structuring-recov`.
+
+    Splits on the LAST `__` because pier appends its per-trial suffix there,
+    while task names themselves contain single hyphens (and could contain a
+    `__` of their own only by appending one). The result is frequently
+    TRUNCATED -- pier caps the directory-name prefix -- which is why callers
+    must resolve it against the schedule rather than compare it directly.
+    """
+    return trial_id.rsplit("__", 1)[0]
+
+
+def resolve_scheduled_task_name(candidate: str, known_tasks: Sequence[str]) -> str | None:
+    """The scheduled task `candidate` names, or None if that is not decidable.
+
+    An exact hit wins. Otherwise `candidate` is treated as a possibly-truncated
+    prefix and accepted only when exactly ONE scheduled task extends it.
+
+    Returning None for an ambiguous prefix is the whole point: silently picking
+    the first match would attribute a trial's cost and verdict to the wrong
+    task, which is a worse outcome than leaving it unattributed and visible.
+    """
+    if not candidate:
+        return None
+    if candidate in known_tasks:
+        return candidate
+
+    extensions = [task for task in known_tasks if task.startswith(candidate)]
+    return extensions[0] if len(extensions) == 1 else None
+
+
+def resolve_trial_task_name(
+    trial: TrialRecord, known_tasks: Sequence[str]
+) -> tuple[str | None, str]:
+    """This trial's task in schedule vocabulary, plus how it was determined.
+
+    `result.json`'s `task_name` is preferred because it is complete (merely
+    namespaced). The trial DIRECTORY name is only truncated evidence, so it is
+    the fallback -- reached for a record whose result.json could not be parsed
+    at all, which is exactly when `task_name` is None.
+
+    The returned method is one of `task_name`, `task_name_unscheduled`,
+    `trial_id_prefix`, `trial_id_unscheduled` or `unresolved`, and is recorded
+    in results.json so the mapping can be audited rather than trusted.
+    """
+    if trial.task_name:
+        stripped = strip_task_namespace(trial.task_name)
+        scheduled = resolve_scheduled_task_name(stripped, known_tasks)
+        if scheduled is not None:
+            return scheduled, "task_name"
+        # A real task pier ran that `schedule.yaml` does not declare. Keeping
+        # it under its own name is the only non-lossy option.
+        return stripped, "task_name_unscheduled"
+
+    slug = task_slug_from_trial_id(trial.trial_id)
+    scheduled = resolve_scheduled_task_name(slug, known_tasks)
+    if scheduled is not None:
+        return scheduled, "trial_id_prefix"
+    return (slug or None), ("trial_id_unscheduled" if slug else "unresolved")
+
+
+# --------------------------------------------------------------------------
+# Cell identity (pure, independently testable)
+# --------------------------------------------------------------------------
+
+
+def cell_is_structurally_impossible(model: schedule.ScheduledModel, skill: str) -> bool:
+    """Whether this (model, skill) pair names a trial that cannot exist.
+
+    True exactly for a mixed tier pair at `vanilla`. With no plugin there is
+    nothing to dispatch sub-agents, so the impl tier is never consulted and
+    `Arm.id` drops it -- meaning the cell resolves to the symmetric model's
+    arm, not to one of its own.
+
+    Decided from the tier pair, NOT from matching `schedule.yaml`'s skip-rule
+    prose: a classification that depended on the wording of a comment would
+    break the first time someone rephrased it, and would silently reclassify
+    six cells as ordinary skips.
+    """
+    return skill == schedule.VANILLA_SKILL and model.orchestrator != model.impl
+
+
+def vanilla_collapse_target(
+    models: Sequence[schedule.ScheduledModel], model: schedule.ScheduledModel
+) -> schedule.ScheduledModel | None:
+    """The symmetric model whose vanilla cell IS `model`'s vanilla cell.
+
+    `sonnet-haiku` collapses onto `sonnet`, `opus-sonnet` onto `opus`. Found by
+    comparing real `arm_id_for` results rather than by string-splitting the
+    model name, since `schedule.py` deliberately refuses to make the tier
+    mapping guessable. None when nothing collapses (a symmetric model, or a
+    schedule that declares no symmetric peer for this orchestrator).
+    """
+    if model.orchestrator == model.impl:
+        return None
+
+    collapsed_id = schedule.arm_id_for(model, schedule.VANILLA_SKILL)
+    return next(
+        (
+            candidate
+            for candidate in models
+            if candidate.name != model.name
+            and candidate.orchestrator == candidate.impl
+            and schedule.arm_id_for(candidate, schedule.VANILLA_SKILL) == collapsed_id
+        ),
+        None,
+    )
+
+
+def scheduled_model_for_tiers(
+    models: Sequence[schedule.ScheduledModel], orchestrator: str, impl: str | None, skill: str
+) -> schedule.ScheduledModel | None:
+    """The schedule model an arm's recorded tier pair corresponds to.
+
+    `arm.json` records tiers, not schedule model names, so a trial found under
+    a cell the schedule does not plan has to be mapped back by hand.
+
+    A VANILLA arm records `impl_tier: null`, because it has no implementer
+    tier to record -- so matching on the pair would match nothing. The
+    orchestrator alone is therefore the key there, resolved to the SYMMETRIC
+    model, which mirrors exactly what `arm_id_for` does when it drops the impl
+    tier. (The mixed pairs that also share that orchestrator have no vanilla
+    cell of their own; see `cell_is_structurally_impossible`.)
+    """
+    if skill == schedule.VANILLA_SKILL:
+        symmetric = next(
+            (m for m in models if m.orchestrator == orchestrator and m.impl == orchestrator), None
+        )
+        return symmetric or next((m for m in models if m.orchestrator == orchestrator), None)
+
+    return next((m for m in models if m.orchestrator == orchestrator and m.impl == impl), None)
+
+
+# --------------------------------------------------------------------------
+# The scheduler's state file
+# --------------------------------------------------------------------------
+
+
+def scheduler_state_key(task: str, model: str, skill: str) -> str:
+    """One cell's identity in `scheduler-state.json`.
+
+    Mirrors `scheduler.run_key` rather than importing it -- `triage.py`
+    already imports this module and `scheduler.py` imports `triage.py`, so the
+    import would be circular. `tests/test_collect_task_cells.py` compares this
+    against the real `scheduler.run_key` so the two cannot drift.
+    """
+    return f"{task}::{model}::{skill}"
+
+
+def load_scheduler_state(runs_dir: Path) -> dict[str, dict]:
+    """The `runs` map from `runs/scheduler-state.json`; `{}` for anything unusable.
+
+    Written at `runs_dir` depth 1 -- beside the arm directories, not inside
+    one. Missing, unreadable, malformed or written by a version this doesn't
+    know all mean the same thing here: no trustworthy record, so no cell is
+    labelled a technical failure on its authority. That is the safe direction
+    -- it can leave a cell reading `not_yet_run`, which is honest, where the
+    opposite reading would invent a failure that may never have happened.
+
+    Deliberately the same tolerant contract as `scheduler.load_state`, for the
+    same reason: bookkeeping truncated by the very interruption it exists to
+    survive must not take down the thing reading it.
+    """
+    document = load_json_or_none(runs_dir / SCHEDULER_STATE_FILENAME)
+    if document is None or document.get("version") != SCHEDULER_STATE_VERSION:
+        return {}
+
+    runs = document.get("runs")
+    return runs if isinstance(runs, dict) else {}
+
+
+# --------------------------------------------------------------------------
+# Per-cell aggregation (pure, independently testable)
+#
+# `build_task_cells` is the entry point; everything below it is a step of that
+# one walk, split out so each rule can be read and tested on its own.
+# --------------------------------------------------------------------------
+
+
+def build_task_cells(
+    sched: schedule.Schedule,
+    trials: list[TrialRecord],
+    *,
+    scheduler_state: dict[str, dict] | None = None,
+) -> list[TaskCellAggregate]:
+    """One `TaskCellAggregate` per cell of `sched`'s matrix, plus any extras.
+
+    "Extras" are (task, arm) pairs found in `trials` that the schedule does
+    not plan -- a task run before it was declared, or one run ad hoc. They are
+    emitted with `in_schedule=False` and no complexity label, because dropping
+    real measurements would be data loss and inventing a complexity band for
+    them would be worse.
+
+    Ordered by complexity band (low -> high), then by `schedule.yaml`'s own
+    declaration order within a band, with the unlabelled extras last. Step 4
+    plots complexity as an ordered axis, so emitting them already in that
+    order means the renderer never has to decide where an unlabelled task goes.
+    """
+    known_tasks = [task.name for task in sched.tasks]
+    trials_by_cell, reconciliation = group_trials_by_task_and_arm(trials, known_tasks)
+    state = scheduler_state or {}
+
+    claimed: set[tuple[str, str]] = set()
+    planned_cells = [
+        _planned_cell(planned, sched.models, trials_by_cell, state, claimed)
+        for planned in schedule.expand_schedule(sched)
+    ]
+    # Stable sort: within one complexity band, `expand_schedule`'s declaration
+    # order survives untouched.
+    planned_cells.sort(key=lambda cell: cell.complexity_rank)
+
+    return planned_cells + _unscheduled_cells(sched, trials_by_cell, state, claimed)
+
+
+def group_trials_by_task_and_arm(
+    trials: list[TrialRecord], known_tasks: Sequence[str]
+) -> tuple[dict[tuple[str, str], list[TrialRecord]], dict[str, dict[str, str | None]]]:
+    """Bucket trials by (reconciled task name, arm id), preserving input order.
+
+    Also returns the reconciliation audit trail: raw spelling -> what it
+    resolved to and by which rule. A trial whose task cannot be determined at
+    all is recorded there and then dropped from the buckets -- it cannot be
+    attributed to any cell without guessing, and a guess here is a wrong number
+    on a chart rather than a visible gap.
+    """
+    buckets: dict[tuple[str, str], list[TrialRecord]] = {}
+    reconciliation: dict[str, dict[str, str | None]] = {}
+
+    for trial in trials:
+        raw = trial.task_name or trial.trial_id
+        resolved, method = resolve_trial_task_name(trial, known_tasks)
+        reconciliation[raw] = {"resolved": resolved, "method": method}
+        if resolved is None:
+            continue
+        buckets.setdefault((resolved, trial.arm_id), []).append(trial)
+
+    return buckets, reconciliation
+
+
+def _planned_cell(
+    planned: schedule.PlannedRun,
+    models: Sequence[schedule.ScheduledModel],
+    trials_by_cell: dict[tuple[str, str], list[TrialRecord]],
+    scheduler_state: dict[str, dict],
+    claimed: set[tuple[str, str]],
+) -> TaskCellAggregate:
+    """Build one cell of the declared matrix, claiming the trials it owns.
+
+    A structurally impossible cell claims NOTHING, and `claimed` is how that is
+    enforced: it shares its (task, arm_id) key with the symmetric model's cell,
+    so letting it read that key would attribute one measurement to two cells
+    and double-count it in every chart downstream.
+    """
+    structural = cell_is_structurally_impossible(planned.model, planned.skill)
+    key = (planned.task.name, planned.arm_id)
+
+    if structural:
+        cell_trials: list[TrialRecord] = []
+    else:
+        cell_trials = trials_by_cell.get(key, [])
+        claimed.add(key)
+
+    return _build_cell(
+        task=planned.task.name,
+        model=planned.model,
+        model_name=planned.model.name,
+        skill=planned.skill,
+        complexity=planned.task.complexity,
+        arm_id=planned.arm_id,
+        in_schedule=True,
+        structural=structural,
+        skip_reason=planned.skip_reason,
+        trials=cell_trials,
+        models=models,
+        scheduler_entry=scheduler_state.get(
+            scheduler_state_key(planned.task.name, planned.model.name, planned.skill)
+        ),
+    )
+
+
+def _unscheduled_cells(
+    sched: schedule.Schedule,
+    trials_by_cell: dict[tuple[str, str], list[TrialRecord]],
+    scheduler_state: dict[str, dict],
+    claimed: set[tuple[str, str]],
+) -> list[TaskCellAggregate]:
+    """Cells for measurements the schedule does not plan, in first-seen order."""
+    declared = {task.name for task in sched.tasks}
+    cells: list[TaskCellAggregate] = []
+
+    for (task, arm_id), cell_trials in trials_by_cell.items():
+        if (task, arm_id) in claimed:
+            continue
+
+        first = cell_trials[0]
+        skill = first.skill or schedule.VANILLA_SKILL
+        model = scheduled_model_for_tiers(sched.models, first.orchestrator, first.impl, skill)
+        cells.append(
+            _build_cell(
+                task=task,
+                model=model,
+                # A tier pair the schedule does not declare has no name there,
+                # so the tiers themselves are the honest label.
+                model_name=model.name if model else _tier_pair_label(first.orchestrator, first.impl),
+                skill=skill,
+                # `schedule.yaml` is the only source of complexity. A task it
+                # does not declare has none -- not a guessed one.
+                complexity=sched.complexity_of(task) if task in declared else None,
+                arm_id=arm_id,
+                in_schedule=False,
+                structural=False,
+                skip_reason=None,
+                trials=cell_trials,
+                models=sched.models,
+                scheduler_entry=None,
+            )
+        )
+
+    return cells
+
+
+def _tier_pair_label(orchestrator: str, impl: str | None) -> str:
+    """A readable model label for a tier pair `schedule.yaml` does not name."""
+    return orchestrator if impl is None else f"{orchestrator}-{impl}"
+
+
+def _build_cell(
+    *,
+    task: str,
+    model: schedule.ScheduledModel | None,
+    model_name: str,
+    skill: str,
+    complexity: str | None,
+    arm_id: str,
+    in_schedule: bool,
+    structural: bool,
+    skip_reason: str | None,
+    trials: list[TrialRecord],
+    models: Sequence[schedule.ScheduledModel],
+    scheduler_entry: dict | None,
+) -> TaskCellAggregate:
+    """Assemble one cell: decide its state, then attach exactly one of the two
+    mutually exclusive payloads.
+    """
+    attempts = [trial for trial in trials if trial.status != "errored"]
+    measurement = _cell_measurement(attempts) if attempts and not structural else None
+    absence = (
+        None
+        if measurement is not None
+        else _cell_absence(
+            structural=structural,
+            skip_reason=skip_reason,
+            trials=trials,
+            scheduler_entry=scheduler_entry,
+            model=model,
+            models=models,
+            arm_id=arm_id,
+        )
+    )
+    entry = scheduler_entry or {}
+
+    return TaskCellAggregate(
+        task=task,
+        model=model_name,
+        skill=skill,
+        complexity=complexity,
+        complexity_rank=schedule.complexity_rank(complexity) if complexity else None,
+        arm_id=arm_id,
+        in_schedule=in_schedule,
+        state=_cell_state(measurement, structural, skip_reason, trials, scheduler_entry),
+        measured=measurement,
+        absence=absence,
+        schedule_skip_reason=skip_reason,
+        scheduler_outcome=entry.get("outcome"),
+        scheduler_reason=entry.get("reason"),
+        scheduler_attempts=entry.get("attempts"),
+        n_trials_seen=len(trials),
+        n_errored_trials=len(trials) - len(attempts),
+        trial_ids=tuple(trial.trial_id for trial in trials),
+    )
+
+
+def _cell_state(
+    measurement: CellMeasurement | None,
+    structural: bool,
+    skip_reason: str | None,
+    trials: list[TrialRecord],
+    scheduler_entry: dict | None,
+) -> CellState:
+    """Which of the five states this cell is in. First match wins.
+
+    The order encodes two judgement calls worth stating out loud.
+
+    STRUCTURAL BEATS EVERYTHING, because it is a fact about the matrix rather
+    than about this run: there is no such trial to have, so no evidence can
+    make the cell measurable.
+
+    A DELIBERATE SKIP BEATS a technical failure, because the schedule's
+    declaration is why the cell has no measurement going forward, and a stale
+    errored trial from some earlier run should not overwrite the operator's
+    stated reason with an infrastructure story. The errored trials stay
+    visible either way in `n_errored_trials`.
+    """
+    if structural:
+        return "structurally_impossible"
+    if measurement is not None:
+        return "measured"
+    if skip_reason:
+        return "deliberately_skipped"
+    if trials:
+        return "technical_failure"
+    if (scheduler_entry or {}).get("outcome") == SCHEDULER_TECHNICAL_FAILURE_OUTCOME:
+        return "technical_failure"
+    return "not_yet_run"
+
+
+def _cell_measurement(attempts: list[TrialRecord]) -> CellMeasurement:
+    """The numbers for a cell with at least one fair attempt.
+
+    Denominator and exclusions match `aggregate_arm` exactly -- see the module
+    docstring's "PASS@1 DENOMINATOR" section -- so a per-cell rate and a
+    per-arm rate mean the same thing and can be read side by side.
+
+    WHY A ONE-ATTEMPT CELL GETS NO INTERVAL
+    ----------------------------------------
+    `wilson_score_interval(1, 1)` is perfectly well defined -- (0.207, 1.0) --
+    and perfectly useless: it is an error bar 79 points wide drawn over a
+    single coin flip. That alone would be a judgement call. What makes it a
+    correctness problem is the FIELD NAMES: an `ArmAggregate` pooling dozens of
+    trials publishes its interval as `pass_at_1_ci_low`/`_high` too, so a
+    renderer reading those two keys cannot tell one observation from thirty.
+    `schedule.yaml` plans exactly one trial per (task, model, skill), so that
+    is not an edge case here -- it is nearly every cell in the file.
+
+    This module already refuses to let an incomparable interval sit in the
+    local field names on the Fable 5 side (`_baseline_rate` hardcodes
+    `comparable_to_local_wilson_interval: False`); the same rule has to hold
+    locally. So the bounds are `None` below n=2 and `is_single_trial` says so
+    outright, leaving the integer counts -- which are the honest record of what
+    happened -- as what a renderer draws instead.
+    """
+    resolved = [trial for trial in attempts if trial.status == "resolved"]
+    # One derived fact, computed once: the flag and the presence of bounds are
+    # two statements of the same condition and must not be able to disagree.
+    is_single_trial = len(attempts) < 2
+    ci_low, ci_high = (
+        (None, None) if is_single_trial else wilson_score_interval(len(resolved), len(attempts))
+    )
+
+    return CellMeasurement(
+        n_resolved=len(resolved),
+        n_unresolved=sum(1 for trial in attempts if trial.status == "unresolved"),
+        n_incomplete=sum(1 for trial in attempts if trial.status == "incomplete"),
+        n_attempts=len(attempts),
+        pass_at_1=len(resolved) / len(attempts),
+        is_single_trial=is_single_trial,
+        pass_at_1_ci_low=ci_low,
+        pass_at_1_ci_high=ci_high,
+        pass_at_1_interval_type=LOCAL_PASS_AT_1_INTERVAL_TYPE,
+        pass_at_1_denominator_unit=LOCAL_PASS_AT_1_DENOMINATOR_UNIT,
+        total_cost_usd=sum_or_none([trial.cost_usd for trial in attempts]),
+        avg_cost_usd=mean_or_none([trial.cost_usd for trial in attempts]),
+        max_cost_usd=max_or_none([trial.cost_usd for trial in attempts]),
+        total_output_tokens=sum_or_none([trial.output_tokens for trial in attempts]),
+        avg_output_tokens=mean_or_none([trial.output_tokens for trial in attempts]),
+        total_input_tokens=sum_or_none([trial.input_tokens for trial in attempts]),
+        avg_input_tokens=mean_or_none([trial.input_tokens for trial in attempts]),
+        total_cache_tokens=sum_or_none([trial.cache_tokens for trial in attempts]),
+        avg_cache_tokens=mean_or_none([trial.cache_tokens for trial in attempts]),
+        avg_n_agent_steps=mean_or_none([trial.n_agent_steps for trial in attempts]),
+    )
+
+
+def _cell_absence(
+    *,
+    structural: bool,
+    skip_reason: str | None,
+    trials: list[TrialRecord],
+    scheduler_entry: dict | None,
+    model: schedule.ScheduledModel | None,
+    models: Sequence[schedule.ScheduledModel],
+    arm_id: str,
+) -> CellAbsence:
+    """Why this cell has no measurement, in the same order `_cell_state` decides.
+
+    Every branch names a `source` a reader can go and check, because "no data"
+    with no provenance is the thing this vocabulary was built to replace.
+    """
+    if structural:
+        collapse = vanilla_collapse_target(models, model) if model else None
+        return CellAbsence(
+            reason=skip_reason
+            or (
+                "A vanilla arm has no implementer tier, so this cell is the same "
+                f"trial as the symmetric model's vanilla cell ({arm_id})."
+            ),
+            source="schedule.yaml + arm_id collapse (schedule.arm_id_for)",
+            collapses_onto_model=collapse.name if collapse else None,
+        )
+
+    if skip_reason:
+        return CellAbsence(reason=skip_reason, source="schedule.yaml", collapses_onto_model=None)
+
+    if trials:
+        causes = sorted({trial.error_reason or "unknown" for trial in trials})
+        return CellAbsence(
+            reason=(
+                f"All {len(trials)} recorded trial(s) were infrastructure failures "
+                f"({', '.join(causes)}), so the agent never got a fair attempt at this task."
+            ),
+            source="trial_records",
+            collapses_onto_model=None,
+        )
+
+    return _scheduler_absence(scheduler_entry) or CellAbsence(
+        reason="No trial result recorded under runs/, and no scheduler record for this cell.",
+        source="no_data",
+        collapses_onto_model=None,
+    )
+
+
+def _scheduler_absence(scheduler_entry: dict | None) -> CellAbsence | None:
+    """What `scheduler-state.json` has to say about an unmeasured cell, if anything.
+
+    Two different things it can say, and they are NOT the same absence:
+
+    A `technical_failure` means the cell never got a fair attempt -- the state
+    `_cell_state` labels it with.
+
+    A `success` or `model_failure` means the agent DID get a fair shot, so
+    neither maps onto a technical failure. If we are here at all, the cell has
+    no trial output despite having been settled: that is missing data, and it
+    is described as missing rather than quietly relabelled as unrun.
+    """
+    entry = scheduler_entry or {}
+    outcome = entry.get("outcome")
+    if not outcome:
+        return None
+
+    if outcome == SCHEDULER_TECHNICAL_FAILURE_OUTCOME:
+        reason = (
+            f"The scheduler recorded this cell as {outcome!r} after "
+            f"{entry.get('attempts')} attempt(s): {entry.get('reason')}."
+        )
+    else:
+        reason = (
+            f"No trial result was found under runs/ for this cell, although the "
+            f"scheduler recorded it as {outcome!r} ({entry.get('reason')}) -- its "
+            "trial output is missing rather than never produced."
+        )
+
+    return CellAbsence(
+        reason=reason, source=f"runs/{SCHEDULER_STATE_FILENAME}", collapses_onto_model=None
+    )
+
+
+# --------------------------------------------------------------------------
+# The DeepSWE Fable 5 baseline (pure, independently testable)
+#
+# WHY MERGING A SNAPSHOT NEEDED THIS MUCH CARE
+# ---------------------------------------------
+# Every number in `data/fable5_official.json` is ALMOST comparable to a local
+# one, and each near-miss is a way to publish a false claim without writing a
+# single wrong digit:
+#
+#   * Its pass@1 denominator is scored rollout ATTEMPTS -- 113 tasks x 4
+#     whole-benchmark passes, minus exclusions -- not tasks, and not this
+#     harness's per-cell attempt count either.
+#   * Its interval is a run-to-run standard error across those 4 passes. This
+#     harness plots a Wilson binomial interval. Drawing them as peer error
+#     bars asserts something neither statistic supports.
+#   * Its per-task results are k-of-n counts over 20 attempts, so a bare
+#     `0.65` reads as a precision the figure does not have.
+#   * It ran on mini-swe-agent, not claude-code. It is tier-placement
+#     context, not a like-for-like baseline -- the same disclosure report.py
+#     already makes for `data/leaderboard.json`.
+#
+# So provenance is attached to each NUMBER rather than stated once in prose:
+# every rate below is a `_baseline_rate` carrying its numerator, its
+# denominator, what that denominator counts, which interval statistic (if
+# any) applies, and an explicit `comparable_to_local_wilson_interval: false`.
+# A docstring cannot stop a chart; a field a renderer has to read can.
+#
+# NOTHING IS COMPUTED THAT THE SNAPSHOT DOES NOT PUBLISH, with exactly one
+# exception -- `mean_cost_usd_as_fraction_of_headline`, a division of two
+# published figures -- and that one is listed in `derived_fields` so it can
+# never be mistaken for a transcribed number.
+# --------------------------------------------------------------------------
+
+
+def _baseline_rate(
+    value: float | None,
+    numerator: int | None,
+    denominator: int | None,
+    denominator_unit: str,
+    *,
+    interval_low: float | None = None,
+    interval_high: float | None = None,
+    interval_type: str | None = None,
+    interval_n_runs: int | None = None,
+) -> dict[str, Any]:
+    """One published rate, inseparable from what it is a rate OF.
+
+    The interval fields are always present and are `None` where DeepSWE
+    publishes no interval -- an explicit "not published" rather than a missing
+    key some consumer will default. `comparable_to_local_wilson_interval` is
+    hardcoded False because it is false for every rate in this file: a
+    run-to-run SE across whole-benchmark passes and a Wilson interval over one
+    cell's attempts are different statistics over different populations.
+    """
+    return {
+        "value": value,
+        "n_numerator": numerator,
+        "n_denominator": denominator,
+        "denominator_unit": denominator_unit,
+        "interval_low": interval_low,
+        "interval_high": interval_high,
+        "interval_type": interval_type,
+        "interval_n_runs": interval_n_runs,
+        "comparable_to_local_wilson_interval": False,
+    }
+
+
+def _note_starting_with(notes: Sequence[str], prefix: str) -> str | None:
+    """The snapshot's own note on one subject, verbatim.
+
+    The notes are carried word-for-word rather than paraphrased: they are the
+    publisher's statement of what their numbers do and do not support, and a
+    summary of a caveat is a weaker caveat.
+    """
+    return next((note for note in notes if note.startswith(prefix)), None)
+
+
+def _fable5_effort_block(effort: dict[str, Any]) -> dict[str, Any]:
+    """One reasoning-effort configuration's aggregate figures."""
+    return {
+        "reasoning_effort": effort.get("reasoning_effort"),
+        "config": effort.get("config"),
+        "pass_at_1": _baseline_rate(
+            effort.get("pass_at_1"),
+            effort.get("n_passed"),
+            effort.get("n_attempted_scored") or effort.get("n_attempted"),
+            FABLE5_ATTEMPT_DENOMINATOR_UNIT,
+            interval_low=effort.get("ci_lo"),
+            interval_high=effort.get("ci_hi"),
+            interval_type=FABLE5_INTERVAL_TYPE,
+            interval_n_runs=effort.get("n_runs"),
+        ),
+        # pass@4's denominator is TASKS, not attempts. DeepSWE's own metric
+        # definition calls the two "NOT comparable"; the differing
+        # `denominator_unit` is how a renderer can tell without reading prose.
+        "pass_at_4": _baseline_rate(
+            effort.get("pass_at_4"),
+            effort.get("n_tasks_passed_any"),
+            effort.get("n_tasks_attempted"),
+            FABLE5_TASK_DENOMINATOR_UNIT,
+        ),
+        "mean_cost_usd": effort.get("mean_cost_usd"),
+        "median_cost_usd": effort.get("median_cost_usd"),
+        "mean_output_tokens": effort.get("mean_output_tokens"),
+        "mean_input_tokens": effort.get("mean_input_tokens"),
+        "mean_agent_steps": effort.get("mean_agent_steps"),
+    }
+
+
+def _fable5_per_task_block(task: dict[str, Any]) -> dict[str, Any]:
+    """One task's published figures, as k-of-n counts.
+
+    Both blocks are pass rates over ATTEMPTS -- 20 pooled across the five
+    reasoning efforts, 4 at the headline `max` effort -- so both carry their
+    counts. DeepSWE publishes no per-task confidence interval at any effort,
+    so every interval field here is explicitly null: an error bar drawn on
+    these would be fabricated.
+    """
+    pooled = task.get("all_efforts_pooled") or {}
+    at_max = task.get("headline_config_max") or {}
+
+    return {
+        "task_title": task.get("task_title"),
+        "task_url": task.get("task_url"),
+        "present_on_site": task.get("present_on_site"),
+        "all_efforts_pooled": {
+            "pass_at_1": _baseline_rate(
+                pooled.get("pass_rate"),
+                pooled.get("n_passed"),
+                pooled.get("n_attempted"),
+                FABLE5_ATTEMPT_DENOMINATOR_UNIT,
+            ),
+            "mean_cost_usd": pooled.get("mean_cost_usd"),
+            "mean_output_tokens": pooled.get("mean_output_tokens"),
+            "mean_agent_steps": pooled.get("mean_agent_steps"),
+            "source": pooled.get("source"),
+        },
+        "headline_config_max": {
+            "pass_at_1": _baseline_rate(
+                at_max.get("pass_rate"),
+                at_max.get("n_passed"),
+                at_max.get("n_scored"),
+                FABLE5_ATTEMPT_DENOMINATOR_UNIT,
+            ),
+            "mean_cost_usd": at_max.get("mean_cost_usd"),
+            "mean_output_tokens": at_max.get("mean_output_tokens"),
+            "mean_agent_steps": at_max.get("mean_agent_steps"),
+        },
+    }
+
+
+def _fable5_best_scoring_effort(
+    efforts: dict[str, Any], headline: dict[str, Any]
+) -> dict[str, Any] | None:
+    """The highest-SCORING configuration, beside the site's highest-EFFORT one.
+
+    The site's default view collapses each model to one row by taking the
+    highest available reasoning effort, not the best-scoring one -- so Fable
+    5's headline is `max` (0.6972) even though `xhigh` scores 0.6991 for
+    roughly 62% of the cost. A report quoting only the headline understates
+    the model, so both are carried and the comparison is made explicit.
+    """
+    scored = [effort for effort in efforts.values() if effort.get("pass_at_1") is not None]
+    if not scored:
+        return None
+
+    best = max(scored, key=lambda effort: effort["pass_at_1"])
+    block = _fable5_effort_block(best)
+
+    headline_cost = headline.get("mean_cost_usd")
+    best_cost = best.get("mean_cost_usd")
+    block["outscores_headline"] = best["pass_at_1"] > (headline.get("pass_at_1") or 0)
+    block["mean_cost_usd_as_fraction_of_headline"] = (
+        best_cost / headline_cost if headline_cost and best_cost is not None else None
+    )
+    # The only figure in this whole payload DeepSWE does not publish outright.
+    block["derived_fields"] = [
+        "mean_cost_usd_as_fraction_of_headline",
+        "outscores_headline",
+    ]
+    return block
+
+
+def build_fable5_baseline(document: object) -> dict[str, Any]:
+    """Merge the vendored DeepSWE snapshot into results.json's `baseline` shape.
+
+    Pure: takes an already-parsed document so every honesty property above is
+    testable without touching the filesystem (`load_fable5_baseline` is the
+    I/O half). A document missing the aggregate block yields
+    `{"available": False, ...}` and NO numbers -- a partial baseline that
+    looked whole would be the worst outcome available here.
+
+    Per-task blocks are keyed by DeepSWE's task ids, which are the same
+    strings `schedule.yaml` uses, so a consumer can join them to
+    `results.json`'s `cells` on `task` directly.
+    """
+    if not isinstance(document, dict):
+        return {"available": False, "reason": "snapshot is not a JSON object"}
+
+    aggregate = document.get("aggregate") or {}
+    headline = aggregate.get("headline") or {}
+    if not headline:
+        return {"available": False, "reason": "snapshot carries no aggregate headline row"}
+
+    source = document.get("source") or {}
+    metric = document.get("metric_definition") or {}
+    model = document.get("model") or {}
+    notes = [note for note in document.get("notes") or [] if isinstance(note, str)]
+
+    return {
+        "available": True,
+        "source": _fable5_source_block(document, source),
+        "model": _fable5_model_block(model),
+        "comparability": _fable5_comparability(metric, source, notes),
+        "aggregate": {
+            "headline": _fable5_effort_block(headline),
+            "best_scoring_effort": _fable5_best_scoring_effort(
+                aggregate.get("all_reasoning_efforts") or {}, headline
+            ),
+            "row_selection_rule": metric.get("row_selection_rule_for_displayed_number"),
+            "rank": aggregate.get("rank"),
+            "trial_completeness": aggregate.get("trial_completeness"),
+        },
+        "per_task": {
+            name: _fable5_per_task_block(task)
+            for name, task in (document.get("per_task") or {}).items()
+        },
+        "not_published": [
+            note
+            for note in (
+                _note_starting_with(notes, "NOT AVAILABLE"),
+                _note_starting_with(notes, "The site publishes no per-task"),
+                model.get("note"),
+            )
+            if note
+        ],
+        "notes": notes,
+    }
+
+
+def _fable5_source_block(document: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
+    """Where these numbers came from and when -- carried so they can be re-checked.
+
+    `artifact_generated_at` matters more than it looks: DeepSWE regenerates
+    its artifacts as new jobs land, so a figure quoted months later may no
+    longer be the published one. The snapshot's own note says to re-check it
+    before reuse, which is only possible if it travels with the data.
+    """
+    return {
+        "name": source.get("name"),
+        "site": source.get("site"),
+        "dataset_version": source.get("dataset_version"),
+        "harness": source.get("harness"),
+        "harness_url": source.get("harness_url"),
+        "n_tasks_in_set": source.get("n_tasks_in_set"),
+        "artifact_generated_at": source.get("artifact_generated_at"),
+        "retrieved_date": document.get("retrieved_date"),
+        "fetched_from": document.get("fetched_from"),
+    }
+
+
+def _fable5_model_block(model: dict[str, Any]) -> dict[str, Any]:
+    """Which model the baseline figures describe, and how precisely it is known.
+
+    `api_model_id` is null on purpose: the site publishes only the short id
+    `claude-fable-5`, so a dated API string would have to be reconstructed
+    from a plausible-looking guess. The publisher's own explanation is carried
+    beside the null so the gap reads as recorded rather than overlooked.
+    """
+    return {
+        "site_model_id": model.get("site_model_id"),
+        "display_name": model.get("display_name_on_site"),
+        "provider": model.get("provider_used_by_deepswe"),
+        "api_model_id": None,
+        "api_model_id_note": model.get("note"),
+    }
+
+
+def _fable5_comparability(
+    metric: dict[str, Any], source: dict[str, Any], notes: Sequence[str]
+) -> dict[str, Any]:
+    """The one block a renderer must read before drawing Fable 5 beside a local arm.
+
+    Every field here is a refusal of a specific comparison a chart might
+    otherwise make: same harness, same denominator, same kind of error bar.
+    All three are false, and each is stated as a boolean or a named string
+    rather than only as prose, so the refusal is machine-readable.
+    """
+    return {
+        "like_for_like": False,
+        "co_plotting_intervals_allowed": False,
+        "baseline_harness": source.get("harness"),
+        "local_harness": "claude-code",
+        "baseline_interval_type": FABLE5_INTERVAL_TYPE,
+        "local_interval_type": LOCAL_PASS_AT_1_INTERVAL_TYPE,
+        "baseline_denominator_unit": FABLE5_ATTEMPT_DENOMINATOR_UNIT,
+        "local_denominator_unit": LOCAL_PASS_AT_1_DENOMINATOR_UNIT,
+        "denominator_note": metric.get("denominator"),
+        "interval_note": metric.get("ci_caveat"),
+        "harness_note": _note_starting_with(notes, "HARNESS MISMATCH"),
+        "headline_metric": metric.get("headline_metric"),
+        "failure_accounting": metric.get("failure_accounting"),
+        "grading": metric.get("grading"),
+    }
+
+
+def load_fable5_baseline(path: Path = DEFAULT_FABLE5_BASELINE_PATH) -> dict[str, Any]:
+    """Read and merge the vendored snapshot; `available: False` if it is not there.
+
+    A missing or unreadable snapshot yields an explicitly unavailable baseline
+    carrying no figures at all, never a placeholder one -- the same call
+    report.py already makes for `data/leaderboard.json`. A report with no
+    official bar is honest; a report with an invented one is not.
+    """
+    document = load_json_or_none(path)
+    if document is None:
+        return {"available": False, "reason": f"no readable snapshot at {path}"}
+    return build_fable5_baseline(document)
+
+
+# --------------------------------------------------------------------------
 # Output writers
 # --------------------------------------------------------------------------
 
 
-def write_results_json(path: Path, trials: list[TrialRecord], arms: list[ArmAggregate]) -> None:
+def write_results_json(
+    path: Path,
+    trials: list[TrialRecord],
+    arms: list[ArmAggregate],
+    *,
+    cells: list[TaskCellAggregate] | None = None,
+    schedule_summary: dict[str, Any] | None = None,
+    baseline: dict[str, Any] | None = None,
+) -> None:
+    """Write results.json. The additive `cells`/`schedule`/`baseline` sections
+    are keyword-only and default to an explicitly-absent shape, so a caller
+    that only has trials and arms (an older test, a partial rebuild) still
+    produces a well-formed file rather than one whose new keys are missing
+    entirely.
+
+    `cell_state_vocabulary` and `interval_types` are emitted alongside the
+    data they describe. They cost a few hundred bytes and remove the need for
+    any consumer to infer what `structurally_impossible` means, or to discover
+    from prose that two intervals in this file are different statistics.
+    """
     payload = {
         "schema_version": RESULTS_SCHEMA_VERSION,
         "trials": [asdict(t) for t in trials],
         "arms": [asdict(a) for a in arms],
+        "cells": [asdict(cell) for cell in cells or []],
+        "cell_state_vocabulary": CELL_STATE_DESCRIPTIONS,
+        "interval_types": INTERVAL_TYPE_DESCRIPTIONS,
+        "schedule": schedule_summary or {"available": False, "reason": "not collected"},
+        "baseline": {"fable5": baseline or {"available": False, "reason": "not collected"}},
     }
     path.write_text(json.dumps(payload, indent=2) + "\n")
+
+
+def task_name_reconciliation(
+    trials: list[TrialRecord], known_tasks: Sequence[str]
+) -> dict[str, dict[str, str | None]]:
+    """The raw-spelling -> resolved-name audit trail, for results.json.
+
+    Delegates to `group_trials_by_task_and_arm` rather than repeating the
+    reconciliation loop, so the mapping recorded in the file is by
+    construction the same one the cells were built from.
+    """
+    _, reconciliation = group_trials_by_task_and_arm(trials, known_tasks)
+    return reconciliation
+
+
+def collect_task_cells(
+    schedule_path: Path, runs_dir: Path, trials: list[TrialRecord]
+) -> tuple[list[TaskCellAggregate], dict[str, Any]]:
+    """Impure counterpart of `build_task_cells`: load the schedule and the
+    scheduler's state file, then build the cells and describe where they came
+    from.
+
+    An unloadable schedule is reported and skipped, not raised: the per-arm
+    results are already collected by this point and are perfectly valid
+    without the per-cell layer, so taking the whole run down over a config
+    file would discard good data to report a bad one. The schedule section
+    then says `available: false` with the parser's own message, which is what
+    lets a report state that the matrix is unknown rather than draw an empty
+    one and imply the cells are empty.
+    """
+    try:
+        sched = schedule.load_schedule(schedule_path)
+    except schedule.ScheduleError as error:
+        print(f"[collect] WARNING: no per-task cells -- {error}", file=sys.stderr)
+        return [], {"available": False, "reason": str(error), "source_path": str(schedule_path)}
+
+    scheduler_state = load_scheduler_state(runs_dir)
+    cells = build_task_cells(sched, trials, scheduler_state=scheduler_state)
+    summary = {
+        "available": True,
+        "source_path": str(schedule_path),
+        "complexity_levels": list(schedule.COMPLEXITY_LEVELS),
+        "vanilla_skill": schedule.VANILLA_SKILL,
+        "tasks": [
+            {
+                "name": task.name,
+                "complexity": task.complexity,
+                "complexity_rank": schedule.complexity_rank(task.complexity),
+            }
+            for task in sched.tasks
+        ],
+        "models": [
+            {"name": model.name, "orchestrator": model.orchestrator, "impl": model.impl}
+            for model in sched.models
+        ],
+        "skills": list(sched.skills),
+        "n_planned_cells": len(sched.tasks) * len(sched.models) * len(sched.skills),
+        "scheduler_state_path": str(runs_dir / SCHEDULER_STATE_FILENAME),
+        "scheduler_state_available": bool(scheduler_state),
+        "task_name_reconciliation": task_name_reconciliation(
+            trials, [task.name for task in sched.tasks]
+        ),
+    }
+    return cells, summary
 
 
 def write_results_csv(path: Path, trials: list[TrialRecord]) -> None:
@@ -1090,6 +2400,23 @@ def build_arg_parser() -> argparse.ArgumentParser:
         default=SCRIPT_DIR,
         help="Directory to write results.json/results.csv into (default: %(default)s).",
     )
+    parser.add_argument(
+        "--schedule",
+        type=Path,
+        default=schedule.DEFAULT_SCHEDULE_PATH,
+        help="Schedule file the per-task cells are built against (default: "
+        "%(default)s). Same flag and same default as run.py --mode scheduled: "
+        "the matrix, its complexity labels and its deliberate skips are read "
+        "from here and nowhere else.",
+    )
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        default=DEFAULT_FABLE5_BASELINE_PATH,
+        help="Vendored DeepSWE Fable 5 snapshot to merge (default: %(default)s). "
+        "It is mini-swe-agent tier-placement context, not a like-for-like "
+        "baseline; see collect.py's baseline section.",
+    )
     return parser
 
 
@@ -1099,17 +2426,33 @@ def main(argv: list[str] | None = None) -> int:
     trials = collect_trial_records(args.runs_dir)
     run_metadata = load_arm_run_metadata(args.runs_dir)
     arms = aggregate_all_arms(trials, run_metadata)
+    cells, schedule_summary = collect_task_cells(args.schedule, args.runs_dir, trials)
+    baseline = load_fable5_baseline(args.baseline)
 
     args.out_dir.mkdir(parents=True, exist_ok=True)
-    write_results_json(args.out_dir / "results.json", trials, arms)
+    write_results_json(
+        args.out_dir / "results.json",
+        trials,
+        arms,
+        cells=cells,
+        schedule_summary=schedule_summary,
+        baseline=baseline,
+    )
     write_results_csv(args.out_dir / "results.csv", trials)
 
     n_errored = sum(1 for t in trials if t.status == "errored")
     n_incomplete = sum(1 for t in trials if t.status == "incomplete")
+    n_measured = sum(1 for cell in cells if cell.state == "measured")
     print(
         f"[collect] wrote {len(trials)} trial records "
         f"({n_errored} errored, {n_incomplete} incomplete) "
         f"across {len(arms)} arms to {args.out_dir}"
+    )
+    # The empty cells are the point, so they are counted out loud: a sweep
+    # that has measured 4 of 45 cells should never read as a finished one.
+    print(
+        f"[collect] {n_measured} of {len(cells)} (task, model, skill) cells measured; "
+        f"{len(cells) - n_measured} absent -- see results.json cell_state_vocabulary"
     )
     return 0
 

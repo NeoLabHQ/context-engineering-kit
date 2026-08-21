@@ -32,7 +32,11 @@ class ArmTableRowsTests(unittest.TestCase):
             [
                 {
                     "arm_id": "sonnet-skill-a-sonnet",
-                    "pass_at_1": "62% ± 8%",
+                    # n=12: make_arm's n_attempts is 10 + n_incomplete (Fix 1
+                    # -- the attempt count is folded into this cell so a
+                    # single-attempt rate can never be mistaken for one
+                    # established over many tries).
+                    "pass_at_1": "62% ± 8% (n=12)",
                     "avg_cost_usd": "$12.50",
                     "max_cost_usd": "$41.00",
                     "avg_output_tokens": "5,000",
@@ -56,9 +60,22 @@ class ArmTableRowsTests(unittest.TestCase):
             avg_n_agent_steps=None,
         )
         row = report.arm_table_rows([arm])[0]
+        # No "(n=0)" tacked onto the dash either -- that would state the same
+        # zero-attempt fact twice in two different vocabularies.
         self.assertEqual(row["pass_at_1"], "—")
         self.assertEqual(row["avg_cost_usd"], "—")
         self.assertEqual(row["max_cost_usd"], "—")
+
+    def test_format_arm_pass_at_1_cell_appends_the_attempt_count(self) -> None:
+        arm = make_arm(pass_at_1=0.0, pass_at_1_ci_low=0.0, pass_at_1_ci_high=0.4)
+        self.assertEqual(
+            report.format_arm_pass_at_1_cell(arm),
+            f"0% ± 20% (n={arm['n_attempts']})",
+        )
+
+    def test_format_arm_pass_at_1_cell_never_appends_a_count_to_a_dash(self) -> None:
+        arm = make_arm(pass_at_1=None, pass_at_1_ci_low=None, pass_at_1_ci_high=None)
+        self.assertEqual(report.format_arm_pass_at_1_cell(arm), "—")
 
 
 class OfficialBaselineTableRowsTests(unittest.TestCase):

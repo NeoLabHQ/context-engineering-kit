@@ -1,5 +1,5 @@
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "trials": [
     {
       "arm_id": "do-and-judge__haiku-haiku",
@@ -174,5 +174,1543 @@
       "created_at": "2026-08-20T12:57:38.800534+00:00",
       "sample_seed": null
     }
-  ]
+  ],
+  "cells": [
+    {
+      "task": "abs-stepped-slices",
+      "model": "haiku",
+      "skill": "vanilla",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "vanilla__haiku",
+      "in_schedule": true,
+      "state": "deliberately_skipped",
+      "measured": null,
+      "absence": {
+        "reason": "Too complex for haiku at the vanilla level: with no plugin orchestration, haiku has no mechanism for decomposing a task of this size, so these trials would measure the absence of a strategy rather than the strategy's effect.",
+        "source": "schedule.yaml",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": "Too complex for haiku at the vanilla level: with no plugin orchestration, haiku has no mechanism for decomposing a task of this size, so these trials would measure the absence of a strategy rather than the strategy's effect.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "haiku",
+      "skill": "do-and-judge",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-and-judge__haiku-haiku",
+      "in_schedule": true,
+      "state": "measured",
+      "measured": {
+        "n_resolved": 0,
+        "n_unresolved": 0,
+        "n_incomplete": 1,
+        "n_attempts": 1,
+        "pass_at_1": 0.0,
+        "is_single_trial": true,
+        "pass_at_1_ci_low": null,
+        "pass_at_1_ci_high": null,
+        "pass_at_1_interval_type": "wilson_binomial",
+        "pass_at_1_denominator_unit": "local_trial_attempts",
+        "total_cost_usd": 1.8649315000000006,
+        "avg_cost_usd": 1.8649315000000006,
+        "max_cost_usd": 1.8649315000000006,
+        "total_output_tokens": 16170,
+        "avg_output_tokens": 16170.0,
+        "total_input_tokens": 668696,
+        "avg_input_tokens": 668696.0,
+        "total_cache_tokens": 613290,
+        "avg_cache_tokens": 613290.0,
+        "avg_n_agent_steps": 11.0
+      },
+      "absence": null,
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 1,
+      "n_errored_trials": 0,
+      "trial_ids": [
+        "abs-stepped-slices__HyQJyYy"
+      ]
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "haiku",
+      "skill": "do-in-steps",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-in-steps__haiku-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "sonnet",
+      "skill": "vanilla",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "vanilla__sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "sonnet",
+      "skill": "do-and-judge",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-and-judge__sonnet-sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "sonnet",
+      "skill": "do-in-steps",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-in-steps__sonnet-sonnet",
+      "in_schedule": true,
+      "state": "measured",
+      "measured": {
+        "n_resolved": 1,
+        "n_unresolved": 0,
+        "n_incomplete": 0,
+        "n_attempts": 1,
+        "pass_at_1": 1.0,
+        "is_single_trial": true,
+        "pass_at_1_ci_low": null,
+        "pass_at_1_ci_high": null,
+        "pass_at_1_interval_type": "wilson_binomial",
+        "pass_at_1_denominator_unit": "local_trial_attempts",
+        "total_cost_usd": 22.538060999999992,
+        "avg_cost_usd": 22.538060999999992,
+        "max_cost_usd": 22.538060999999992,
+        "total_output_tokens": 102231,
+        "avg_output_tokens": 102231.0,
+        "total_input_tokens": 6511678,
+        "avg_input_tokens": 6511678.0,
+        "total_cache_tokens": 6273055,
+        "avg_cache_tokens": 6273055.0,
+        "avg_n_agent_steps": 40.0
+      },
+      "absence": null,
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 1,
+      "n_errored_trials": 0,
+      "trial_ids": [
+        "abs-stepped-slices__tqkGk6o"
+      ]
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "opus",
+      "skill": "vanilla",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "vanilla__opus",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "opus",
+      "skill": "do-and-judge",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-and-judge__opus-opus",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "opus",
+      "skill": "do-in-steps",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-in-steps__opus-opus",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "sonnet-haiku",
+      "skill": "vanilla",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "vanilla__sonnet",
+      "in_schedule": true,
+      "state": "structurally_impossible",
+      "measured": null,
+      "absence": {
+        "reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+        "source": "schedule.yaml + arm_id collapse (schedule.arm_id_for)",
+        "collapses_onto_model": "sonnet"
+      },
+      "schedule_skip_reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "sonnet-haiku",
+      "skill": "do-and-judge",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-and-judge__sonnet-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "sonnet-haiku",
+      "skill": "do-in-steps",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-in-steps__sonnet-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "opus-sonnet",
+      "skill": "vanilla",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "vanilla__opus",
+      "in_schedule": true,
+      "state": "structurally_impossible",
+      "measured": null,
+      "absence": {
+        "reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+        "source": "schedule.yaml + arm_id collapse (schedule.arm_id_for)",
+        "collapses_onto_model": "opus"
+      },
+      "schedule_skip_reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "opus-sonnet",
+      "skill": "do-and-judge",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-and-judge__opus-sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "abs-stepped-slices",
+      "model": "opus-sonnet",
+      "skill": "do-in-steps",
+      "complexity": "low",
+      "complexity_rank": 0,
+      "arm_id": "do-in-steps__opus-sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "haiku",
+      "skill": "vanilla",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "vanilla__haiku",
+      "in_schedule": true,
+      "state": "deliberately_skipped",
+      "measured": null,
+      "absence": {
+        "reason": "Too complex for haiku at the vanilla level: with no plugin orchestration, haiku has no mechanism for decomposing a task of this size, so these trials would measure the absence of a strategy rather than the strategy's effect.",
+        "source": "schedule.yaml",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": "Too complex for haiku at the vanilla level: with no plugin orchestration, haiku has no mechanism for decomposing a task of this size, so these trials would measure the absence of a strategy rather than the strategy's effect.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "haiku",
+      "skill": "do-and-judge",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-and-judge__haiku-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "haiku",
+      "skill": "do-in-steps",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-in-steps__haiku-haiku",
+      "in_schedule": true,
+      "state": "measured",
+      "measured": {
+        "n_resolved": 0,
+        "n_unresolved": 0,
+        "n_incomplete": 1,
+        "n_attempts": 1,
+        "pass_at_1": 0.0,
+        "is_single_trial": true,
+        "pass_at_1_ci_low": null,
+        "pass_at_1_ci_high": null,
+        "pass_at_1_interval_type": "wilson_binomial",
+        "pass_at_1_denominator_unit": "local_trial_attempts",
+        "total_cost_usd": 0.1401376,
+        "avg_cost_usd": 0.1401376,
+        "max_cost_usd": 0.1401376,
+        "total_output_tokens": 24303,
+        "avg_output_tokens": 24303.0,
+        "total_input_tokens": 1524077,
+        "avg_input_tokens": 1524077.0,
+        "total_cache_tokens": 1436001,
+        "avg_cache_tokens": 1436001.0,
+        "avg_n_agent_steps": 20.0
+      },
+      "absence": null,
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 1,
+      "n_errored_trials": 0,
+      "trial_ids": [
+        "cattrs-partial-structuring-recov__9ryVMmH"
+      ]
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "sonnet",
+      "skill": "vanilla",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "vanilla__sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "sonnet",
+      "skill": "do-and-judge",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-and-judge__sonnet-sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "sonnet",
+      "skill": "do-in-steps",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-in-steps__sonnet-sonnet",
+      "in_schedule": true,
+      "state": "measured",
+      "measured": {
+        "n_resolved": 0,
+        "n_unresolved": 1,
+        "n_incomplete": 0,
+        "n_attempts": 1,
+        "pass_at_1": 0.0,
+        "is_single_trial": true,
+        "pass_at_1_ci_low": null,
+        "pass_at_1_ci_high": null,
+        "pass_at_1_interval_type": "wilson_binomial",
+        "pass_at_1_denominator_unit": "local_trial_attempts",
+        "total_cost_usd": 35.76798284999998,
+        "avg_cost_usd": 35.76798284999998,
+        "max_cost_usd": 35.76798284999998,
+        "total_output_tokens": 154503,
+        "avg_output_tokens": 154503.0,
+        "total_input_tokens": 8026068,
+        "avg_input_tokens": 8026068.0,
+        "total_cache_tokens": 7686485,
+        "avg_cache_tokens": 7686485.0,
+        "avg_n_agent_steps": 34.0
+      },
+      "absence": null,
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 1,
+      "n_errored_trials": 0,
+      "trial_ids": [
+        "cattrs-partial-structuring-recov__nTAZFN5"
+      ]
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "opus",
+      "skill": "vanilla",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "vanilla__opus",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "opus",
+      "skill": "do-and-judge",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-and-judge__opus-opus",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "opus",
+      "skill": "do-in-steps",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-in-steps__opus-opus",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "sonnet-haiku",
+      "skill": "vanilla",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "vanilla__sonnet",
+      "in_schedule": true,
+      "state": "structurally_impossible",
+      "measured": null,
+      "absence": {
+        "reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+        "source": "schedule.yaml + arm_id collapse (schedule.arm_id_for)",
+        "collapses_onto_model": "sonnet"
+      },
+      "schedule_skip_reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "sonnet-haiku",
+      "skill": "do-and-judge",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-and-judge__sonnet-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "sonnet-haiku",
+      "skill": "do-in-steps",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-in-steps__sonnet-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "opus-sonnet",
+      "skill": "vanilla",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "vanilla__opus",
+      "in_schedule": true,
+      "state": "structurally_impossible",
+      "measured": null,
+      "absence": {
+        "reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+        "source": "schedule.yaml + arm_id collapse (schedule.arm_id_for)",
+        "collapses_onto_model": "opus"
+      },
+      "schedule_skip_reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "opus-sonnet",
+      "skill": "do-and-judge",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-and-judge__opus-sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "cattrs-partial-structuring-recovery",
+      "model": "opus-sonnet",
+      "skill": "do-in-steps",
+      "complexity": "medium",
+      "complexity_rank": 1,
+      "arm_id": "do-in-steps__opus-sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "haiku",
+      "skill": "vanilla",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "vanilla__haiku",
+      "in_schedule": true,
+      "state": "deliberately_skipped",
+      "measured": null,
+      "absence": {
+        "reason": "Too complex for haiku at the vanilla level: with no plugin orchestration, haiku has no mechanism for decomposing a task of this size, so these trials would measure the absence of a strategy rather than the strategy's effect.",
+        "source": "schedule.yaml",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": "Too complex for haiku at the vanilla level: with no plugin orchestration, haiku has no mechanism for decomposing a task of this size, so these trials would measure the absence of a strategy rather than the strategy's effect.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "haiku",
+      "skill": "do-and-judge",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-and-judge__haiku-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "haiku",
+      "skill": "do-in-steps",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-in-steps__haiku-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "sonnet",
+      "skill": "vanilla",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "vanilla__sonnet",
+      "in_schedule": true,
+      "state": "deliberately_skipped",
+      "measured": null,
+      "absence": {
+        "reason": "Too complex for sonnet: kombu-single-active-consumer-priority is the high-complexity task, and sonnet does not clear it under any skill, so running it three more times buys no signal.",
+        "source": "schedule.yaml",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": "Too complex for sonnet: kombu-single-active-consumer-priority is the high-complexity task, and sonnet does not clear it under any skill, so running it three more times buys no signal.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "sonnet",
+      "skill": "do-and-judge",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-and-judge__sonnet-sonnet",
+      "in_schedule": true,
+      "state": "deliberately_skipped",
+      "measured": null,
+      "absence": {
+        "reason": "Too complex for sonnet: kombu-single-active-consumer-priority is the high-complexity task, and sonnet does not clear it under any skill, so running it three more times buys no signal.",
+        "source": "schedule.yaml",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": "Too complex for sonnet: kombu-single-active-consumer-priority is the high-complexity task, and sonnet does not clear it under any skill, so running it three more times buys no signal.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "sonnet",
+      "skill": "do-in-steps",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-in-steps__sonnet-sonnet",
+      "in_schedule": true,
+      "state": "deliberately_skipped",
+      "measured": null,
+      "absence": {
+        "reason": "Too complex for sonnet: kombu-single-active-consumer-priority is the high-complexity task, and sonnet does not clear it under any skill, so running it three more times buys no signal.",
+        "source": "schedule.yaml",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": "Too complex for sonnet: kombu-single-active-consumer-priority is the high-complexity task, and sonnet does not clear it under any skill, so running it three more times buys no signal.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "opus",
+      "skill": "vanilla",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "vanilla__opus",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "opus",
+      "skill": "do-and-judge",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-and-judge__opus-opus",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "opus",
+      "skill": "do-in-steps",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-in-steps__opus-opus",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "sonnet-haiku",
+      "skill": "vanilla",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "vanilla__sonnet",
+      "in_schedule": true,
+      "state": "structurally_impossible",
+      "measured": null,
+      "absence": {
+        "reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+        "source": "schedule.yaml + arm_id collapse (schedule.arm_id_for)",
+        "collapses_onto_model": "sonnet"
+      },
+      "schedule_skip_reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "sonnet-haiku",
+      "skill": "do-and-judge",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-and-judge__sonnet-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "sonnet-haiku",
+      "skill": "do-in-steps",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-in-steps__sonnet-haiku",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "opus-sonnet",
+      "skill": "vanilla",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "vanilla__opus",
+      "in_schedule": true,
+      "state": "structurally_impossible",
+      "measured": null,
+      "absence": {
+        "reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+        "source": "schedule.yaml + arm_id collapse (schedule.arm_id_for)",
+        "collapses_onto_model": "opus"
+      },
+      "schedule_skip_reason": "A vanilla arm has no implementer tier -- with no plugin, nothing dispatches sub-agents for a second model to serve. So a mixed pair's vanilla arm IS its orchestrator tier's vanilla arm: sonnet-haiku at vanilla is byte-for-byte the sonnet vanilla trial (same arm id vanilla__sonnet, same job directory, same pier invocation), as opus-sonnet is the opus one. Running it would pay twice for one measurement and would let a mixed cell quietly re-run a trial that a skip rule written against the symmetric model had excluded.",
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "opus-sonnet",
+      "skill": "do-and-judge",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-and-judge__opus-sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "kombu-single-active-consumer-priority",
+      "model": "opus-sonnet",
+      "skill": "do-in-steps",
+      "complexity": "high",
+      "complexity_rank": 2,
+      "arm_id": "do-in-steps__opus-sonnet",
+      "in_schedule": true,
+      "state": "not_yet_run",
+      "measured": null,
+      "absence": {
+        "reason": "No trial result recorded under runs/, and no scheduler record for this cell.",
+        "source": "no_data",
+        "collapses_onto_model": null
+      },
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 0,
+      "n_errored_trials": 0,
+      "trial_ids": []
+    },
+    {
+      "task": "bandit-incremental-cache-control",
+      "model": "sonnet",
+      "skill": "do-in-steps",
+      "complexity": null,
+      "complexity_rank": null,
+      "arm_id": "do-in-steps__sonnet-sonnet",
+      "in_schedule": false,
+      "state": "measured",
+      "measured": {
+        "n_resolved": 1,
+        "n_unresolved": 0,
+        "n_incomplete": 0,
+        "n_attempts": 1,
+        "pass_at_1": 1.0,
+        "is_single_trial": true,
+        "pass_at_1_ci_low": null,
+        "pass_at_1_ci_high": null,
+        "pass_at_1_interval_type": "wilson_binomial",
+        "pass_at_1_denominator_unit": "local_trial_attempts",
+        "total_cost_usd": 36.50252474999998,
+        "avg_cost_usd": 36.50252474999998,
+        "max_cost_usd": 36.50252474999998,
+        "total_output_tokens": 170533,
+        "avg_output_tokens": 170533.0,
+        "total_input_tokens": 11317561,
+        "avg_input_tokens": 11317561.0,
+        "total_cache_tokens": 10947658,
+        "avg_cache_tokens": 10947658.0,
+        "avg_n_agent_steps": 50.0
+      },
+      "absence": null,
+      "schedule_skip_reason": null,
+      "scheduler_outcome": null,
+      "scheduler_reason": null,
+      "scheduler_attempts": null,
+      "n_trials_seen": 1,
+      "n_errored_trials": 0,
+      "trial_ids": [
+        "bandit-incremental-cache-control__kUB4hhY"
+      ]
+    }
+  ],
+  "cell_state_vocabulary": {
+    "measured": "At least one fair attempt was made and scored. This is the ONLY state carrying numbers; `measured.pass_at_1` may legitimately be 0.0, which means the arm tried and solved nothing.",
+    "deliberately_skipped": "schedule.yaml declares this cell unrun, with a stated reason. Nobody asked this model to do this task, so no claim about its ability follows.",
+    "structurally_impossible": "There is no such trial to run. A vanilla arm has no implementer tier, so a mixed model pair's vanilla cell IS its orchestrator tier's vanilla cell -- same arm id, same job directory, same pier invocation. No budget makes this cell measurable; see `absence.collapses_onto_model`.",
+    "technical_failure": "Attempted, but never fairly attempted: every trial was an infrastructure failure, or the scheduler recorded the cell as `technical_failure`. The agent did not get an uncontaminated shot at the task.",
+    "not_yet_run": "No data. The cell is runnable and simply has not been run."
+  },
+  "interval_types": {
+    "wilson_binomial": "95% Wilson score interval over this cell's own binomial attempts (see `wilson_score_interval`).",
+    "run_to_run_standard_error_across_whole_benchmark_passes": "95% run-to-run standard error across 4 whole-benchmark passes (1.96 * std(runs)/sqrt(R)). NOT a binomial interval over tasks, and not on the same footing as a Wilson interval from this harness -- drawing them as peer error bars asserts something neither supports."
+  },
+  "schedule": {
+    "available": true,
+    "source_path": "/workspaces/add-evaluation-benchmarks/benchmarks/deep-swe/schedule.yaml",
+    "complexity_levels": [
+      "low",
+      "medium",
+      "high"
+    ],
+    "vanilla_skill": "vanilla",
+    "tasks": [
+      {
+        "name": "kombu-single-active-consumer-priority",
+        "complexity": "high",
+        "complexity_rank": 2
+      },
+      {
+        "name": "cattrs-partial-structuring-recovery",
+        "complexity": "medium",
+        "complexity_rank": 1
+      },
+      {
+        "name": "abs-stepped-slices",
+        "complexity": "low",
+        "complexity_rank": 0
+      }
+    ],
+    "models": [
+      {
+        "name": "haiku",
+        "orchestrator": "haiku",
+        "impl": "haiku"
+      },
+      {
+        "name": "sonnet",
+        "orchestrator": "sonnet",
+        "impl": "sonnet"
+      },
+      {
+        "name": "opus",
+        "orchestrator": "opus",
+        "impl": "opus"
+      },
+      {
+        "name": "sonnet-haiku",
+        "orchestrator": "sonnet",
+        "impl": "haiku"
+      },
+      {
+        "name": "opus-sonnet",
+        "orchestrator": "opus",
+        "impl": "sonnet"
+      }
+    ],
+    "skills": [
+      "vanilla",
+      "do-and-judge",
+      "do-in-steps"
+    ],
+    "n_planned_cells": 45,
+    "scheduler_state_path": "/workspaces/add-evaluation-benchmarks/benchmarks/deep-swe/runs/scheduler-state.json",
+    "scheduler_state_available": false,
+    "task_name_reconciliation": {
+      "datacurve/abs-stepped-slices": {
+        "resolved": "abs-stepped-slices",
+        "method": "task_name"
+      },
+      "datacurve/cattrs-partial-structuring-recovery": {
+        "resolved": "cattrs-partial-structuring-recovery",
+        "method": "task_name"
+      },
+      "datacurve/bandit-incremental-cache-control": {
+        "resolved": "bandit-incremental-cache-control",
+        "method": "task_name_unscheduled"
+      }
+    }
+  },
+  "baseline": {
+    "fable5": {
+      "available": true,
+      "source": {
+        "name": "DeepSWE (Datacurve)",
+        "site": "https://deepswe.datacurve.ai/",
+        "dataset_version": "v1.1",
+        "harness": "mini-swe-agent",
+        "harness_url": "https://github.com/SWE-agent/mini-swe-agent",
+        "n_tasks_in_set": 113,
+        "artifact_generated_at": "2026-08-20T07:48:24.252395+00:00",
+        "retrieved_date": "2026-08-20",
+        "fetched_from": [
+          {
+            "url": "https://deepswe.datacurve.ai/",
+            "used_for": "rendered default leaderboard table (18 of 25 models), rank, rounded headline figures"
+          },
+          {
+            "url": "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
+            "used_for": "exact per-config aggregate rows (pass@1, pass@4, CI, cost, tokens, steps) + metric definition string"
+          },
+          {
+            "url": "https://deepswe.datacurve.ai/artifacts/v1.1/heatmap.json",
+            "used_for": "per-task n_passed / n_attempted per model, pooled across reasoning efforts"
+          },
+          {
+            "url": "https://deepswe.datacurve.ai/artifacts/v1.1/trials.json",
+            "used_for": "individual trial records: per-task per-effort pass/fail, f2p/p2p test counts, cost, tokens, steps (28,010 trials)"
+          },
+          {
+            "url": "https://deepswe.datacurve.ai/blog/deepswe-v1-1",
+            "used_for": "v1.1 methodology prose, isolated verification / CTRF description, Fable-5 incomplete-trials note"
+          },
+          {
+            "url": "https://deepswe.datacurve.ai/data/v1.1/tasks",
+            "used_for": "confirming the three target task ids exist in the v1.1 task set"
+          },
+          {
+            "url": "https://deepswe.datacurve.ai/assets/index-CuvguQ7a.js",
+            "used_for": "reverse-reading the site's artifact URL scheme and its client-side cost-multiplier table"
+          }
+        ]
+      },
+      "model": {
+        "site_model_id": "claude-fable-5",
+        "display_name": "claude-fable-5",
+        "provider": "vertex_ai",
+        "api_model_id": null,
+        "api_model_id_note": "Site does not publish a full API model string (e.g. claude-fable-5-YYYYMMDD); only the short id 'claude-fable-5'."
+      },
+      "comparability": {
+        "like_for_like": false,
+        "co_plotting_intervals_allowed": false,
+        "baseline_harness": "mini-swe-agent",
+        "local_harness": "claude-code",
+        "baseline_interval_type": "run_to_run_standard_error_across_whole_benchmark_passes",
+        "local_interval_type": "wilson_binomial",
+        "baseline_denominator_unit": "scored_rollout_attempts",
+        "local_denominator_unit": "local_trial_attempts",
+        "denominator_note": "scored rollout ATTEMPTS, not tasks. 113 tasks x 4 whole-benchmark runs = 452 attempts per config; attempts excluded as provider/verifier/network errors are dropped from both numerator and denominator.",
+        "interval_note": "This is a run-to-run standard error across 4 whole-benchmark passes, NOT a Wilson/binomial interval over tasks. Do not plot it interchangeably with a binomial CI from a local harness.",
+        "harness_note": "HARNESS MISMATCH: every DeepSWE number was produced with mini-swe-agent, a minimal single-agent scaffold - not claude-code or any plugin-based harness. Tool access, context management and prompting differ, so these are tier-placement context, not a like-for-like baseline.",
+        "headline_metric": "pass@1",
+        "failure_accounting": "Context-window failures and agent timeouts count as scored FAILURES. Provider/verifier/network errors are EXCLUDED from scoring entirely.",
+        "grading": "Isolated verification: agent commits to a feature branch, the committed diff only is extracted and applied in a fresh verifier container which runs the tests and emits a CTRF report naming each task-defining test and its status. v1.1 grades by test node-id (v1 graded by process exit code)."
+      },
+      "aggregate": {
+        "headline": {
+          "reasoning_effort": "max",
+          "config": "mini_swe_agent_claude_fable_5_max",
+          "pass_at_1": {
+            "value": 0.6972477064220184,
+            "n_numerator": 304,
+            "n_denominator": 436,
+            "denominator_unit": "scored_rollout_attempts",
+            "interval_low": 0.656912963913939,
+            "interval_high": 0.7375824489300977,
+            "interval_type": "run_to_run_standard_error_across_whole_benchmark_passes",
+            "interval_n_runs": 4,
+            "comparable_to_local_wilson_interval": false
+          },
+          "pass_at_4": {
+            "value": 0.8407079646017699,
+            "n_numerator": 95,
+            "n_denominator": 113,
+            "denominator_unit": "tasks",
+            "interval_low": null,
+            "interval_high": null,
+            "interval_type": null,
+            "interval_n_runs": null,
+            "comparable_to_local_wilson_interval": false
+          },
+          "mean_cost_usd": 21.634702092592594,
+          "median_cost_usd": 19.23457225,
+          "mean_output_tokens": 118592.77293577982,
+          "mean_input_tokens": 12638832.12614679,
+          "mean_agent_steps": 88.4288990825688
+        },
+        "best_scoring_effort": {
+          "reasoning_effort": "xhigh",
+          "config": "mini_swe_agent_claude_fable_5_xhigh",
+          "pass_at_1": {
+            "value": 0.6991150442477876,
+            "n_numerator": 316,
+            "n_denominator": 452,
+            "denominator_unit": "scored_rollout_attempts",
+            "interval_low": 0.6666658684930744,
+            "interval_high": 0.7315642200025008,
+            "interval_type": "run_to_run_standard_error_across_whole_benchmark_passes",
+            "interval_n_runs": 4,
+            "comparable_to_local_wilson_interval": false
+          },
+          "pass_at_4": {
+            "value": 0.8849557522123894,
+            "n_numerator": 100,
+            "n_denominator": 113,
+            "denominator_unit": "tasks",
+            "interval_low": null,
+            "interval_high": null,
+            "interval_type": null,
+            "interval_n_runs": null,
+            "comparable_to_local_wilson_interval": false
+          },
+          "mean_cost_usd": 13.414521495535714,
+          "median_cost_usd": 11.341082999999998,
+          "mean_output_tokens": 80352.1703539823,
+          "mean_input_tokens": 7329160.601769911,
+          "mean_agent_steps": 68.40044247787611,
+          "outscores_headline": true,
+          "mean_cost_usd_as_fraction_of_headline": 0.6200465085270876,
+          "derived_fields": [
+            "mean_cost_usd_as_fraction_of_headline",
+            "outscores_headline"
+          ]
+        },
+        "row_selection_rule": "The site runs each model at up to 5 reasoning_effort settings and, in its default 'Best' view, collapses them to one row per model by taking the HIGHEST available reasoning_effort (not the highest-scoring one). For claude-fable-5 that is 'max' (pass@1 0.6972), even though 'xhigh' scores marginally higher (0.6991).",
+        "rank": {
+          "rank_among_all_models_displayed_rows": 3,
+          "n_models_ranked": 25,
+          "rank_in_site_default_table": 3,
+          "n_models_in_site_default_table": 18,
+          "note": "Site's default homepage table shows a curated 18 of 25 models; Fable 5 is 3rd there and also 3rd when all 25 models are ranked by the same displayed-row rule."
+        },
+        "trial_completeness": {
+          "n_trials_launched": 2260,
+          "n_trials_scored": 2187,
+          "n_trials_excluded": 73,
+          "exclusion_error_category": "model_routing_404",
+          "site_note_verbatim": "Note: 73 of Claude Fable 5's 2,260 trials did not complete due to access being suspended by a US government directive partway through our sweep. Pass rates are computed over the completed trials.",
+          "excluded_by_effort": {
+            "high": 22,
+            "low": 19,
+            "medium": 16,
+            "max": 16,
+            "xhigh": 0
+          }
+        }
+      },
+      "per_task": {
+        "kombu-single-active-consumer-priority": {
+          "task_title": "Add single-active-consumer priority and cancel tracking to virtual transports",
+          "task_url": "https://deepswe.datacurve.ai/data/v1.1/tasks/kombu-single-active-consumer-priority",
+          "present_on_site": true,
+          "all_efforts_pooled": {
+            "pass_at_1": {
+              "value": 0.65,
+              "n_numerator": 13,
+              "n_denominator": 20,
+              "denominator_unit": "scored_rollout_attempts",
+              "interval_low": null,
+              "interval_high": null,
+              "interval_type": null,
+              "interval_n_runs": null,
+              "comparable_to_local_wilson_interval": false
+            },
+            "mean_cost_usd": 9.608825175,
+            "mean_output_tokens": 57778.55,
+            "mean_agent_steps": 58.25,
+            "source": "heatmap.json cell (pools all 5 reasoning efforts x 4 runs)"
+          },
+          "headline_config_max": {
+            "pass_at_1": {
+              "value": 1.0,
+              "n_numerator": 4,
+              "n_denominator": 4,
+              "denominator_unit": "scored_rollout_attempts",
+              "interval_low": null,
+              "interval_high": null,
+              "interval_type": null,
+              "interval_n_runs": null,
+              "comparable_to_local_wilson_interval": false
+            },
+            "mean_cost_usd": 21.583380125,
+            "mean_output_tokens": 117310.5,
+            "mean_agent_steps": 98.75
+          }
+        },
+        "cattrs-partial-structuring-recovery": {
+          "task_title": "Add partial structuring with error recovery to cattrs",
+          "task_url": "https://deepswe.datacurve.ai/data/v1.1/tasks/cattrs-partial-structuring-recovery",
+          "present_on_site": true,
+          "all_efforts_pooled": {
+            "pass_at_1": {
+              "value": 0.95,
+              "n_numerator": 19,
+              "n_denominator": 20,
+              "denominator_unit": "scored_rollout_attempts",
+              "interval_low": null,
+              "interval_high": null,
+              "interval_type": null,
+              "interval_n_runs": null,
+              "comparable_to_local_wilson_interval": false
+            },
+            "mean_cost_usd": 5.9586967500000005,
+            "mean_output_tokens": 46791.45,
+            "mean_agent_steps": 41.05,
+            "source": "heatmap.json cell (pools all 5 reasoning efforts x 4 runs)"
+          },
+          "headline_config_max": {
+            "pass_at_1": {
+              "value": 1.0,
+              "n_numerator": 4,
+              "n_denominator": 4,
+              "denominator_unit": "scored_rollout_attempts",
+              "interval_low": null,
+              "interval_high": null,
+              "interval_type": null,
+              "interval_n_runs": null,
+              "comparable_to_local_wilson_interval": false
+            },
+            "mean_cost_usd": 14.675219625,
+            "mean_output_tokens": 106204.75,
+            "mean_agent_steps": 64.75
+          }
+        },
+        "abs-stepped-slices": {
+          "task_title": "Add stepped slices for arrays and strings",
+          "task_url": "https://deepswe.datacurve.ai/data/v1.1/tasks/abs-stepped-slices",
+          "present_on_site": true,
+          "all_efforts_pooled": {
+            "pass_at_1": {
+              "value": 0.7,
+              "n_numerator": 14,
+              "n_denominator": 20,
+              "denominator_unit": "scored_rollout_attempts",
+              "interval_low": null,
+              "interval_high": null,
+              "interval_type": null,
+              "interval_n_runs": null,
+              "comparable_to_local_wilson_interval": false
+            },
+            "mean_cost_usd": 6.652936749999999,
+            "mean_output_tokens": 50709.8,
+            "mean_agent_steps": 46.15,
+            "source": "heatmap.json cell (pools all 5 reasoning efforts x 4 runs)"
+          },
+          "headline_config_max": {
+            "pass_at_1": {
+              "value": 0.5,
+              "n_numerator": 2,
+              "n_denominator": 4,
+              "denominator_unit": "scored_rollout_attempts",
+              "interval_low": null,
+              "interval_high": null,
+              "interval_type": null,
+              "interval_n_runs": null,
+              "comparable_to_local_wilson_interval": false
+            },
+            "mean_cost_usd": 14.413408874999998,
+            "mean_output_tokens": 98310,
+            "mean_agent_steps": 74
+          }
+        }
+      },
+      "not_published": [
+        "NOT AVAILABLE / recorded as null or omitted: per-task confidence intervals; any published aggregate for Fable 5 under v1 (v1 predates Fable 5 - it appears only in v1.1); a full API model identifier; and separate cache-write vs cache-read token accounting (only n_cache_tokens is given).",
+        "The site publishes no per-task confidence intervals and no per-task figures for models other than the 8 in the heatmap artifact.",
+        "Site does not publish a full API model string (e.g. claude-fable-5-YYYYMMDD); only the short id 'claude-fable-5'."
+      ],
+      "notes": [
+        "ALL numbers in this file are transcribed from DeepSWE's own published JSON artifacts; none are derived from a local run and none are estimated. Values marked null were genuinely not published.",
+        "The three requested task ids all exist in the DeepSWE v1.1 113-task set and all three have published claude-fable-5 results.",
+        "PER-TASK RESULTS ARE NOT SHOWN AS A SINGLE PASS/FAIL. Each task is run 4 times per reasoning effort (5 efforts x 4 runs = 20 attempts per task), so the published result is k-of-n. The 'all_efforts_pooled' block is what the site's heatmap view displays; the 'headline_config_max' block is the slice that corresponds to the headline leaderboard row.",
+        "None of the 73 excluded (model_routing_404) Fable-5 trials fell on any of the three target tasks - all 20 attempts are scored for each of them.",
+        "Fable 5's headline row uses reasoning_effort 'max' because the site picks the highest available effort, not the best score. Its 'xhigh' config actually scores marginally higher (0.6991 vs 0.6972) at ~62% of the cost ($13.41 vs $21.63). Quoting 'max' matches the site; quoting 'xhigh' would be the model's best published pass@1.",
+        "Fable 5 (0.697248) and gpt-5.6-terra (0.696231) are effectively tied for 3rd/4th; their confidence intervals overlap heavily. gpt-5.6-terra is not in the site's default 18-model table but is present in the underlying data.",
+        "The mean_input_tokens figures are cumulative across every agent step of a rollout (mini-swe-agent resends context each step), which is why they are in the millions. They are dominated by cache reads and are NOT comparable to a single-request input token count. Use median_peak_context_tokens for context-window comparisons.",
+        "DeepSWE's CI is a run-to-run SE across 4 whole-benchmark passes, not a binomial/Wilson interval over 113 tasks. A local harness reporting a Wilson interval is not directly comparable.",
+        "HARNESS MISMATCH: every DeepSWE number was produced with mini-swe-agent, a minimal single-agent scaffold - not claude-code or any plugin-based harness. Tool access, context management and prompting differ, so these are tier-placement context, not a like-for-like baseline.",
+        "The site publishes no per-task confidence intervals and no per-task figures for models other than the 8 in the heatmap artifact.",
+        "The site does not publish a dated/versioned API model string for Fable 5, only the short id 'claude-fable-5'. Provider recorded in the trial rows is 'vertex_ai'.",
+        "NOT AVAILABLE / recorded as null or omitted: per-task confidence intervals; any published aggregate for Fable 5 under v1 (v1 predates Fable 5 - it appears only in v1.1); a full API model identifier; and separate cache-write vs cache-read token accounting (only n_cache_tokens is given).",
+        "Reproduce by re-fetching the artifact URLs in 'fetched_from'; the artifacts are regenerated as new jobs land, so re-check 'artifact_generated_at' before reusing these numbers."
+      ]
+    }
+  }
 }
