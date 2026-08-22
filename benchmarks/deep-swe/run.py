@@ -39,6 +39,11 @@ version of this -- kept here too so the two can be diffed against drift):
                                            pier's, not per-arm. One entry per planned
                                            run of schedule.yaml -- see scheduler.py's
                                            module docstring for the schema.
+    runs/scheduler-attempts.jsonl      <- `--mode scheduled`'s append-only decision
+                                           trail: one JSON line per ATTEMPT (the state
+                                           file keeps only the last one per cell).
+                                           Instrumentation -- nothing reads it back.
+                                           Also scheduler.py's; see `attempt_record`.
     runs/<arm-id>/                     <- pier's --jobs-dir/--job-name, i.e. its job_dir
                                            (--mode single suffixes this with
                                            "__<task-slug>" -- see arm_job_dir --
@@ -1387,11 +1392,19 @@ def build_schedule_harness(args: argparse.Namespace) -> scheduler.Harness:
 
     `sleep`/`monotonic` are left at their defaults (the real ones) -- only the
     test suite ever substitutes those.
+
+    `append_attempt` names WHERE the scheduler's attempt log goes and nothing
+    else. The writing itself is `scheduler.append_attempt_record`, deliberately
+    not reimplemented here: this file stays output-only (stdout, and pier's own
+    artifacts), so the one file format the scheduler owns keeps living with the
+    scheduler.
     """
+    attempt_log = scheduler.attempt_log_path_for(args.jobs_dir)
     return scheduler.Harness(
         execute=lambda planned: execute_planned_run(planned, args),
         find_completed=lambda planned: find_completed_planned_run(planned, args),
         collect_and_report=lambda: run_collect_and_report(args.jobs_dir),
+        append_attempt=lambda record: scheduler.append_attempt_record(attempt_log, record),
     )
 
 

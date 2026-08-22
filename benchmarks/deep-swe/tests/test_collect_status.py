@@ -66,8 +66,8 @@ class VerifierReportsSuccessTests(unittest.TestCase):
 
 class ClassifyStatusTests(unittest.TestCase):
     """Precedence order under test (collect.py's classification table):
-    plugin_load_error > exception_type > missing/empty rewards > the
-    verifier's success verdict > the completion gate > otherwise. Each test
+    plugin_load_error > the verifier's success verdict > exception_type >
+    missing/empty rewards > the completion gate > otherwise. Each test
     isolates one row; the precedence tests at the bottom prove a
     higher-priority signal wins even when a lower-priority one would, by
     itself, say something different.
@@ -150,14 +150,32 @@ class ClassifyStatusTests(unittest.TestCase):
         )
         self.assertEqual((status, reason), ("errored", "missing_verifier_rewards"))
 
-    def test_exception_type_wins_over_success_rewards(self) -> None:
-        # Module docstring's worked example: claude crashes (API 529 surfaced
-        # as NonZeroAgentExitCodeError) but the verifier still ran and scored
-        # the trial a success. exception_info is checked before rewards, so
-        # this must stay errored, never flip to resolved.
+    def test_success_rewards_outrank_a_pier_exception(self) -> None:
+        # Module docstring's worked example, and a recorded run rather than a
+        # hypothetical: in runs/do-in-steps__opus-opus__abs-stepped-slices the
+        # agent committed a 131 KB patch, the verifier scored it reward 1, and
+        # claude was then killed by an Anthropic 429 -- surfaced as
+        # NonZeroAgentExitCodeError. Classifying that `errored` dropped a
+        # verified solve out of Pass@1's denominator entirely, so the
+        # verifier's verdict now wins.
         status, reason = collect.classify_status(
             exception_type="NonZeroAgentExitCodeError",
             rewards=RESOLVED_REWARDS,
+            plugin_load_error=None,
+            incompleteness_reason=None,
+        )
+        self.assertEqual((status, reason), ("resolved", None))
+
+    def test_a_pier_exception_still_wins_when_the_verifier_did_not_certify_a_solve(
+        self,
+    ) -> None:
+        # The other side of the rule above: only a *certified solve* outranks
+        # pier's exception. An unresolved bundle alongside an exception is
+        # still `errored` -- the trial is not a measurement, and folding it
+        # into `unresolved` would deflate Pass@1.
+        status, reason = collect.classify_status(
+            exception_type="NonZeroAgentExitCodeError",
+            rewards=UNRESOLVED_REWARDS,
             plugin_load_error=None,
             incompleteness_reason=None,
         )
@@ -192,7 +210,7 @@ class ClassifyStatusTests(unittest.TestCase):
         self.assertEqual((status, reason), ("incomplete", "no_model_patch"))
 
     def test_verifier_success_outranks_the_completion_gate(self) -> None:
-        # Row 5 before row 6: if the verifier certifies the task solved, no
+        # Row 3 before row 6: if the verifier certifies the task solved, no
         # heuristic about patches or question marks may take that away.
         status, reason = collect.classify_status(
             exception_type=None,

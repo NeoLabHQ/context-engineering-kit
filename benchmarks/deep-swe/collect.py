@@ -61,16 +61,34 @@ pier's real `TrialResult` schema
 |---|----------------------------------------------------------------|------------|
 | 1 | result.json missing/corrupt/truncated (can't even be parsed)   | errored    |
 | 2 | non-vanilla trial, `sadd` plugin didn't load (system/init event)| errored   |
-| 3 | `TrialResult.exception_info` is set (pier's own infra-failure signal: Docker/environment build failure, agent/verifier timeout, non-zero agent exit code, cancellation -- and transitively, an API 529/rate-limit failure that crashed the `claude` process; see `infra_error_category()` for how the raw exception type is normalized into one of these) | errored |
-| 4 | `verifier_result` missing, or its `rewards` dict is missing/empty (verifier never produced a scalar) | errored |
-| 5 | `rewards["reward"] == 1` -- or, for a bundle carrying no `reward` key, `f2p == 1.0 and p2p == 1.0`, falling back last to every value in `rewards` equalling `1` | resolved |
+| 3 | `rewards["reward"] == 1` -- or, for a bundle carrying no `reward` key, `f2p == 1.0 and p2p == 1.0`, falling back last to every value in `rewards` equalling `1` | resolved |
+| 4 | `TrialResult.exception_info` is set (pier's own infra-failure signal: Docker/environment build failure, agent/verifier timeout, non-zero agent exit code, cancellation -- and transitively, an API 529/rate-limit failure that crashed the `claude` process; see `infra_error_category()` for how the raw exception type is normalized into one of these) | errored |
+| 5 | `verifier_result` missing, or its `rewards` dict is missing/empty (verifier never produced a scalar) | errored |
 | 6 | no `artifacts/model.patch`, or the agent's final message ends in a question (the agent stopped without finishing -- see `find_trial_incompleteness_reason()`) | incomplete |
 | 7 | otherwise (verifier ran and did not report success)            | unresolved |
 
-Rows 1-4 are infrastructure failures, not task attempts: the agent never got
-a fair, uncorrupted shot at the task, or (row 2) we can't trust this trial as
-a measurement of the plugin in the first place. Folding them into
-`unresolved` would silently deflate Pass@1. Row 5 reads the verdict off the
+Rows 1, 2, 4 and 5 are infrastructure failures, not task attempts: the agent
+never got a fair, uncorrupted shot at the task, or (row 2) we can't trust this
+trial as a measurement of the plugin in the first place. Folding them into
+`unresolved` would silently deflate Pass@1.
+
+Row 3 sits ABOVE rows 4 and 5, and did not always -- pier's exception used to
+outrank the verifier's own verdict. `runs/do-in-steps__opus-opus__abs-stepped-slices`
+is what that cost: a 131 KB patch that the verifier scored `reward 1`, killed
+by an Anthropic 429 on its way out, recorded as `errored` and therefore
+dropped from Pass@1's denominator altogether. `errored` means "this trial is
+not a measurement"; a trial the verifier scored IS one, whatever happened to
+the process after it earned the score. Only rows 1 and 2 still outrank row 3:
+a `result.json` that cannot even be parsed carries no verifier verdict to
+believe in the first place (row 1 is decided by `_errored_record`, above
+`classify_status`, which never sees such a trial), and a trial that solved the
+task without the plugin under test is not *this arm's* measurement at all.
+`triage.verdict_from_signals` applies the same order for every signal it
+shares with this module -- its rules 1 and 2 are these rows 1 and 3, in this
+order -- which is what stops `results.json` and `scheduler-state.json`
+disagreeing about one trial.
+
+Row 3 reads the verdict off the
 scalar `reward` key because this benchmark's verifier reports `rewards` as a
 *metrics bundle* -- test counts, ratios and a `partial` graded-credit score
 alongside the one binary `reward` -- so an all-values-equal-1 rule would call
@@ -104,7 +122,7 @@ non-interactive contract.
 It is not `errored` either: nothing in the infrastructure failed, so calling it
 one would blame the harness for the agent's own abandonment (and, per the
 section below, quietly drop it out of Pass@1). `incomplete` names what
-actually happened, and row 6 sits AFTER row 5 so a trial the verifier
+actually happened, and row 6 sits AFTER row 3 so a trial the verifier
 certifies as solved can never be downgraded by these heuristics --
 `incomplete` only ever refines what would otherwise have been `unresolved`.
 
@@ -855,28 +873,56 @@ def classify_status(
     pier exception_info additionally carries a normalized category from
     `infra_error_category()` alongside the raw `exception_type`, so no
     information is lost even though the outcome is always `errored` either
-    way. Signal precedence matches the module docstring's table (plugin
-    load, then pier's own exception_info, then a missing/empty rewards
-    dict, then the verifier's own success verdict, and only then the
-    completion gate -- a verified success is never downgraded to
-    `incomplete`).
+    way.
 
-    Worked example: `claude` crashes mid-task from an Anthropic API 529 (so
-    `exception_type="NonZeroAgentExitCodeError"`), but the verifier still
-    happened to run and scored the trial a success (`rewards["reward"] == 1`).
-    exception_info is checked before rewards, so this is still
+    Signal precedence, and the one place it is genuinely arguable. (Row 1 of
+    this module's table -- a `result.json` too corrupt to parse -- is decided
+    by `_errored_record` before this function is reached, so it outranks
+    everything below without appearing here. `triage.verdict_from_signals`
+    checks that same signal as its own rule 1, above its `resolved` rule, for
+    the same reason.)
+
+    1. A plugin that failed to load. This stays above every signal this
+       function does see, including a verifier-certified success, because it
+       is the only one that says the trial measured something *other than what
+       its arm claims* -- a task solved without the plugin under test is not
+       that arm's data point.
+    2. The verifier's own success verdict. A solve, full stop.
+    3. pier's own `exception_info`.
+    4. A missing or empty rewards dict.
+    5. The completion gate -- so a verified success is never downgraded to
+       `incomplete`.
+
+    Rule 2 sits above rule 3, and did not always. Worked example, and it is a
+    recorded run rather than a hypothetical: in
+    `runs/do-in-steps__opus-opus__abs-stepped-slices` the agent committed a
+    131 KB patch, the verifier ran it and scored `reward 1` (`f2p 1.0`,
+    `p2p 1.0`), and `claude` was then killed by an Anthropic 429 on its way
+    out, which pier surfaced as `NonZeroAgentExitCodeError`. With the
+    exception checked first that trial classified
     `("errored", "pier_exception:agent_nonzero_exit:NonZeroAgentExitCodeError")`
-    -- never `resolved`, even though the verifier said the task was solved.
+    and was dropped from Pass@1's denominator entirely -- a real, verified
+    solve deleted from the published numbers because the process died after
+    earning it. `errored` means "this trial is not a measurement"; a trial the
+    verifier scored IS a measurement, whatever happened to the process
+    afterwards, so the verdict wins.
+
+    `triage.verdict_from_signals` applies this same order for every signal
+    both functions look at (it has no plugin-load signal of its own, and it
+    checks the unparseable-`result.json` signal itself rather than leaving it
+    to its caller -- above its `resolved` rule, exactly as row 1 sits above
+    row 3 here), which is what keeps `results.json` and `scheduler-state.json`
+    from disagreeing about the same trial.
     """
     if plugin_load_error is not None:
         return "errored", plugin_load_error
+    if rewards and verifier_reports_success(rewards):
+        return "resolved", None
     if exception_type is not None:
         category = infra_error_category(exception_type)
         return "errored", f"pier_exception:{category}:{exception_type}"
     if not rewards:
         return "errored", "missing_verifier_rewards"
-    if verifier_reports_success(rewards):
-        return "resolved", None
     if incompleteness_reason is not None:
         return "incomplete", incompleteness_reason
     return "unresolved", None

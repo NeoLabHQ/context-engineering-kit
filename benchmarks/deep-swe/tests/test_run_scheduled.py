@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Unit tests for `--mode scheduled`: the loop, the pacing, the triage, the bound.
+"""Unit tests for `--mode scheduled`: the loop, the pacing, the bookkeeping, the bound.
 
 WHAT THESE TESTS GUARD
 -----------------------
 This mode runs unattended for days, spending real money per trial, with
-nobody watching. Three of its properties are the ones that make that
+nobody watching. Four of its properties are the ones that make that
 tolerable, and every one of them is a *negative*, which is exactly the kind
 of property that rots silently:
 
@@ -15,6 +15,8 @@ of property that rots silently:
     cap, so the retry count is the only bound there is.
   * A collect.py or report.py failure never ends the run. Losing days of
     benchmarking because an HTML file could not be written would be absurd.
+  * Nor does a failure to append to the attempt log -- instrumentation must
+    never be able to outrank the thing it is instrumenting.
 
 NO TEST HERE SLEEPS
 --------------------
@@ -23,15 +25,15 @@ NO TEST HERE SLEEPS
 and advances a counter instead of blocking. That is what lets these tests
 assert "it waited 7200 seconds before retrying" in milliseconds -- and a
 suite that could not make that assertion would be leaving the whole pacing
-design unverified.
+design unverified. `FakeRunner` does the same for the two files the loop
+writes, so the attempt log's CONTENT is assertable without a filesystem.
 
-WHAT IS COVERED WITH REAL ARTIFACTS
-------------------------------------
-`RecordedTriageTests` runs the triage over the five real pier job directories
-committed under `runs/`. They are the only ground truth this repository has
-about what a claude transcript looks like, and they pin the property that
-matters most for the detection: over ~22 MB of recorded transcript from runs
-that all completed normally, the API-fault scan fires zero times.
+WHAT IS NOT HERE
+-----------------
+`triage.py`'s own rules. They used to be, and that is how two triage defects
+shipped -- see the "Triage's own rules are NOT tested here" comment below.
+`tests/test_triage.py` owns them now; everything here feeds the loop canned
+verdicts, because what the loop does with a verdict is this file's subject.
 """
 
 from __future__ import annotations
@@ -62,6 +64,22 @@ MODEL_OPUS = schedule.ScheduledModel(name="opus", orchestrator="opus", impl="opu
 SUCCESS = triage.Verdict(triage.SUCCESS, "resolved")
 MODEL_LOSS = triage.Verdict(triage.MODEL_FAILURE, "no_model_patch")
 TECHNICAL = triage.Verdict(triage.TECHNICAL_FAILURE, "api_fault:api_error_status=529")
+
+# A technical verdict carrying the evidence a real one carries -- the recorded
+# denial from `runs/do-in-steps__opus-opus__abs-stepped-slices`, line 2936 --
+# so the bookkeeping tests assert on the shape production actually writes.
+TECHNICAL_WITH_EVIDENCE = triage.Verdict(
+    triage.TECHNICAL_FAILURE,
+    "api_fault:rate_limit_status=rejected",
+    fault=triage.ApiFault(
+        slug="rate_limit_status=rejected",
+        severity=triage.SEVERITY_RATE_LIMIT_REJECTED,
+        line_number=2936,
+        event={"type": "rate_limit_event",
+               "rate_limit_info": {"status": "rejected", "rateLimitType": "five_hour"}},
+    ),
+    trial_dir=Path("runs/arm/trial-1"),
+)
 
 
 def planned(
@@ -119,16 +137,19 @@ class FakeRunner:
         completed: dict[str, scheduler.RunAttempt] | None = None,
         collect_results: list[str | None] | None = None,
         incomplete_trials: dict[str, dict[str, str]] | None = None,
+        append_failure: str | None = None,
     ) -> None:
         self.verdicts = {key: list(values) for key, values in (verdicts or {}).items()}
         self.default = default
         self.completed = completed or {}
         self.collect_results = list(collect_results or [])
         self.incomplete_trials = incomplete_trials or {}
+        self.append_failure = append_failure
 
         self.executed: list[str] = []
         self.completion_checks: list[str] = []
         self.collect_calls = 0
+        self.attempts_logged: list[dict] = []
         self.clock = FakeClock()
 
     def _execute(self, run: schedule.PlannedRun) -> scheduler.RunAttempt:
@@ -149,12 +170,22 @@ class FakeRunner:
             return None
         return self.collect_results.pop(0)
 
+    def _append_attempt(self, record: dict) -> str | None:
+        """Records instead of writing, so the log's CONTENT is assertable.
+
+        `append_failure` makes every append fail, which is how the tests prove
+        that a broken attempt log cannot end a schedule.
+        """
+        self.attempts_logged.append(record)
+        return self.append_failure
+
     @property
     def harness(self) -> scheduler.Harness:
         return scheduler.Harness(
             execute=self._execute,
             find_completed=self._find_completed,
             collect_and_report=self._collect_and_report,
+            append_attempt=self._append_attempt,
             sleep=self.clock.sleep,
             monotonic=self.clock.monotonic,
         )
@@ -692,266 +723,164 @@ class StateFileTests(SchedulerTestCase):
         self.drive([entry], runner)
         self.assertEqual(runner.executed, [scheduler.run_key(entry)])
 
+    def test_the_verdicts_evidence_is_recorded_alongside_its_reason(self) -> None:
+        # So `scheduler-state.json` alone answers "why?", instead of needing
+        # the triage re-run by hand over an 8 MB transcript.
+        entry = planned(TASK_LOW, MODEL_HAIKU, "do-in-steps")
+        runner = FakeRunner(default=TECHNICAL_WITH_EVIDENCE)
 
-# --------------------------------------------------------------------------
-# Triage: the pure rules
-# --------------------------------------------------------------------------
+        self.drive([entry], runner, max_technical_retries=0)
 
+        record = self.read_state()[scheduler.run_key(entry)]
+        self.assertEqual(record["trial_dir"], "runs/arm/trial-1")
+        self.assertEqual(record["api_fault"]["slug"], "rate_limit_status=rejected")
+        self.assertEqual(record["api_fault"]["line_number"], 2936)
 
-class VerdictRuleTests(unittest.TestCase):
-    """One test per branch of `triage.verdict_from_signals`."""
-
-    def judge(self, **overrides) -> triage.Verdict:
-        signals = {
-            "has_trial_result": True,
-            "exception_type": None,
-            "has_rewards": True,
-            "resolved": False,
-            "incompleteness_reason": None,
-            "api_fault": None,
-        }
-        signals.update(overrides)
-        return triage.verdict_from_signals(**signals)
-
-    def test_a_resolved_trial_is_a_success(self) -> None:
-        self.assertEqual(self.judge(resolved=True).outcome, triage.SUCCESS)
-
-    def test_an_unresolved_trial_is_a_model_failure(self) -> None:
-        verdict = self.judge()
-        self.assertEqual(verdict.outcome, triage.MODEL_FAILURE)
-        self.assertEqual(verdict.reason, "unresolved")
-
-    def test_an_incomplete_trial_is_a_model_failure_carrying_its_reason(self) -> None:
-        for reason in ("no_model_patch", "final_message_is_question"):
-            with self.subTest(reason=reason):
-                verdict = self.judge(incompleteness_reason=reason)
-                self.assertEqual(verdict.outcome, triage.MODEL_FAILURE)
-                self.assertEqual(verdict.reason, reason)
-
-    def test_a_missing_result_json_is_technical(self) -> None:
-        verdict = self.judge(has_trial_result=False)
-        self.assertEqual(verdict.outcome, triage.TECHNICAL_FAILURE)
-        self.assertEqual(verdict.reason, "no_trial_result")
-
-    def test_an_unscored_trial_is_technical(self) -> None:
-        # The grader produced nothing, so there is no measurement to keep.
-        self.assertEqual(self.judge(has_rewards=False).outcome, triage.TECHNICAL_FAILURE)
-
-    def test_infrastructure_exceptions_are_technical(self) -> None:
-        for exception_type in sorted(triage.TECHNICAL_EXCEPTION_TYPES):
-            with self.subTest(exception_type=exception_type):
-                verdict = self.judge(exception_type=exception_type)
-                self.assertEqual(verdict.outcome, triage.TECHNICAL_FAILURE)
-                self.assertIn(exception_type, verdict.reason)
-
-    def test_an_unknown_exception_type_is_technical_and_says_so(self) -> None:
-        verdict = self.judge(exception_type="SomeBrandNewError")
-        self.assertEqual(verdict.outcome, triage.TECHNICAL_FAILURE)
-        self.assertIn("unrecognised", verdict.reason)
-
-    def test_an_agent_timeout_is_the_model_running_out_of_clock(self) -> None:
-        verdict = self.judge(exception_type=triage.AGENT_TIMEOUT_EXCEPTION_TYPE)
-        self.assertEqual(verdict.outcome, triage.MODEL_FAILURE)
-        self.assertEqual(verdict.reason, "agent_timeout")
-
-    def test_an_agent_timeout_under_an_api_fault_is_technical_instead(self) -> None:
-        # An agent starved by a quota did not spend that clock thinking.
-        verdict = self.judge(
-            exception_type=triage.AGENT_TIMEOUT_EXCEPTION_TYPE, api_fault="rate_limit_status=blocked"
-        )
-        self.assertEqual(verdict.outcome, triage.TECHNICAL_FAILURE)
-
-    def test_an_unexplained_nonzero_exit_defaults_to_technical(self) -> None:
-        # The documented asymmetry: a bounded overspend beats a permanently
-        # biased data point. See triage.AMBIGUOUS_NONZERO_EXIT_REASON.
-        verdict = self.judge(exception_type=triage.AMBIGUOUS_EXCEPTION_TYPE)
-        self.assertEqual(verdict.outcome, triage.TECHNICAL_FAILURE)
-        self.assertEqual(verdict.reason, triage.AMBIGUOUS_NONZERO_EXIT_REASON)
-
-    def test_a_nonzero_exit_with_evidence_names_the_evidence(self) -> None:
-        verdict = self.judge(
-            exception_type=triage.AMBIGUOUS_EXCEPTION_TYPE, api_fault="api_error_status=529"
-        )
-        self.assertEqual(verdict.outcome, triage.TECHNICAL_FAILURE)
-        self.assertIn("529", verdict.reason)
-
-    def test_an_api_fault_rescues_a_clean_exit_that_produced_no_patch(self) -> None:
-        # The case pier's exit code misses entirely: a session truncated by a
-        # quota denial exits 0 and would otherwise be blamed on the model.
-        verdict = self.judge(incompleteness_reason="no_model_patch", api_fault="api_error_status=529")
-        self.assertEqual(verdict.outcome, triage.TECHNICAL_FAILURE)
-
-    def test_a_verified_success_outranks_transient_api_noise(self) -> None:
-        # Every recorded transcript carries rate-limit chatter and still
-        # finished; throwing away a solve over it would be pure waste.
-        verdict = self.judge(resolved=True, api_fault="api_error_status=529")
-        self.assertEqual(verdict.outcome, triage.SUCCESS)
+    def test_a_verdict_with_no_evidence_writes_no_evidence_keys(self) -> None:
+        # An absent key and a null one mean the same thing to every reader,
+        # and a file where most entries read `"api_fault": null` is noise.
+        entry = planned(TASK_LOW, MODEL_HAIKU, "do-in-steps")
+        self.drive([entry], FakeRunner(default=SUCCESS))
+        record = self.read_state()[scheduler.run_key(entry)]
+        self.assertNotIn("api_fault", record)
+        self.assertNotIn("trial_dir", record)
 
 
-class ApiFaultScanTests(unittest.TestCase):
-    """The transcript scan: what fires, and -- more importantly -- what does not."""
+class AttemptLogTests(SchedulerTestCase):
+    """The append-only per-attempt decision trail.
 
-    def scan(self, *events: dict) -> str | None:
-        return triage.api_fault_from_stream_lines(json.dumps(event) for event in events)
-
-    def test_a_clean_result_event_is_not_a_fault(self) -> None:
-        self.assertIsNone(
-            self.scan({"type": "result", "subtype": "success", "is_error": False,
-                       "terminal_reason": "completed", "api_error_status": None})
-        )
-
-    def test_a_populated_api_error_status_is_a_fault_naming_the_status(self) -> None:
-        fault = self.scan({"type": "result", "api_error_status": 529})
-        self.assertEqual(fault, "api_error_status=529")
-
-    def test_an_allowed_rate_limit_event_is_not_a_fault(self) -> None:
-        # The exact shape observed in all five recorded transcripts.
-        self.assertIsNone(
-            self.scan({"type": "rate_limit_event", "rate_limit_info": {
-                "status": "allowed", "rateLimitType": "five_hour",
-                "overageStatus": "rejected", "overageDisabledReason": "out_of_credits",
-                "isUsingOverage": False, "resetsAt": 1786819800}})
-        )
-
-    def test_a_non_allowed_rate_limit_status_is_a_fault(self) -> None:
-        fault = self.scan({"type": "rate_limit_event", "rate_limit_info": {"status": "blocked"}})
-        self.assertEqual(fault, "rate_limit_status=blocked")
-
-    def test_overage_status_rejected_is_deliberately_not_a_fault(self) -> None:
-        # It reads "rejected" in every recorded ALLOWED event. Keying on it
-        # would fail every run in this repository as a quota denial.
-        self.assertIsNone(
-            self.scan({"type": "rate_limit_event",
-                       "rate_limit_info": {"status": "allowed", "overageStatus": "rejected"}})
-        )
-
-    def test_the_number_529_in_ordinary_content_is_not_a_fault(self) -> None:
-        # 14-71 such substrings appear per recorded transcript, all benign.
-        self.assertIsNone(
-            self.scan({"type": "user", "message": {"content": [
-                {"type": "tool_result", "content": "529\\t\\treturn evalIndexAssignment(...)"}]},
-                "uuid": "0e966324-9529-4b50-9034-3389c980a856",
-                "timestamp": "2026-08-15T17:14:55.529Z"})
-        )
-
-    def test_unparseable_and_non_json_lines_are_skipped(self) -> None:
-        lines = ["", "not json at all", "{truncated", json.dumps({"type": "result", "api_error_status": 429})]
-        self.assertEqual(triage.api_fault_from_stream_lines(lines), "api_error_status=429")
-
-    def test_a_malformed_rate_limit_info_cannot_raise(self) -> None:
-        self.assertIsNone(self.scan({"type": "rate_limit_event", "rate_limit_info": "not a mapping"}))
-        self.assertIsNone(self.scan({"type": "rate_limit_event"}))
-
-    def test_the_first_fault_wins_and_the_scan_stops(self) -> None:
-        fault = self.scan(
-            {"type": "result", "api_error_status": 529},
-            {"type": "rate_limit_event", "rate_limit_info": {"status": "blocked"}},
-        )
-        self.assertEqual(fault, "api_error_status=529")
-
-    def test_an_empty_transcript_is_not_a_fault(self) -> None:
-        self.assertIsNone(triage.api_fault_from_stream_lines([]))
-
-
-# --------------------------------------------------------------------------
-# Triage against the real recorded artifacts
-# --------------------------------------------------------------------------
-
-
-class RecordedTriageTests(unittest.TestCase):
-    """The triage, run over the five real pier job directories under `runs/`.
-
-    These are the only recorded evidence this repository holds about what a
-    claude transcript actually contains. None of them is an example of a
-    technical failure -- every one ended with `exception_info: null` -- which
-    is precisely why the property worth pinning here is the *absence* of a
-    false positive across ~22 MB of transcript.
+    Its whole reason for existing is the attempts the state file overwrites:
+    a cell recorded `attempts: 3` says nothing about what the first two
+    attempts decided, and those are where an investigation starts.
     """
 
-    def job_dirs(self) -> list[Path]:
-        return sorted(path for path in RUNS_DIR.iterdir() if path.is_dir())
-
-    def test_there_are_recorded_runs_to_check(self) -> None:
-        # Guards every other test in this class against an empty runs/ tree.
-        self.assertGreaterEqual(len(self.job_dirs()), 5)
-
-    def test_no_recorded_transcript_trips_the_api_fault_scan(self) -> None:
-        for job_dir in self.job_dirs():
-            with self.subTest(job=job_dir.name):
-                trial_dir = triage.find_trial_dir(job_dir)
-                self.assertIsNotNone(trial_dir)
-                self.assertIsNone(triage.find_api_fault(trial_dir))
-
-    def test_no_recorded_run_is_triaged_as_a_technical_failure(self) -> None:
-        # All five recorded `result.json` files carry `exception_info: null`.
-        for job_dir in self.job_dirs():
-            with self.subTest(job=job_dir.name):
-                self.assertNotEqual(
-                    triage.triage_job_dir(job_dir).outcome, triage.TECHNICAL_FAILURE
-                )
-
-    def test_a_recorded_run_with_no_patch_is_a_model_failure(self) -> None:
-        verdict = triage.triage_job_dir(RUNS_DIR / "_preflight")
-        self.assertEqual(verdict.outcome, triage.MODEL_FAILURE)
-        self.assertEqual(verdict.reason, "no_model_patch")
-
-    def test_a_recorded_run_the_verifier_passed_is_a_success(self) -> None:
-        verdict = triage.triage_job_dir(RUNS_DIR / "do-in-steps__sonnet-sonnet__abs-stepped-slices")
-        self.assertEqual(verdict.outcome, triage.SUCCESS)
-        self.assertEqual(verdict.reason, "resolved")
-
-    def test_a_job_dir_with_no_trial_at_all_is_technical(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            verdict = triage.triage_job_dir(Path(tmp))
-        self.assertEqual(verdict.outcome, triage.TECHNICAL_FAILURE)
-        self.assertEqual(verdict.reason, "no_trial_result")
-
-
-class SyntheticExceptionInfoTriageTests(unittest.TestCase):
-    """Fix 6: `triage_job_dir`'s one line converting pier's recorded
-    `exception_info` into `verdict_from_signals`' `exception_type` argument
-    -- `exception_info.get("exception_type") if exception_info else None` --
-    is the most load-bearing artifact read in the whole triage, and every
-    real job dir under `runs/` happens to carry `exception_info: null` (see
-    `RecordedTriageTests` above), so that line has only ever run with a
-    falsy value. These stage a synthetic trial directory with a POPULATED
-    `exception_info` so the truthy branch is actually exercised.
-    """
-
-    def _job_dir_with_exception(self, tmp: str, *, exception_type: str) -> Path:
-        job_dir = Path(tmp)
-        trial_dir = job_dir / "trial-1"
-        trial_dir.mkdir()
-        (trial_dir / "result.json").write_text(
-            json.dumps(
-                {
-                    "exception_info": {"exception_type": exception_type},
-                    "verifier_result": None,
-                }
-            )
+    def test_one_record_is_appended_per_attempt_not_per_cell(self) -> None:
+        entry = planned(TASK_LOW, MODEL_HAIKU, "do-in-steps")
+        runner = FakeRunner(
+            verdicts={scheduler.run_key(entry): [TECHNICAL, TECHNICAL, MODEL_LOSS]}
         )
-        return job_dir
 
-    def test_a_populated_infrastructure_exception_type_is_a_technical_failure(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            job_dir = self._job_dir_with_exception(
-                tmp, exception_type="EnvironmentStartTimeoutError"
-            )
-            verdict = triage.triage_job_dir(job_dir)
-        self.assertEqual(verdict.outcome, triage.TECHNICAL_FAILURE)
-        self.assertEqual(verdict.reason, "pier_exception:EnvironmentStartTimeoutError")
+        self.drive([entry], runner)
 
-    def test_a_populated_agent_timeout_exception_type_is_a_model_failure(self) -> None:
-        # Proves the shell threads whatever exception_type it reads all the
-        # way through to `_verdict_for_exception`'s dispatch, not just to
-        # the technical branch every other case here happens to land on.
-        with tempfile.TemporaryDirectory() as tmp:
-            job_dir = self._job_dir_with_exception(
-                tmp, exception_type=triage.AGENT_TIMEOUT_EXCEPTION_TYPE
-            )
-            verdict = triage.triage_job_dir(job_dir)
-        self.assertEqual(verdict.outcome, triage.MODEL_FAILURE)
-        self.assertEqual(verdict.reason, "agent_timeout")
+        self.assertEqual([record["attempt"] for record in runner.attempts_logged], [1, 2, 3])
+        self.assertEqual(
+            [record["outcome"] for record in runner.attempts_logged],
+            [triage.TECHNICAL_FAILURE, triage.TECHNICAL_FAILURE, triage.MODEL_FAILURE],
+        )
+
+    def test_each_record_names_the_cell_the_arm_and_the_budget(self) -> None:
+        entry = planned(TASK_HIGH, MODEL_OPUS, "do-and-judge")
+        runner = FakeRunner()
+
+        self.drive([entry], runner, max_technical_retries=2)
+
+        record = runner.attempts_logged[0]
+        self.assertEqual(record["run_key"], scheduler.run_key(entry))
+        self.assertEqual(record["arm_id"], entry.arm_id)
+        self.assertEqual((record["attempt"], record["budget"]), (1, 3))
+        self.assertEqual(record["reason"], "resolved")
+        self.assertIn("recorded_at", record)
+
+    def test_the_backoff_paid_before_each_retry_is_recorded(self) -> None:
+        # Makes the wall-clock cost of a stuck cell readable off the log
+        # rather than inferred from timestamps.
+        entry = planned(TASK_LOW, MODEL_HAIKU, "do-in-steps")
+        runner = FakeRunner(default=TECHNICAL)
+
+        self.drive([entry], runner, backoff_seconds=7200)
+
+        self.assertEqual(
+            [record["slept_seconds"] for record in runner.attempts_logged], [0.0, 7200, 7200]
+        )
+
+    def test_the_fault_evidence_travels_into_the_log(self) -> None:
+        entry = planned(TASK_LOW, MODEL_HAIKU, "do-in-steps")
+        runner = FakeRunner(default=TECHNICAL_WITH_EVIDENCE)
+
+        self.drive([entry], runner, max_technical_retries=0)
+
+        fault = runner.attempts_logged[0]["api_fault"]
+        self.assertEqual(fault["slug"], "rate_limit_status=rejected")
+        self.assertEqual(fault["event"]["rate_limit_info"]["status"], "rejected")
+
+    def test_every_record_is_json_serialisable(self) -> None:
+        # The production writer json.dumps() these; a record it could not
+        # serialise would be a lost log line on every attempt.
+        entry = planned(TASK_LOW, MODEL_HAIKU, "do-in-steps")
+        runner = FakeRunner(default=TECHNICAL_WITH_EVIDENCE)
+        self.drive([entry], runner)
+        for record in runner.attempts_logged:
+            json.dumps(record)
+
+    def test_skipped_and_resumed_cells_log_nothing(self) -> None:
+        # Neither of them attempted anything, and an attempt log with
+        # non-attempts in it would misstate what a run cost.
+        skipped = planned(TASK_LOW, MODEL_HAIKU, "vanilla", skip_reason="deliberate")
+        resumed = planned(TASK_HIGH, MODEL_OPUS, "do-in-steps")
+        runner = FakeRunner(
+            completed={scheduler.run_key(resumed): scheduler.RunAttempt(SUCCESS)}
+        )
+
+        self.drive([skipped, resumed], runner)
+
+        self.assertEqual(runner.attempts_logged, [])
+
+    def test_a_failing_attempt_log_cannot_end_the_schedule(self) -> None:
+        # Instrumentation must never outrank the benchmark. Note this is NOT
+        # a collect/report failure and so does not reach the exit code.
+        entries = [planned(TASK_LOW, MODEL_HAIKU, "do-in-steps"),
+                   planned(TASK_HIGH, MODEL_OPUS, "do-in-steps")]
+        runner = FakeRunner(append_failure="disk full")
+
+        outcome = self.drive(entries, runner)
+
+        self.assertEqual(len(runner.executed), 2)
+        self.assertEqual(outcome.collect_failures, ())
+        self.assertEqual(len(outcome.with_disposition(scheduler.RAN)), 2)
+
+    def test_the_production_writer_appends_whole_lines(self) -> None:
+        path = scheduler.attempt_log_path_for(self.jobs_dir / "nested")
+
+        self.assertIsNone(scheduler.append_attempt_record(path, {"attempt": 1}))
+        self.assertIsNone(scheduler.append_attempt_record(path, {"attempt": 2}))
+
+        records = [json.loads(line) for line in path.read_text().splitlines()]
+        self.assertEqual(records, [{"attempt": 1}, {"attempt": 2}])
+
+    def test_the_production_writer_describes_a_failure_instead_of_raising(self) -> None:
+        # Same contract as `collect_and_report`: never an exception out of a
+        # side effect the loop cannot do anything about.
+        unwritable = self.jobs_dir / "a-file" / scheduler.ATTEMPT_LOG_FILENAME
+        (self.jobs_dir / "a-file").write_text("not a directory")
+
+        failure = scheduler.append_attempt_record(unwritable, {"attempt": 1})
+
+        self.assertIsNotNone(failure)
+        self.assertIn(str(unwritable), failure)
+
+    def test_an_unserialisable_record_is_described_rather_than_raised(self) -> None:
+        path = scheduler.attempt_log_path_for(self.jobs_dir)
+        failure = scheduler.append_attempt_record(path, {"event": object()})
+        self.assertIsNotNone(failure)
+
+
+# --------------------------------------------------------------------------
+# Triage's own rules are NOT tested here
+#
+# They used to be: four classes covering `verdict_from_signals`, the transcript
+# scan and the recorded job directories lived in this file, because it was the
+# first place that needed them. That arrangement is what let two triage
+# defects ship -- a file whose subject is the scheduling loop is not where
+# anyone looks to check a status vocabulary, and the loop tests all pass
+# canned verdicts, so they stayed green throughout. `tests/test_triage.py` now
+# owns every triage rule, directly and in one place; nothing about them is
+# asserted here, so the two files cannot contradict each other.
+#
+# What this file still covers about triage is the ONE thing that is genuinely
+# the loop's business: what the loop DOES with a verdict -- retry it, record
+# it, resume from it, log it, exit on it.
+# --------------------------------------------------------------------------
+
 
 
 # --------------------------------------------------------------------------

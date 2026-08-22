@@ -1,0 +1,7 @@
+# Every distinct rate-limit / api-error event shape recorded under runs/, in the
+# order a quota exhaustion actually produces them. See tests/fixtures/README.md.
+{"type":"rate_limit_event","rate_limit_info":{"status":"allowed","resetsAt":1787248800,"rateLimitType":"five_hour","overageStatus":"rejected","overageDisabledReason":"out_of_credits","isUsingOverage":false},"uuid":"f0681558-7cb9-47e1-9c32-0ce7d0074b55","session_id":"b799797f-197b-4880-8f74-a96b45045482"}
+{"type":"rate_limit_event","rate_limit_info":{"status":"allowed_warning","resetsAt":1787421600,"rateLimitType":"seven_day","utilization":0.77,"isUsingOverage":false,"surpassedThreshold":0.75},"uuid":"5cba975b-8b17-4e63-a6f4-0778b98edc35","session_id":"5987ee15-dd45-47b3-a90a-31ea4dd31bdd"}
+{"type":"rate_limit_event","rate_limit_info":{"status":"allowed_warning","resetsAt":1787349600,"rateLimitType":"five_hour","utilization":0.9,"isUsingOverage":false,"surpassedThreshold":0.9},"uuid":"5c92de36-28d6-4d08-8127-b5d6b26394d4","session_id":"5987ee15-dd45-47b3-a90a-31ea4dd31bdd"}
+{"type":"rate_limit_event","rate_limit_info":{"status":"rejected","resetsAt":1787349600,"rateLimitType":"five_hour","overageStatus":"rejected","overageDisabledReason":"out_of_credits","isUsingOverage":false},"uuid":"984f841b-54b0-4ed0-b39c-06677bcca4cc","session_id":"5987ee15-dd45-47b3-a90a-31ea4dd31bdd"}
+{"type": "result", "subtype": "success", "is_error": true, "api_error_status": 429, "terminal_reason": "api_error", "stop_reason": "stop_sequence", "num_turns": 20, "total_cost_usd": 68.04456400000001}
