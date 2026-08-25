@@ -147,6 +147,7 @@ import shutil
 import subprocess
 import sys
 from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -232,6 +233,8 @@ ORCHESTRATOR_MODEL_ID: dict[str, str] = {
 PLUGIN_DIR = Path(agent.CEK_INSTALL_DIR) / "plugins" / "sadd"
 
 # Env vars pier forwards into the `claude --print` process (its `--ae` flag).
+# The two constants and the function below produce `AGENT_ENV`, which
+# `build_pier_command` emits as one `--ae KEY=VALUE` pair per entry.
 #
 # CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS=0 -- "wait indefinitely" -- is load
 # bearing, not a tuning knob. In `--print` mode Claude Code keeps the session
@@ -248,9 +251,91 @@ PLUGIN_DIR = Path(agent.CEK_INSTALL_DIR) / "plugins" / "sadd"
 #
 # Zero disables the ceiling only; pier's own --agent-timeout-multiplier remains
 # the actual bound on a stalled trial, which is where that bound belongs.
-AGENT_ENV: dict[str, str] = {
+FIXED_AGENT_ENV: dict[str, str] = {
     "CLAUDE_CODE_PRINT_BG_WAIT_CEILING_MS": "0",
 }
+
+# Host vars forwarded into the container -- but only when the operator
+# actually exported them.
+#
+# `run_pier`'s `os.environ.copy()` carries these as far as pier's own process
+# and no further. The container env pier builds is a closed literal of the
+# credential vars it reads by name (`ClaudeCode.run()`,
+# pier/agents/installed/claude_code.py:1219-1229); none of these names is in
+# it, and pier has no wildcard pass-through. `--ae` is the only route the rest
+# of the way in -- for the third name below, the only route to a value pier
+# did not choose for us.
+#
+# ANTHROPIC_CUSTOM_HEADERS carries the extra headers a gateway demands (a
+# routing tenant id, a bearer token). API_TIMEOUT_MS raises Claude Code's
+# per-request timeout, which a gateway that queues or retries upstream can
+# otherwise blow through on the long turns a judged skill generates.
+#
+# CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC is the odd one out: pier sets it
+# itself, unconditionally, to "1" (`claude_code.py:1302`). Forwarding it is
+# still what gives the operator the final word, because `--ae` is applied
+# TWICE and the second application is downstream of that hardcode:
+#
+#   claude_code.py:1265  build_process_env -> env.update(self._extra_env)
+#   claude_code.py:1269  empty values dropped ("0" is non-empty, so it stays)
+#   claude_code.py:1302  env[...NONESSENTIAL...] = "1"   <-- clobbers our value
+#   claude_code.py:1336  exec_as_agent(env=env)
+#   base.py:320-323      _exec -> merged_env.update(self._extra_env)  <-- ours wins
+#
+# So `export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=0` reaches the container
+# as "0", and leaving it unset leaves pier's "1" untouched -- the default is
+# preserved by omission, exactly like the other two.
+#
+# WHY `--ae` RATHER THAN THE `exec_as_agent` HOOK
+# -----------------------------------------------
+# Both land after `:1302`, so both would work. `--ae` is chosen because this
+# is a SET, not the DELETE that forced `agent.py`'s hook into existence (see
+# `ClaudeCodeSadd.exec_as_agent`) -- and because `--ae` records the value in
+# the job's `config.json` and `lock.json`. For a telemetry flag that recording
+# is the point: whether a run phoned home is run provenance, and a reader of
+# `config.json` should be able to see it. That same recording is a liability
+# for ANTHROPIC_CUSTOM_HEADERS, which pier does not redact and which may carry
+# a bearer token -- documented in the README rather than fixed here, since the
+# alternative is a header the container never receives.
+FORWARDED_HOST_ENV: tuple[str, ...] = (
+    "ANTHROPIC_CUSTOM_HEADERS",
+    "API_TIMEOUT_MS",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC",
+)
+
+
+def agent_env_for_host(environ: Mapping[str, str]) -> dict[str, str]:
+    """`FIXED_AGENT_ENV`, plus whichever `FORWARDED_HOST_ENV` vars are set.
+
+    A var that is unset -- or set to blank, which is how a shell empties one
+    in place -- is left out entirely rather than emitted as `--ae KEY=`. Pier
+    would drop the empty value from the container env anyway
+    (`claude_code.py:1269`, "Remove empty auth credentials"), but the flag
+    itself still lands in the job's recorded `config.json`/`lock.json`,
+    documenting a setting nobody chose. Leaving it out is also what preserves
+    pier's own default for a name pier sets itself: no `--ae` pair means
+    nothing re-merges over `claude_code.py:1302`, so the container keeps
+    pier's `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC="1"`.
+
+    Surrounding whitespace is stripped, so the same padding that is ignored
+    when deciding whether the var is set is also absent from what gets
+    forwarded -- `export API_TIMEOUT_MS=' 600000 '` must not put a padded
+    value in the container or in the recorded config. Only the outer edges
+    are touched: `ANTHROPIC_CUSTOM_HEADERS` is newline-separated
+    `Name: Value` pairs, and `run_pier` hands argv to `subprocess.run`
+    without a shell, so interior newlines and spaces survive.
+    """
+    env = dict(FIXED_AGENT_ENV)
+    for name in FORWARDED_HOST_ENV:
+        value = environ.get(name, "").strip()
+        if value:
+            env[name] = value
+    return env
+
+
+# Resolved once, at import: `run.py` is a script, and the host env it was
+# launched with is the env every arm of that invocation runs under.
+AGENT_ENV: dict[str, str] = agent_env_for_host(os.environ)
 
 
 @dataclass(frozen=True)
@@ -478,14 +563,16 @@ def build_pier_command(
     dataset_args: list[str],
 ) -> list[str]:
     """Every flag here was checked against `pier run --help` on the installed
-    `datacurve_pier==0.3.0` (see task handoff notes for the verification
+    `datacurve_pier==0.3.1` (see task handoff notes for the verification
     transcript): --agent-import-path, -m, --ak, --ae, --agent-timeout-multiplier,
     --job-name, --jobs-dir, -p, -l, --sample-seed all exist with this exact
     spelling.
 
-    `--ae` is emitted for every arm, vanilla included: AGENT_ENV guards against
-    a Claude Code runtime behaviour (see its comment), not against anything the
-    sadd plugin does, so a vanilla control needs it just as much.
+    `--ae` is emitted for every arm, vanilla included: AGENT_ENV holds a Claude
+    Code runtime setting and the operator's own gateway variables (see its
+    comment), not anything the sadd plugin needs, so a vanilla control needs it
+    just as much. How many pairs appear depends on the host env -- see
+    `agent_env_for_host`.
     """
     cmd = [
         pier_bin,

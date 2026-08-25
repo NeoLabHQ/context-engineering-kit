@@ -6,20 +6,29 @@ not the plugin *agents* that ``sadd:do-and-judge`` and ``sadd:do-in-steps``
 dispatch to. `ClaudeCodeSadd` closes that gap with the smallest possible
 subclass: it teaches pier the `--plugin-dir` flag, checks out a pinned copy
 of this repo into the container so that path exists, and allowlists the
-domain the checkout needs. Everything else -- prompt rendering, trajectory
-parsing, container lifecycle -- stays exactly as `ClaudeCode` implements it.
+domain the checkout needs. Two further overrides correct upstream behaviour
+this benchmark cannot live with -- `exec_as_agent` (pier pins every model
+alias to the orchestrator's model behind a gateway base URL, erasing the
+implementation-tier axis) and `_parse_total_cost_from_stream_json` (pier reads
+only the first `result` event, understating any resumed session). Everything
+else -- prompt rendering, trajectory building, container lifecycle -- stays
+exactly as `ClaudeCode` implements it.
 
 Used via: `pier run --agent-import-path agent:ClaudeCodeSadd ...` with pier's
 working directory set to this file's directory (see run.py).
 """
 
+from typing import Any
+
 from pier.agents.installed.base import CliFlag
 from pier.agents.installed.claude_code import ClaudeCode
+from pier.environments.base import BaseEnvironment
 from pier.models.agent.install import AgentInstallSpec, InstallStep
 from pier.models.agent.network import NetworkAllowlist
 
-# The cost-parsing rule this class overrides pier's version with. Kept in a
-# pier-free module so it is testable without pier -- see its docstring.
+# The two rules this class overrides pier's behaviour with. Both kept in
+# pier-free modules so they are testable without pier -- see their docstrings.
+from model_alias_pins import without_gateway_alias_pins
 from stream_cost import parse_total_cost_from_stream_lines
 
 # Pinned to the `plugins/sadd` release this benchmark harness was built
@@ -81,6 +90,65 @@ class ClaudeCodeSadd(ClaudeCode):
         """Allow the CEK clone alongside whatever ClaudeCode already needs."""
         allowlist = super().network_allowlist()
         return NetworkAllowlist(domains=[*allowlist.domains, "github.com"])
+
+    async def exec_as_agent(
+        self,
+        environment: BaseEnvironment,
+        command: str,
+        env: dict[str, str] | None = None,
+        cwd: str | None = None,
+        timeout_sec: int | None = None,
+    ) -> Any:
+        """Run pier's command, minus its gateway model-alias pins.
+
+        Overrides `BaseInstalledAgent.exec_as_agent` (pier's
+        `agents/installed/base.py:377`) purely to filter `env` on the way
+        through; the command, the container and every other parameter are
+        forwarded untouched. What it counteracts, and why removing it silently
+        collapses `opus-sonnet` into `opus-opus`, is documented in
+        `model_alias_pins.without_gateway_alias_pins` -- a pier-free module so
+        the rule is testable under the default test command.
+
+        WHY THIS HOOK AND NOT `--ae`
+        -----------------------------
+        `run.py`'s `AGENT_ENV` can only ever SET a variable, and what is
+        needed here is for these four to be ABSENT, so that Claude Code falls
+        back to its own alias resolution. `--ae ANTHROPIC_DEFAULT_HAIKU_MODEL=`
+        would put an empty string in the container's environment instead --
+        not the same thing, and not something upstream documents a meaning
+        for. (Setting them to a value is not an option either at the point
+        `run.py` runs: `build_process_env` merges `--ae` at
+        `claude_code.py:1265`, above the pinning block at `:1290-1295`, and
+        `_exec` merges it again at `base.py:320-323`, below -- so an operator
+        who deliberately passes one of these four via `--ae` still wins, and
+        this filter will not fight them.)
+
+        That second merge is why this hook is not the only way to overrule
+        `run()`; it is only the way to overrule it by REMOVAL. Anything that
+        just needs a different VALUE than the one `run()` wrote -- including
+        `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC`, which `run()` hardcodes at
+        `claude_code.py:1302` -- goes through `run.py`'s `FORWARDED_HOST_ENV`
+        instead, and that constant's comment says why. Do not add such a
+        variable here.
+
+        `exec_as_agent` is the last hook a SUBCLASS controls on the way to the
+        container -- `_extra_env` still merges after it, which is the whole
+        point of the paragraph above; `claude_code.py:1336` and `:1341` are
+        its two callers, one per command `run()` issues.
+
+        `install()` routes its `user="agent"` steps through here too
+        (`base.py:406`), with each step's own small `env` (`None` for every
+        step this class or `ClaudeCode` declares). The filter is a no-op on
+        those: it acts only when `ANTHROPIC_BASE_URL` and `ANTHROPIC_MODEL`
+        are both present, which no install step's env has.
+        """
+        return await super().exec_as_agent(
+            environment,
+            command,
+            env=without_gateway_alias_pins(env),
+            cwd=cwd,
+            timeout_sec=timeout_sec,
+        )
 
     def _parse_total_cost_from_stream_json(self) -> float | None:
         """The stream's *total* cost, not the first `result` event's running total.

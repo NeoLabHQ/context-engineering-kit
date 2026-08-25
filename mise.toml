@@ -1,0 +1,15 @@
+[tools]
+python = "3.13"
+uv = "latest"
+
+[settings]
+python.uv_venv_auto = "create|source"
+
+[hooks]
+postinstall = "cd benchmarks/deep-swe && uv sync --dev"
+
+# mise run verify
+[tasks.verify]
+run = [
+    "cd benchmarks/deep-swe && uv run pytest tests/",
+]
