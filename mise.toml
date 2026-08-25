@@ -11,5 +11,5 @@ postinstall = "cd benchmarks/deep-swe && uv sync --dev"
 # mise run verify
 [tasks.verify]
 run = [
-    "cd benchmarks/deep-swe && uv run pytest tests/",
+    "cd benchmarks/deep-swe && uv run python3 -m unittest discover",
 ]

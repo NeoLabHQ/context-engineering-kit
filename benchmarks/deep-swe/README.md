@@ -348,7 +348,7 @@ Run it as a plain `python3 report.py`, not under `-O`/`PYTHONOPTIMIZE=1`: `rende
 ## Running the tests
 
 ```bash
-cd benchmarks/deep-swe && python3 -m unittest discover
+cd benchmarks/deep-swe && uv run python3 -m unittest discover
 ```
 
 (equivalently, from the repo root: `python3 -m unittest discover -s benchmarks/deep-swe`). No third-party install needed — the whole suite is stdlib `unittest` and runs in about a second. Missing an optional dependency fails nothing of its own; those tests skip instead, and none of them is a rule this harness decides anything by:
