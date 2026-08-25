@@ -14,15 +14,15 @@ are covered in `tests/test_agent_cost_parsing.py`.
 
 The recorded cost sequence is asserted against a committed, trimmed copy of the
 real stream's result events (`tests/fixtures/recorded-result-events.txt`, see
-that directory's README) so it holds even in a checkout without `runs/`, plus a
-drift check against the original when it is present.
+that directory's README) so it holds in any checkout: `runs/` is a gitignored
+recording, and the trial this fixture was trimmed from is no longer among the
+recordings in this tree, so the copy is now the only evidence of it there is.
 """
 
 from __future__ import annotations
 
 import json
 import unittest
-from pathlib import Path
 
 import stream_cost  # sys.path patched by tests/__init__.py
 
@@ -34,14 +34,6 @@ FIXTURE_PATH = BENCHMARK_DIR / "tests" / "fixtures" / "recorded-result-events.tx
 RECORDED_TOTAL_COST_USD = 26.53034819999999
 RECORDED_FIRST_EVENT_COST_USD = 0.39202004999999995
 RECORDED_N_RESULT_EVENTS = 22
-RECORDED_STREAM_PATH = (
-    BENCHMARK_DIR
-    / "runs"
-    / "do-in-steps__sonnet-sonnet"
-    / "cattrs-partial-structuring-recov__ZsbwRdJ"
-    / "agent"
-    / "claude-code.txt"
-)
 
 
 def result_line(total_cost_usd: object, **extra: object) -> str:
@@ -164,6 +156,20 @@ class SkippedLineTests(unittest.TestCase):
         self.assertEqual(stream_cost.parse_total_cost_from_stream_lines(lines), 7.5)
 
 
+def recorded_result_event_lines() -> list[str]:
+    """The fixture's `result` event lines, comment header stripped.
+
+    Module-level so `tests/test_agent_cost_parsing.py` can stage the same
+    recorded sequence as a real file for the I/O shell to read, rather than
+    keeping a second copy of how this fixture is parsed.
+    """
+    return [
+        line
+        for line in FIXTURE_PATH.read_text(encoding="utf-8").splitlines()
+        if line.startswith("{")
+    ]
+
+
 class RecordedStreamTests(unittest.TestCase):
     """The real regression, asserted against the committed trimmed fixture."""
 
@@ -201,16 +207,16 @@ class RecordedStreamTests(unittest.TestCase):
         self.assertEqual(max(costs), RECORDED_TOTAL_COST_USD)
         self.assertGreater(sum(costs), 10 * RECORDED_TOTAL_COST_USD)
 
-    @unittest.skipUnless(
-        RECORDED_STREAM_PATH.exists(), f"recorded stream not present at {RECORDED_STREAM_PATH}"
-    )
-    def test_the_fixture_still_matches_the_stream_it_was_trimmed_from(self) -> None:
-        # Drift check: the committed copy is only trustworthy while it agrees
-        # with the artifact it came from. Reads the 6 MB original line by line,
-        # never whole, exactly as the shell does.
-        with RECORDED_STREAM_PATH.open(encoding="utf-8", errors="replace") as stream_lines:
-            from_original = stream_cost.parse_total_cost_from_stream_lines(stream_lines)
-        self.assertEqual(from_original, RECORDED_TOTAL_COST_USD)
+    def test_the_rule_reads_the_fixture_the_way_the_shell_reads_a_stream(self) -> None:
+        # The fixture is not merely inspected field by field above -- it is
+        # fed to the real rule, line by line from an iterator, exactly as the
+        # I/O shell feeds it a file handle. That is the call the cost fix
+        # actually makes, so a rule that only worked on a materialised list
+        # would show up here.
+        self.assertEqual(
+            stream_cost.parse_total_cost_from_stream_lines(iter(self.fixture_lines())),
+            RECORDED_TOTAL_COST_USD,
+        )
 
 
 if __name__ == "__main__":

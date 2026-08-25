@@ -38,12 +38,23 @@ from tempfile import TemporaryDirectory
 import collect  # sys.path patched by tests/__init__.py
 import report
 
+from .collect_fixtures import write_runs_tree
+
 
 def collect_into(out_dir: Path) -> dict:
-    """Run the real collector over the committed `runs/` tree, returning its JSON."""
+    """Run the real collector over a staged jobs tree, returning its JSON.
+
+    The tree is built by `write_runs_tree` rather than read from `runs/`: what
+    this file tests is that a payload `collect.main` writes is one
+    `report.main` can read, and that is a property of the two schemas, not of
+    how many trials happen to be recorded. Reading the gitignored recording
+    would make this whole file skip in a fresh checkout -- for a guarantee
+    that has nothing to do with the recording.
+    """
+    runs_dir = write_runs_tree(out_dir / "runs")
     with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
         exit_code = collect.main(
-            ["--runs-dir", str(collect.SCRIPT_DIR / "runs"), "--out-dir", str(out_dir)]
+            ["--runs-dir", str(runs_dir), "--out-dir", str(out_dir)]
         )
     assert exit_code == 0, exit_code
     return json.loads((out_dir / "results.json").read_text())

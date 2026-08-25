@@ -17,8 +17,9 @@ The transcript fixtures below are the real `tool_use` part shape, taken from
 `runs/_preflight/abs-stepped-slices__HyQJyYy/agent/claude-code.txt`
 (5 `Agent` dispatches, whose `subagent_type` values are, in order,
 `sadd:meta-judge`, `general-purpose`, `sadd:judge`, `general-purpose`,
-`sadd:judge`). `test_recorded_preflight_transcript_shows_dispatch`
-re-checks the fixtures against that file directly whenever it is present.
+`sadd:judge`). That recording is gitignored, so `RecordedDispatchShapeTests`
+replays the sequence from those values rather than reading the file, and runs
+in every checkout instead of skipping wherever `runs/` is absent.
 """
 
 from __future__ import annotations
@@ -29,11 +30,6 @@ import unittest
 from pathlib import Path
 
 from .run_fixtures import run
-
-RECORDED_TRANSCRIPT = (
-    Path(run.__file__).resolve().parent
-    / "runs/_preflight/abs-stepped-slices__HyQJyYy/agent/claude-code.txt"
-)
 
 
 def tool_use_part(name: str, **tool_input: object) -> dict:
@@ -184,19 +180,45 @@ class MalformedTranscriptTests(unittest.TestCase):
             self.assertTrue(run.has_subagent_dispatch(stream_log))
 
 
-class RecordedTranscriptTests(unittest.TestCase):
-    """Grounds the fixtures above against the transcript they were read from.
+class RecordedDispatchShapeTests(unittest.TestCase):
+    """The recorded dispatch sequence, replayed through the predicate.
 
-    Skipped where `runs/` is absent (a fresh checkout, or CI) -- the fixture
-    tests above stand alone; this one exists so a shape drifting away from
-    reality is caught wherever the recording is available.
+    This used to open the transcript under `runs/` directly and skip when it
+    was absent. The five dispatches it found there are written out below
+    instead -- same tool name, same `subagent_type` values, same order -- so
+    the shape a real preflight produced is checked in every checkout rather
+    than only where the gitignored recording happens to be.
     """
 
-    @unittest.skipUnless(
-        RECORDED_TRANSCRIPT.exists(), f"no recorded transcript at {RECORDED_TRANSCRIPT}"
-    )
-    def test_recorded_preflight_transcript_shows_dispatch(self) -> None:
-        self.assertTrue(run.has_subagent_dispatch(RECORDED_TRANSCRIPT))
+    # The five `Agent` dispatches from
+    # `runs/_preflight/abs-stepped-slices__HyQJyYy`, in the order the
+    # transcript recorded them.
+    RECORDED_SUBAGENT_TYPES = [
+        "sadd:meta-judge",
+        "general-purpose",
+        "sadd:judge",
+        "general-purpose",
+        "sadd:judge",
+    ]
+
+    def test_the_recorded_dispatch_sequence_is_detected(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            stream_log = Path(tmp) / "claude-code.txt"
+            stream_log.write_text(
+                "\n".join(
+                    json.dumps(
+                        assistant_event(
+                            tool_use_part(
+                                "Agent",
+                                subagent_type=subagent_type,
+                                prompt="do the thing",
+                            )
+                        )
+                    )
+                    for subagent_type in self.RECORDED_SUBAGENT_TYPES
+                )
+            )
+            self.assertTrue(run.has_subagent_dispatch(stream_log))
 
 
 if __name__ == "__main__":

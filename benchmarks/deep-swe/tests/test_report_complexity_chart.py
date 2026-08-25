@@ -31,13 +31,11 @@ Two independent decisions, and conflating them was the bug this file's
 
 from __future__ import annotations
 
-import json
 import unittest
 from typing import Any
 
 import report  # sys.path patched by tests/__init__.py
 
-from . import BENCHMARK_DIR
 from .report_fixtures import make_cell, make_measured
 
 SCHEDULE: dict[str, Any] = {
@@ -237,13 +235,23 @@ class ConnectorRuleTests(unittest.TestCase):
         series = report.build_complexity_series(cells, SCHEDULE)[0]
         self.assertFalse(report.series_has_connector(series))
 
-    def test_the_real_results_do_join_up_their_one_adjacent_pair(self) -> None:
-        # sonnet/do-in-steps is measured at low and at medium -- adjacent
-        # ranks, so the chart draws the line the brief asked for, dashed
-        # because both points are single trials.
-        results = json.loads((BENCHMARK_DIR / "results.json").read_text())
-        series = report.build_complexity_series(results["cells"], results["schedule"])
+    def test_only_the_series_with_adjacent_measurements_is_joined_up(self) -> None:
+        # Whether a connector is drawn is a property of ONE series' own
+        # points, so a chart built from several must join up exactly those
+        # that earned it and leave the rest alone. The mixed case is the one
+        # worth pinning: a builder that drew a line per series, or none at
+        # all, would still pass the single-series tests above.
+        cells = [
+            # Adjacent ranks under one (model, skill) -- earns a connector,
+            # dashed because both points are single trials.
+            measured_cell("task-low", 0, "sonnet", "do-in-steps"),
+            measured_cell("task-med", 1, "sonnet", "do-in-steps", n_resolved=0, pass_at_1=0.0),
+            # A lone point under another -- nothing to connect it to.
+            measured_cell("task-low", 0, "haiku", "do-and-judge"),
+        ]
+        series = report.build_complexity_series(cells, SCHEDULE)
         connected = [s for s in series if report.series_has_connector(s)]
+
         self.assertEqual([(s.model, s.skill) for s in connected], [("sonnet", "do-in-steps")])
         self.assertEqual(report.series_connector_style(connected[0]), report.CONNECTOR_PROVISIONAL)
 

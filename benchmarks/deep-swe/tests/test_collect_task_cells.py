@@ -34,7 +34,7 @@ from typing import get_args
 import collect  # sys.path patched by tests/__init__.py
 import schedule
 
-from .collect_fixtures import make_trial
+from .collect_fixtures import make_trial, write_runs_tree
 
 # The committed schedule, loaded once: every test below reads its complexity
 # labels and skip reasons from here rather than restating them.
@@ -395,30 +395,41 @@ class DeliberateSkipTests(unittest.TestCase):
         # measured-but-since-skipped cell never loses it.
         self.assertEqual(cell.schedule_skip_reason, cell.absence.reason)
 
-    def test_sonnet_on_the_high_task_is_skipped_under_every_skill(self) -> None:
+    def test_sonnet_on_the_high_task_is_skipped_only_where_declared(self) -> None:
+        # The committed rule names `skills: [vanilla]`, and the scope is the
+        # claim: an unrun cell is `deliberately_skipped` only where a rule
+        # actually covers it, and `not_yet_run` everywhere else. Collapsing
+        # the two would tell a reader the sweep decided against a measurement
+        # it merely has not taken yet.
         cells = cell_index(build())
-        for skill in SCHEDULE.skills:
+
+        vanilla = cells[(HIGH_TASK, "sonnet", "vanilla")]
+        self.assertEqual(vanilla.state, "deliberately_skipped")
+        self.assertIn("Too complex for sonnet", vanilla.absence.reason)
+
+        for skill in ("do-and-judge", "do-in-steps"):
             with self.subTest(skill=skill):
                 cell = cells[(HIGH_TASK, "sonnet", skill)]
-                self.assertEqual(cell.state, "deliberately_skipped")
-                self.assertIn("Too complex for sonnet", cell.absence.reason)
+                self.assertEqual(cell.state, "not_yet_run")
+                self.assertIsNone(cell.schedule_skip_reason)
 
     def test_a_skip_reason_is_recorded_even_when_the_cell_was_measured(self) -> None:
         # Evidence beats declaration for `state` -- but the declaration must
         # still be visible, or the report would silently drop the operator's
-        # stated intent for a cell that was run anyway.
+        # stated intent for a cell that was run anyway. Uses the vanilla cell,
+        # the one the committed rule actually covers.
         trials = [
             make_trial(
                 "resolved",
-                arm_id="do-in-steps__sonnet-sonnet",
-                skill="do-in-steps",
+                arm_id="vanilla__sonnet",
+                skill=None,
                 orchestrator="sonnet",
                 impl="sonnet",
                 task_name="datacurve/kombu-single-active-consumer-priority",
                 trial_id="kombu-single-active-consumer-pri__x",
             )
         ]
-        cell = cell_index(build(trials))[(HIGH_TASK, "sonnet", "do-in-steps")]
+        cell = cell_index(build(trials))[(HIGH_TASK, "sonnet", "vanilla")]
         self.assertEqual(cell.state, "measured")
         self.assertIsNone(cell.absence)
         self.assertIn("Too complex for sonnet", cell.schedule_skip_reason)
@@ -710,59 +721,87 @@ class UnscheduledTaskTests(unittest.TestCase):
         self.assertIsNone(ranks[-1])
 
 
-class RealRunsDirectoryTests(unittest.TestCase):
-    """Against the committed `runs/` tree, not a fixture.
+class CollectedJobsTreeTests(unittest.TestCase):
+    """Cell-building over a whole jobs tree read off disk, not over hand-built
+    `TrialRecord`s.
 
-    The recorded data is deliberately thin -- 5 trials, no vanilla arm, no
-    kombu run at all -- so almost every cell is empty. That sparsity is the
-    interesting case, and a fixture rich enough to be convenient would never
-    exercise it.
+    Everything above hands `build_task_cells` records built in memory. This
+    class runs the step before it too -- `collect_trial_records` walking a
+    real directory layout -- so the seam between what the collector reads and
+    what the cell builder places is exercised rather than assumed.
+
+    The tree is built by `write_runs_tree` rather than read from `runs/`: the
+    recording is gitignored and unreproducible, so asserting against it means
+    either skipping in a fresh checkout or pinning figures that move whenever
+    another trial is recorded. What matters here is the SPARSITY -- three
+    trials against a 45-cell schedule, no kombu run at all, one task the
+    schedule never declared -- and that is a property of the fixture's shape,
+    which is stated here deliberately instead of being inherited by accident.
     """
 
     @classmethod
     def setUpClass(cls) -> None:
-        runs_dir = collect.SCRIPT_DIR / "runs"
-        if not runs_dir.is_dir():
-            raise unittest.SkipTest("no recorded runs/ tree in this checkout")
+        cls._tmp = tempfile.TemporaryDirectory()
+        runs_dir = write_runs_tree(Path(cls._tmp.name) / "runs")
         cls.trials = collect.collect_trial_records(runs_dir)
         cls.cells = collect.build_task_cells(
             SCHEDULE, cls.trials, scheduler_state=collect.load_scheduler_state(runs_dir)
         )
 
-    def test_every_recorded_trial_lands_in_exactly_one_cell(self) -> None:
+    @classmethod
+    def tearDownClass(cls) -> None:
+        cls._tmp.cleanup()
+
+    def test_every_collected_trial_lands_in_exactly_one_cell(self) -> None:
         placed = [trial_id for cell in self.cells for trial_id in cell.trial_ids]
         self.assertEqual(sorted(placed), sorted(trial.trial_id for trial in self.trials))
         self.assertEqual(len(placed), len(set(placed)))  # never double-counted
 
     def test_the_sparse_matrix_is_mostly_honest_absence(self) -> None:
         measured = [cell for cell in self.cells if cell.state == "measured"]
-        self.assertTrue(measured, "expected at least one measured cell in runs/")
+        self.assertTrue(measured, "expected at least one measured cell")
         self.assertLess(len(measured), len(self.cells) / 2)
         for cell in self.cells:
             if cell.state != "measured":
                 with self.subTest(cell=(cell.task, cell.model, cell.skill)):
                     self.assertIsNone(cell.measured)
 
-    def test_the_absent_kombu_row_is_never_a_row_of_zeros(self) -> None:
+    def test_the_unrun_high_task_row_is_never_a_row_of_zeros(self) -> None:
+        # The load-bearing absence: a task nothing ran must not produce a row
+        # of measured zeros, which a chart would draw as a capability claim.
         kombu = [cell for cell in self.cells if cell.task == HIGH_TASK]
         self.assertEqual(len(kombu), len(SCHEDULE.models) * len(SCHEDULE.skills))
         self.assertEqual({cell.state for cell in kombu} & {"measured"}, set())
 
-    def test_no_measured_cell_here_carries_a_single_attempt_interval(self) -> None:
+    def test_a_single_attempt_cell_carries_no_interval(self) -> None:
         # The synthetic fixtures in `SingleTrialIntervalTests` state the rule;
-        # this is where it was actually violated. `schedule.yaml` plans one
-        # trial per cell, so every measured cell in this tree is the n=1 case.
-        for cell in self.cells:
-            if cell.state != "measured" or cell.measured.n_attempts >= 2:
-                continue
+        # this is where it was actually violated, on cells that came off disk.
+        single_trial_cells = [
+            cell
+            for cell in self.cells
+            if cell.state == "measured" and cell.measured.n_attempts < 2
+        ]
+        self.assertTrue(single_trial_cells, "fixture has no n=1 cell to check")
+        for cell in single_trial_cells:
             with self.subTest(cell=(cell.task, cell.model, cell.skill)):
                 self.assertTrue(cell.measured.is_single_trial)
                 self.assertIsNone(cell.measured.pass_at_1_ci_low)
                 self.assertIsNone(cell.measured.pass_at_1_ci_high)
 
-    def test_the_unscheduled_bandit_trial_is_not_silently_dropped(self) -> None:
-        tasks = {cell.task for cell in self.cells}
-        self.assertIn("bandit-incremental-cache-control", tasks)
+    def test_a_collected_solve_and_loss_reach_the_cells_they_belong_to(self) -> None:
+        # Placement is by (task, model, skill), and the two arms in the tree
+        # differ in all three, so a builder that mixed them up would show here.
+        cells = cell_index(self.cells)
+
+        solved = cells[(LOW_TASK, "sonnet", "do-in-steps")]
+        self.assertEqual(solved.state, "measured")
+        self.assertEqual(solved.measured.n_resolved, 1)
+        self.assertEqual(solved.measured.pass_at_1, 1.0)
+
+        lost = cells[(LOW_TASK, "sonnet", "vanilla")]
+        self.assertEqual(lost.state, "measured")
+        self.assertEqual(lost.measured.n_resolved, 0)
+        self.assertEqual(lost.measured.pass_at_1, 0.0)
 
 
 class SchedulerStateLoadingTests(unittest.TestCase):

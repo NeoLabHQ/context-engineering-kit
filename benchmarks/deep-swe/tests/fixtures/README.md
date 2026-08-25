@@ -72,3 +72,61 @@ worst-fault-wins ordering **unconditionally**, in a checkout where `runs/` (a
 gitignored recorded artifact) is absent. The same test file additionally
 re-triages the original job directories when they *are* present, so this copy
 cannot silently drift from the runs it was read from.
+
+## `recorded-final-messages.txt`
+
+The closing region of every trial's final `{"type":"result"}` message, one JSON
+object per line, from every recording that was under `runs/` when this file was
+generated. Fields:
+
+| Field | What it is |
+|---|---|
+| `trial` | the `<job-dir>/<trial-dir>` key the message was read from |
+| `has_model_patch` | whether that trial left a non-empty `artifacts/model.patch` |
+| `closing_region` | the **last 5 lines** of the final message, verbatim |
+| `ends_in_question` | `collect.message_ends_in_question`'s answer for the FULL message |
+
+Nothing is paraphrased — `closing_region` is byte-for-byte its source's tail.
+Only the tail is stored because the whole corpus is 72 KB of prose and the rule
+this exists to test (`last_prose_line` → `message_ends_in_question`) reads only
+the closing line; the generator asserts the trimmed copy gets the same verdict
+as the full message for every trial, so the trim cannot change an answer.
+
+It exists so `tests/test_collect_completion_gate.py`'s `RecordedFinalMessageTests`
+can run the question heuristic over real agent prose **unconditionally**. That
+matters more here than for the fixtures above: the heuristic is fuzzy, and its
+expensive error is the false positive — branding a finished trial abandoned.
+The 23 recordings span the shapes that make that hard (bolded status lines
+ending in a full stop, bulleted follow-up notes, a session-limit banner, prose
+carrying backticked paths and parentheses) and exactly one real abandonment,
+which no amount of invented test data would have supplied.
+`tests/test_readme_claims.py` reads the same file to check the transcript line
+the README quotes is verbatim.
+
+Regenerate (from `benchmarks/deep-swe/`, in a tree that has `runs/`) with:
+
+```bash
+python3 - <<'EOF'
+import json, sys
+sys.path.insert(0, ".")
+import collect
+from pathlib import Path
+
+out = Path("tests/fixtures/recorded-final-messages.txt")
+header = [line for line in out.read_text().splitlines() if line.startswith("#")]
+records = []
+for result_path in sorted(Path("runs").glob("*/*/result.json")):
+    trial_dir = result_path.parent
+    message = collect.find_stream_log_final_message(trial_dir) or ""
+    region = "\n".join(message.splitlines()[-5:])
+    # The trim must not change the rule's answer.
+    assert collect.message_ends_in_question(region) == collect.message_ends_in_question(message)
+    records.append(json.dumps({
+        "trial": f"{trial_dir.parent.name}/{trial_dir.name}",
+        "has_model_patch": collect.trial_has_model_patch(trial_dir),
+        "closing_region": region,
+        "ends_in_question": collect.message_ends_in_question(message),
+    }))
+out.write_text("\n".join(header + records) + "\n", encoding="utf-8")
+EOF
+```

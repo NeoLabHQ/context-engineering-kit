@@ -113,8 +113,13 @@ class CommittedScheduleFileTests(unittest.TestCase):
             },
         )
 
-    def test_both_durations_are_two_hours(self) -> None:
-        self.assertEqual(self.schedule.between_runs_seconds, 2 * 60 * 60)
+    def test_both_durations_are_declared_as_whole_positive_hours(self) -> None:
+        # The committed file's own pacing, re-measured rather than restated:
+        # it declares `between_runs: 1h` and `technical_failure_backoff: 2h`.
+        # Pinned as exact seconds so a hand-edit that drops a suffix (`2` =
+        # two SECONDS, a valid document that would pace a multi-day sweep at
+        # machine speed) fails here rather than on the benchmark night.
+        self.assertEqual(self.schedule.between_runs_seconds, 1 * 60 * 60)
         self.assertEqual(self.schedule.technical_failure_backoff_seconds, 2 * 60 * 60)
 
     def test_the_two_durations_are_independent_knobs(self) -> None:
@@ -137,14 +142,118 @@ class CommittedScheduleFileTests(unittest.TestCase):
             self.assertTrue(rule.reason.strip())
 
 
-class CommittedScheduleExpansionTests(unittest.TestCase):
-    """The arithmetic of the committed schedule: 3 tasks x 5 models x 3 skills
-    = 45 planned runs, 12 of them skipped, 33 runnable.
+class SkipArithmeticTests(unittest.TestCase):
+    """The expansion arithmetic itself, on a document built to state it.
 
-    The 12 come from three skip rules whose model selectors are disjoint, so
-    they simply add up: haiku-at-vanilla over 3 tasks (3), sonnet on the
-    kombu task over 3 skills (3), and the two mixed pairs at vanilla over 3
-    tasks (2 x 3 = 6).
+    The rule under test is that `expand_schedule` walks the full cartesian
+    product and marks -- never drops -- the cells the skip rules claim, so
+    `skipped + runnable` is always the whole matrix. That is a property of
+    the code, so it is pinned on a constructed document whose expected counts
+    follow from its own declared shape, rather than on `schedule.yaml`, whose
+    numbers move whenever an operator edits the sweep.
+    """
+
+    def document(self, *skips: dict) -> dict:
+        """A 2-task x 2-model x 2-skill matrix (4... 8 cells) plus `skips`."""
+        return {
+            "models": [
+                {"name": "haiku", "orchestrator": "haiku", "impl": "haiku"},
+                {"name": "opus-sonnet", "orchestrator": "opus", "impl": "sonnet"},
+            ],
+            "skills": ["vanilla", "do-and-judge"],
+            "duration": {"between_runs": "2h", "technical_failure_backoff": "30m"},
+            "tasks": [
+                {"name": "task-low", "complexity": "low"},
+                {"name": "task-high", "complexity": "high"},
+            ],
+            "skips": list(skips),
+        }
+
+    def test_the_matrix_is_the_cartesian_product_of_what_is_declared(self) -> None:
+        runs = schedule.expand_schedule(parse(self.document()))
+        self.assertEqual(len(runs), 2 * 2 * 2)
+        keys = [(r.task.name, r.model.name, r.skill) for r in runs]
+        self.assertEqual(len(set(keys)), len(keys))
+
+    def test_a_skipped_cell_is_marked_rather_than_dropped(self) -> None:
+        # The load-bearing half: the report draws a skipped cell as "not run,
+        # because X", which it cannot do for a cell that left the expansion.
+        runs = schedule.expand_schedule(
+            parse(self.document({"reason": "one rule", "models": ["haiku"], "skills": ["vanilla"]}))
+        )
+        skipped = [r for r in runs if r.skipped]
+        runnable = [r for r in runs if not r.skipped]
+
+        # One model x one skill x both tasks = 2 cells.
+        self.assertEqual(len(skipped), 2)
+        self.assertEqual(len(skipped) + len(runnable), len(runs))
+        self.assertEqual(
+            {(r.task.name, r.model.name, r.skill) for r in skipped},
+            {("task-low", "haiku", "vanilla"), ("task-high", "haiku", "vanilla")},
+        )
+
+    def test_disjoint_rules_claim_disjoint_cells_and_simply_add_up(self) -> None:
+        # Why the committed file's skip total can be read as a sum at all: two
+        # rules whose selectors do not overlap claim two disjoint sets, so the
+        # counts add. Overlapping rules would make a stated total silently
+        # wrong instead of visibly wrong.
+        document = self.document(
+            {"reason": "haiku at vanilla", "models": ["haiku"], "skills": ["vanilla"]},
+            {"reason": "mixed pair at vanilla", "models": ["opus-sonnet"], "skills": ["vanilla"]},
+        )
+        parsed = parse(document)
+        runs = schedule.expand_schedule(parsed)
+
+        claimed = [
+            {
+                (r.task.name, r.model.name, r.skill)
+                for r in runs
+                if rule.matches(r.task, r.model, r.skill)
+            }
+            for rule in parsed.skip_rules
+        ]
+        self.assertEqual([len(cells) for cells in claimed], [2, 2])
+        self.assertEqual(claimed[0] & claimed[1], set())
+        self.assertEqual(len([r for r in runs if r.skipped]), 2 + 2)
+
+    def test_overlapping_rules_are_counted_once_not_twice(self) -> None:
+        # The case the additivity above is NOT safe for, pinned so the two are
+        # never confused: a cell claimed by both rules is one skipped cell.
+        document = self.document(
+            {"reason": "all of vanilla", "skills": ["vanilla"]},
+            {"reason": "all of haiku", "models": ["haiku"]},
+        )
+        runs = schedule.expand_schedule(parse(document))
+        skipped = {(r.task.name, r.model.name, r.skill) for r in runs if r.skipped}
+
+        # vanilla (4 cells) | haiku (4 cells), overlapping in 2.
+        self.assertEqual(len(skipped), 6)
+        self.assertEqual(len([r for r in runs if r.skipped]), 6)
+
+    def test_the_first_matching_rule_supplies_the_reason(self) -> None:
+        # Order matters where rules overlap, and the report prints whichever
+        # reason is chosen -- so which one wins is a rule, not an accident.
+        document = self.document(
+            {"reason": "first rule wins", "skills": ["vanilla"]},
+            {"reason": "second rule loses", "models": ["haiku"]},
+        )
+        runs = schedule.expand_schedule(parse(document))
+        contested = next(
+            r for r in runs if r.model.name == "haiku" and r.skill == "vanilla"
+        )
+        self.assertEqual(contested.skip_reason, "first rule wins")
+
+
+class CommittedScheduleExpansionTests(unittest.TestCase):
+    """The committed `schedule.yaml`, expanded.
+
+    `SkipArithmeticTests` above pins the expansion RULE on a document built to
+    state it. What is pinned here is the committed sweep itself -- that it
+    still expands to a full matrix, that every skipped cell carries a usable
+    reason, and that the specific exclusions the sweep was designed around are
+    still in force. The skip TOTAL is re-derived from the rules rather than
+    restated, so editing the sweep does not require editing a magic number
+    here -- while a rule that silently stops matching anything still fails.
     """
 
     def setUp(self) -> None:
@@ -152,38 +261,48 @@ class CommittedScheduleExpansionTests(unittest.TestCase):
         self.runs = schedule.expand_schedule(self.schedule)
 
     def test_full_matrix_is_the_cartesian_product(self) -> None:
-        self.assertEqual(len(self.runs), 3 * 5 * 3)
+        self.assertEqual(
+            len(self.runs),
+            len(self.schedule.tasks) * len(self.schedule.models) * len(self.schedule.skills),
+        )
         self.assertEqual(len(self.runs), 45)
 
     def test_every_combination_appears_exactly_once(self) -> None:
         keys = [(r.task.name, r.model.name, r.skill) for r in self.runs]
         self.assertEqual(len(set(keys)), len(keys))
 
-    def test_twelve_skipped_thirty_three_runnable(self) -> None:
+    def test_the_skipped_and_runnable_halves_account_for_every_cell(self) -> None:
         skipped = [r for r in self.runs if r.skipped]
         runnable = [r for r in self.runs if not r.skipped]
-        self.assertEqual(len(skipped), 3 + 3 + 6)
-        self.assertEqual(len(skipped), 12)
-        self.assertEqual(len(runnable), 33)
-        self.assertEqual(len(skipped) + len(runnable), 45)
+        self.assertEqual(len(skipped) + len(runnable), len(self.runs))
+        # Neither half may collapse: an all-skipped sweep measures nothing,
+        # and a no-skip sweep means the exclusions stopped matching.
+        self.assertTrue(skipped)
+        self.assertTrue(runnable)
 
-    def test_the_three_skip_rules_are_disjoint(self) -> None:
-        # The 3 + 3 + 6 arithmetic above is only additive because no cell is
-        # claimed by two rules. Their model selectors do not overlap today;
-        # this asserts it rather than trusting it, because overlapping rules
-        # would make the counts silently wrong instead of visibly wrong.
-        claimed = [
-            {
+    def test_the_skipped_total_is_the_union_of_what_the_rules_claim(self) -> None:
+        # Re-derived from the rules, not restated: this is the check that
+        # catches a rule whose selectors no longer match the cell it names
+        # (which reads as a quietly wider sweep, not as an error).
+        claimed = set()
+        for rule in self.schedule.skip_rules:
+            claimed |= {
                 (r.task.name, r.model.name, r.skill)
                 for r in self.runs
                 if rule.matches(r.task, r.model, r.skill)
             }
-            for rule in self.schedule.skip_rules
-        ]
-        self.assertEqual([len(cells) for cells in claimed], [3, 3, 6])
-        for first in range(len(claimed)):
-            for second in range(first + 1, len(claimed)):
-                self.assertEqual(claimed[first] & claimed[second], set())
+        actual = {(r.task.name, r.model.name, r.skill) for r in self.runs if r.skipped}
+        self.assertEqual(actual, claimed)
+
+    def test_every_declared_skip_rule_still_claims_at_least_one_cell(self) -> None:
+        # A rule matching nothing is the failure mode a bare total hides: the
+        # sweep silently widens by however many cells that rule used to hold.
+        for rule in self.schedule.skip_rules:
+            with self.subTest(reason=rule.reason[:40]):
+                claimed = [
+                    r for r in self.runs if rule.matches(r.task, r.model, r.skill)
+                ]
+                self.assertTrue(claimed, "skip rule matches no cell in the matrix")
 
     def test_haiku_vanilla_is_skipped_for_all_three_tasks(self) -> None:
         skipped = {
@@ -194,14 +313,24 @@ class CommittedScheduleExpansionTests(unittest.TestCase):
                      "abs-stepped-slices"):
             self.assertIn((task, "haiku", "vanilla"), skipped)
 
-    def test_kombu_on_sonnet_is_skipped_across_all_skills(self) -> None:
-        skipped = {
-            (r.task.name, r.model.name, r.skill) for r in self.runs if r.skipped
+    def test_kombu_on_sonnet_is_skipped_at_vanilla_but_runs_under_the_skills(
+        self,
+    ) -> None:
+        # The committed rule is scoped to `skills: [vanilla]`, and that scope
+        # IS the claim: the sweep excludes sonnet from the high task only
+        # where it has no plugin orchestration to lean on, and still measures
+        # it under both plugin skills -- which is the comparison the high task
+        # was put in the sweep to produce. A rule that quietly widened to all
+        # three skills would delete that comparison, so both halves are
+        # pinned here rather than just the exclusion.
+        by_state = {
+            (r.task.name, r.model.name, r.skill): r.skipped for r in self.runs
         }
-        for skill in ("vanilla", "do-and-judge", "do-in-steps"):
-            self.assertIn(
-                ("kombu-single-active-consumer-priority", "sonnet", skill), skipped
-            )
+        high_task = "kombu-single-active-consumer-priority"
+        self.assertTrue(by_state[(high_task, "sonnet", "vanilla")])
+        for skill in ("do-and-judge", "do-in-steps"):
+            with self.subTest(skill=skill):
+                self.assertFalse(by_state[(high_task, "sonnet", skill)])
 
     def test_mixed_model_pairs_are_skipped_at_vanilla_for_all_three_tasks(
         self,
@@ -227,27 +356,23 @@ class CommittedScheduleExpansionTests(unittest.TestCase):
             for skill in ("do-and-judge", "do-in-steps"):
                 self.assertIn(("abs-stepped-slices", model, skill), runnable)
 
-    def test_the_skipped_set_is_exactly_those_twelve(self) -> None:
-        all_tasks = (
-            "kombu-single-active-consumer-priority",
-            "cattrs-partial-structuring-recovery",
-            "abs-stepped-slices",
+    def test_every_skipped_cell_is_a_vanilla_cell(self) -> None:
+        # The shape all three committed rules share, and the one an operator
+        # would notice breaking: every deliberate exclusion in this sweep is
+        # about the absence of plugin orchestration. A skip landing on a
+        # plugin arm would be deleting a measurement the sweep exists to take,
+        # so it has to be stated deliberately rather than arrived at.
+        skipped_skills = {r.skill for r in self.runs if r.skipped}
+        self.assertEqual(skipped_skills, {"vanilla"})
+
+    def test_no_model_is_excluded_from_the_sweep_entirely(self) -> None:
+        # The other way a skip edit goes wrong: widening a rule until a model
+        # has no runnable cell left. That model then vanishes from the report
+        # with no absence reason attached to anything a reader would look at.
+        runnable_models = {r.model.name for r in self.runs if not r.skipped}
+        self.assertEqual(
+            runnable_models, {model.name for model in self.schedule.models}
         )
-        expected = {
-            (task, "haiku", "vanilla") for task in all_tasks
-        } | {
-            ("kombu-single-active-consumer-priority", "sonnet", skill)
-            for skill in ("vanilla", "do-and-judge", "do-in-steps")
-        } | {
-            (task, model, "vanilla")
-            for task in all_tasks
-            for model in ("sonnet-haiku", "opus-sonnet")
-        }
-        actual = {
-            (r.task.name, r.model.name, r.skill) for r in self.runs if r.skipped
-        }
-        self.assertEqual(actual, expected)
-        self.assertEqual(len(expected), 12)
 
     def test_every_skipped_run_carries_a_nonempty_reason(self) -> None:
         for planned in self.runs:

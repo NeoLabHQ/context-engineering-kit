@@ -25,11 +25,21 @@ NO `pier`, NO `runs/`
 ----------------------
 `triage.py` imports only stdlib plus `collect.py`, and that is deliberate (see
 `.claude/rules/pure-core-for-third-party-dependent-logic.md`): a rule whose
-tests skip is a rule with no tests. So everything in this file except
-`RecordedTriageTests` runs in any checkout, off plain values and the committed
-`tests/fixtures/recorded-rate-limit-events.txt`. `RecordedTriageTests` is the
-one class that needs the gitignored `runs/` tree and skips without it, matching
-`tests/test_readme_claims.py` and `tests/test_collect_completion_gate.py`.
+tests skip is a rule with no tests. Every test in this file runs in any
+checkout, off plain values, staged temp directories, and the committed
+`tests/fixtures/recorded-rate-limit-events.txt` -- which holds the real event
+shapes both defects above turned on, verbatim, so the evidence survives
+without the gitignored `runs/` tree the events were read from.
+
+What is deliberately NOT here is any assertion about how the recordings that
+happen to be under `runs/` currently triage -- how many of them carry a fault,
+or which ones. That is a fact about a growing pile of artifacts rather than
+about a rule: recording one more trial changes the answer without changing any
+behaviour, and the check fails (or, worse, passes vacuously) for reasons the
+triage has nothing to do with. The rules those assertions were reaching for --
+worst-fault-wins, `allowed_warning` being a notice rather than a denial, and
+`reward == 1` outranking a tail exception -- are each pinned directly below,
+on inputs chosen to state them.
 """
 
 from __future__ import annotations
@@ -43,14 +53,7 @@ import triage
 
 from . import BENCHMARK_DIR
 
-RUNS_DIR = BENCHMARK_DIR / "runs"
 RATE_LIMIT_FIXTURE = BENCHMARK_DIR / "tests" / "fixtures" / "recorded-rate-limit-events.txt"
-
-# The two recorded job directories this module's two shipped defects were found
-# in. Both are `abs-stepped-slices` under opus/opus, and they fail in opposite
-# directions, which is why both are named here rather than only the dramatic one.
-CLEAN_BUT_UNRESOLVED_JOB = "do-and-judge__opus-opus__abs-stepped-slices"
-SOLVED_THEN_KILLED_JOB = "do-in-steps__opus-opus__abs-stepped-slices"
 
 
 def fixture_lines() -> list[str]:
@@ -667,111 +670,6 @@ class SyntheticExceptionInfoTriageTests(unittest.TestCase):
             verdict = triage.triage_job_dir(Path(tmp))
         self.assertEqual(verdict.outcome, triage.SUCCESS)
         self.assertEqual(verdict.reason, "resolved")
-
-
-# --------------------------------------------------------------------------
-# Triage against the real recorded artifacts
-# --------------------------------------------------------------------------
-
-
-@unittest.skipUnless(RUNS_DIR.exists(), f"recorded runs not present at {RUNS_DIR}")
-class RecordedTriageTests(unittest.TestCase):
-    """The triage, run over the real pier job directories under `runs/`.
-
-    These are the only recorded evidence this repository holds about what a
-    claude transcript actually contains, and they are also what caught both
-    defects this module shipped. Every assertion here is a fact about the
-    committed artifacts, re-derived rather than restated -- so a future
-    recording that genuinely does contain a technical failure fails this class
-    loudly instead of being absorbed.
-    """
-
-    def job_dirs(self) -> list[Path]:
-        return sorted(path for path in RUNS_DIR.iterdir() if path.is_dir())
-
-    def test_there_are_recorded_runs_to_check(self) -> None:
-        # Guards every other test in this class against an empty runs/ tree.
-        self.assertGreaterEqual(len(self.job_dirs()), 5)
-
-    def test_every_recorded_run_produced_a_trial_to_judge(self) -> None:
-        for job_dir in self.job_dirs():
-            with self.subTest(job=job_dir.name):
-                self.assertIsNotNone(triage.find_trial_dir(job_dir))
-
-    def test_no_recorded_run_is_triaged_as_a_technical_failure(self) -> None:
-        # The property that used to be false for four of these job dirs, and
-        # is the whole point of the `allowed_warning` fix: every recorded run
-        # either solved its task or lost it, and none of them is "no data".
-        for job_dir in self.job_dirs():
-            with self.subTest(job=job_dir.name):
-                verdict = triage.triage_job_dir(job_dir)
-                self.assertNotEqual(verdict.outcome, triage.TECHNICAL_FAILURE, str(verdict))
-
-    def test_only_one_recorded_transcript_trips_the_api_fault_scan(self) -> None:
-        tripped = {
-            job_dir.name
-            for job_dir in self.job_dirs()
-            if triage.find_api_fault(triage.find_trial_dir(job_dir)) is not None
-        }
-        self.assertEqual(tripped, {SOLVED_THEN_KILLED_JOB})
-
-    def test_the_one_real_fault_is_the_denial_not_the_notice_before_it(self) -> None:
-        # Worst-fault-wins over 2,900 lines of real transcript. First-wins
-        # reported `allowed_warning` from line 6 instead.
-        fault = triage.find_api_fault(triage.find_trial_dir(RUNS_DIR / SOLVED_THEN_KILLED_JOB))
-        self.assertEqual(fault.slug, "rate_limit_status=rejected")
-        self.assertEqual(fault.line_number, 2936)
-        self.assertEqual(fault.event["rate_limit_info"]["overageDisabledReason"], "out_of_credits")
-
-    def test_the_solved_but_killed_run_is_recorded_as_the_success_it_is(self) -> None:
-        # reward 1, f2p 1.0, a 131 KB patch -- and NonZeroAgentExitCodeError
-        # from the 429 that killed claude on its way out. Triaging this
-        # technical discarded a verified solve and paid for it three times.
-        verdict = triage.triage_job_dir(RUNS_DIR / SOLVED_THEN_KILLED_JOB)
-        self.assertEqual(verdict.outcome, triage.SUCCESS)
-        self.assertEqual(verdict.reason, "resolved")
-
-    def test_a_clean_run_the_verifier_failed_is_an_honest_model_failure(self) -> None:
-        # The other defect, and the quieter one: this trial has
-        # `exception_info: null`, one clean `result` event, a 70 KB patch and
-        # f2p 5/6 -- an unambiguous, fairly-earned loss. The only thing in its
-        # 2,300-line transcript that ever made it "technical" was a single
-        # `allowed_warning` utilization notice.
-        verdict = triage.triage_job_dir(RUNS_DIR / CLEAN_BUT_UNRESOLVED_JOB)
-        self.assertEqual(verdict.outcome, triage.MODEL_FAILURE)
-        self.assertEqual(verdict.reason, "unresolved")
-
-    def test_a_recorded_run_with_no_patch_is_a_model_failure(self) -> None:
-        verdict = triage.triage_job_dir(RUNS_DIR / "_preflight")
-        self.assertEqual(verdict.outcome, triage.MODEL_FAILURE)
-        self.assertEqual(verdict.reason, "no_model_patch")
-
-    def test_a_recorded_run_the_verifier_passed_is_a_success(self) -> None:
-        verdict = triage.triage_job_dir(RUNS_DIR / "do-in-steps__sonnet-sonnet__abs-stepped-slices")
-        self.assertEqual(verdict.outcome, triage.SUCCESS)
-        self.assertEqual(verdict.reason, "resolved")
-
-    def test_the_committed_fixture_still_matches_the_runs_it_was_read_from(self) -> None:
-        """The fixture cannot silently drift from its source.
-
-        Same guarantee `tests/test_stream_cost.py` gives its own fixture: the
-        vocabulary tests above run unconditionally off the copy, so something
-        has to check the copy is still the truth when the originals are here.
-        """
-        recorded = {
-            json.loads(line.strip())["rate_limit_info"]["status"]
-            for job_dir in self.job_dirs()
-            for line in (triage.find_trial_dir(job_dir) / "agent" / "claude-code.txt").open(
-                encoding="utf-8", errors="replace"
-            )
-            if line.strip().startswith('{"type":"rate_limit_event"')
-        }
-        fixture = {
-            json.loads(line)["rate_limit_info"]["status"]
-            for line in fixture_lines()
-            if line.startswith("{") and json.loads(line)["type"] == "rate_limit_event"
-        }
-        self.assertEqual(fixture, recorded)
 
 
 if __name__ == "__main__":

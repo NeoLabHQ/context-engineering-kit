@@ -51,10 +51,10 @@ import schedule
 import scheduler
 import triage
 
+from .collect_fixtures import RESOLVED_REWARDS, write_runs_tree, write_trial_result
 from .run_fixtures import run
 
 BENCHMARK_DIR = Path(__file__).resolve().parent.parent
-RUNS_DIR = BENCHMARK_DIR / "runs"
 
 TASK_LOW = schedule.ScheduledTask(name="task-low", complexity="low")
 TASK_HIGH = schedule.ScheduledTask(name="task-high", complexity="high")
@@ -1032,23 +1032,44 @@ class CollectAndReportSubprocessTests(unittest.TestCase):
     Everything else in this file substitutes this step, so these are the only
     tests that would catch a mistyped flag or a script that cannot start --
     and that mistake would surface on night one of a multi-day run, after the
-    first trial, with nobody watching. Writes into a scratch directory so the
-    committed `results.json`/`report.html` are untouched.
+    first trial, with nobody watching.
+
+    Both the input tree and the output directory are scratch: the jobs
+    directory is built by `write_runs_tree` rather than read from `runs/`, so
+    this runs in a fresh checkout, and the committed `results.json`/
+    `report.html` are untouched either way.
     """
 
     def setUp(self) -> None:
         self._tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self._tmp.cleanup)
-        self.out_dir = Path(self._tmp.name)
+        self.out_dir = Path(self._tmp.name) / "out"
+        self.out_dir.mkdir()
+        self.runs_dir = write_runs_tree(Path(self._tmp.name) / "runs")
 
-    def test_both_steps_succeed_against_the_recorded_runs(self) -> None:
+    def test_both_steps_succeed_against_a_collectable_jobs_tree(self) -> None:
         with quiet_subprocesses():
-            failure = run.run_collect_and_report(RUNS_DIR, out_dir=self.out_dir)
+            failure = run.run_collect_and_report(self.runs_dir, out_dir=self.out_dir)
 
         self.assertIsNone(failure)
         for produced in ("results.json", "results.csv", "report.html"):
             with self.subTest(file=produced):
                 self.assertTrue((self.out_dir / produced).is_file())
+
+    def test_the_report_carries_the_trials_that_were_collected(self) -> None:
+        # Not merely "a file appeared": a wiring mistake that pointed collect
+        # at the wrong directory would still write all three files, from zero
+        # trials. This pins that the trials in the tree reached the output.
+        with quiet_subprocesses():
+            failure = run.run_collect_and_report(self.runs_dir, out_dir=self.out_dir)
+
+        self.assertIsNone(failure)
+        results = json.loads((self.out_dir / "results.json").read_text())
+        self.assertEqual(len(results["trials"]), 3)
+        self.assertEqual(
+            {arm["arm_id"] for arm in results["arms"]},
+            {"do-in-steps__sonnet-sonnet", "vanilla__sonnet"},
+        )
 
     def test_a_failing_step_is_described_rather_than_raised(self) -> None:
         # An unwritable out-dir makes collect.py fail; the scheduler must get
@@ -1056,75 +1077,148 @@ class CollectAndReportSubprocessTests(unittest.TestCase):
         unwritable = self.out_dir / "results.json"
         unwritable.write_text("{}")  # a FILE where collect.py needs a directory
         with quiet_subprocesses():
-            failure = run.run_collect_and_report(RUNS_DIR, out_dir=unwritable)
+            failure = run.run_collect_and_report(self.runs_dir, out_dir=unwritable)
 
         self.assertIsInstance(failure, str)
         self.assertIn("collect.py", failure)
 
 
+SKIP_REASON = "no implementer tier exists for a vanilla arm to serve"
+
+
 class PreviewTests(unittest.TestCase):
-    """`--dry-run`'s output: order, skips with reasons, pacing, and what is done."""
+    """`--dry-run`'s output: order, skips with reasons, pacing, and what is done.
+
+    Built on a constructed 4-cell plan rather than the committed
+    `schedule.yaml`. What is under test is how `preview_schedule` RENDERS a
+    plan -- one line per cell, the reason on a skip, the still-to-run count
+    falling as cells settle -- and none of that is a fact about how many
+    trials the sweep currently declares. Against the real file, every
+    assertion here would have to restate a total that moves whenever an
+    operator edits the sweep, which is drift wearing the costume of coverage.
+
+    The plan is deliberately small enough that each expected count can be read
+    off the fixture: 3 runnable cells and 1 skipped one.
+    """
+
+    BETWEEN_RUNS_SECONDS = 7200
+    BACKOFF_SECONDS = 1800
 
     def setUp(self) -> None:
-        self.declared = schedule.load_schedule(schedule.DEFAULT_SCHEDULE_PATH)
-        self.plan = schedule.expand_schedule(self.declared)
+        self.skipped = planned(TASK_HIGH, MODEL_HAIKU, "vanilla", skip_reason=SKIP_REASON)
+        self.plan = [
+            planned(TASK_LOW, MODEL_HAIKU, "do-in-steps"),
+            planned(TASK_LOW, MODEL_OPUS, "do-in-steps"),
+            planned(TASK_HIGH, MODEL_OPUS, "do-in-steps"),
+            self.skipped,
+        ]
+        self.runnable = [entry for entry in self.plan if not entry.skipped]
 
-    def preview(self, state: dict | None = None) -> list[str]:
+    def preview(self, **kwargs) -> list[str]:
         return scheduler.preview_schedule(
             self.plan,
-            between_runs_seconds=self.declared.between_runs_seconds,
-            backoff_seconds=self.declared.technical_failure_backoff_seconds,
-            state=state,
+            between_runs_seconds=self.BETWEEN_RUNS_SECONDS,
+            backoff_seconds=self.BACKOFF_SECONDS,
+            **kwargs,
         )
 
     def test_every_planned_cell_gets_a_line_plus_two_summary_lines(self) -> None:
         self.assertEqual(len(self.preview()), len(self.plan) + 2)
 
     def test_skipped_cells_carry_their_reason(self) -> None:
+        # A skipped cell is shown WITH its reason, because "not run" alone
+        # reads to the operator as a gap rather than as a decision.
         skip_lines = [line for line in self.preview() if "SKIP" in line]
-        self.assertEqual(len(skip_lines), 12)
-        for line in skip_lines:
-            self.assertGreater(len(line.split("--")[-1].strip()), 20)
+        self.assertEqual(len(skip_lines), 1)
+        self.assertIn(SKIP_REASON, skip_lines[0])
 
     def test_the_pacing_line_states_the_declared_gap_and_the_total(self) -> None:
         pacing = next(line for line in self.preview() if "pacing:" in line)
-        self.assertIn("7200s between runs", pacing)
-        self.assertIn("33 still to run", pacing)
+        self.assertIn(f"{self.BETWEEN_RUNS_SECONDS}s between runs", pacing)
+        self.assertIn(f"{len(self.runnable)} still to run", pacing)
+
+    def test_the_pacing_line_quotes_the_gap_it_was_given(self) -> None:
+        # The gap is echoed, not hardcoded: a preview that always printed the
+        # same number would agree with the test above and lie to the operator.
+        pacing = next(
+            line
+            for line in scheduler.preview_schedule(
+                self.plan, between_runs_seconds=900, backoff_seconds=self.BACKOFF_SECONDS
+            )
+            if "pacing:" in line
+        )
+        self.assertIn("900s between runs", pacing)
 
     def test_the_retry_line_states_the_bound_on_total_executions(self) -> None:
         retries = next(line for line in self.preview() if "retries:" in line)
-        self.assertIn(f"at most {33 * (1 + scheduler.MAX_TECHNICAL_RETRIES)} executions", retries)
+        expected = len(self.runnable) * (1 + scheduler.MAX_TECHNICAL_RETRIES)
+        self.assertIn(f"at most {expected} executions", retries)
 
     def test_cells_already_complete_on_disk_are_shown_as_done_too(self) -> None:
         # The preview must consult BOTH resumption sources the run consults,
         # or it reports a schedule length the run will not honour.
-        first = next(entry for entry in self.plan if not entry.skipped)
-        lines = scheduler.preview_schedule(
-            self.plan,
-            between_runs_seconds=self.declared.between_runs_seconds,
-            backoff_seconds=self.declared.technical_failure_backoff_seconds,
-            already_done=lambda entry: "success (resolved)" if entry is first else None,
+        first = self.runnable[0]
+        lines = self.preview(
+            already_done=lambda entry: "success (resolved)" if entry is first else None
         )
         self.assertTrue(any("DONE" in line and "resolved" in line for line in lines))
-        self.assertIn("32 still to run", next(line for line in lines if "pacing:" in line))
-
-    def test_the_real_recorded_runs_are_previewed_as_done(self) -> None:
-        # End-to-end against `runs/`: two committed job directories cover
-        # cells of the committed schedule, and the preview must say so.
-        args = argparse.Namespace(jobs_dir=RUNS_DIR, dataset_dir=BENCHMARK_DIR / "data")
-        done = [
-            entry
-            for entry in self.plan
-            if not entry.skipped and run.describe_completed(entry, args) is not None
-        ]
-        self.assertGreaterEqual(len(done), 1)
+        self.assertIn(
+            f"{len(self.runnable) - 1} still to run",
+            next(line for line in lines if "pacing:" in line),
+        )
 
     def test_settled_cells_are_shown_as_done_and_drop_out_of_the_count(self) -> None:
-        first = next(entry for entry in self.plan if not entry.skipped)
+        first = self.runnable[0]
         state = {scheduler.run_key(first): {"outcome": triage.MODEL_FAILURE, "reason": "unresolved"}}
-        lines = self.preview(state)
+        lines = self.preview(state=state)
         self.assertTrue(any("DONE" in line and "will not re-run" in line for line in lines))
-        self.assertIn("32 still to run", next(line for line in lines if "pacing:" in line))
+        self.assertIn(
+            f"{len(self.runnable) - 1} still to run",
+            next(line for line in lines if "pacing:" in line),
+        )
+
+    def test_a_finished_job_directory_is_described_as_done(self) -> None:
+        # `describe_completed` is the preview's read-only half: it reads the
+        # artifacts a previous invocation left and reports how that cell would
+        # be scored. Staged on disk at the exact path `scheduled_job_dir`
+        # derives, so this exercises the real lookup rather than a stub.
+        entry = self.runnable[0]
+        with tempfile.TemporaryDirectory() as tmp:
+            args = argparse.Namespace(
+                jobs_dir=Path(tmp), dataset_dir=BENCHMARK_DIR / "data"
+            )
+            job_dir = run.scheduled_job_dir(args, entry)
+            job_dir.mkdir(parents=True)
+            write_trial_result(
+                job_dir,
+                trial_id="trial-1",
+                task_name=entry.task.name,
+                rewards=RESOLVED_REWARDS,
+            )
+            # The JOB-level result.json pier writes once every trial is done.
+            # `finished_at` being set is what marks the arm complete; without
+            # it the cell reads as started-but-interrupted, i.e. still to run.
+            (job_dir / "result.json").write_text(
+                json.dumps({"finished_at": "2026-01-01T00:30:00+00:00"})
+            )
+
+            self.assertIn("resolved", run.describe_completed(entry, args))
+            # A cell with nothing on disk must still be reported as work to do.
+            self.assertIsNone(run.describe_completed(self.runnable[1], args))
+
+    def test_an_unsettled_cell_stays_in_the_count(self) -> None:
+        # The complement of the two tests above: a technical failure is NOT
+        # settled, so it must still be counted as work remaining. Without
+        # this, a preview that dropped every stateful cell would pass both.
+        first = self.runnable[0]
+        state = {
+            scheduler.run_key(first): {
+                "outcome": triage.TECHNICAL_FAILURE,
+                "reason": "api_fault:api_error_status=529",
+            }
+        }
+        pacing = next(line for line in self.preview(state=state) if "pacing:" in line)
+        self.assertIn(f"{len(self.runnable)} still to run", pacing)
 
 
 if __name__ == "__main__":

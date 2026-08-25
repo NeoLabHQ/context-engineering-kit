@@ -41,9 +41,9 @@ from pathlib import Path
 import collect  # sys.path patched by tests/__init__.py
 
 from . import BENCHMARK_DIR
+from .test_collect_completion_gate import recorded_final_messages
 
 README_PATH = BENCHMARK_DIR / "README.md"
-RUNS_DIR = BENCHMARK_DIR / "runs"
 
 
 def readme() -> str:
@@ -55,37 +55,6 @@ def readme_section(heading: str) -> str:
     body = readme().split(f"### {heading}", 1)
     assert len(body) == 2, f"README has no '### {heading}' section"
     return body[1].split("\n### ", 1)[0]
-
-
-def recorded_trial_costs() -> dict[str, tuple[int, float, float, float | None]]:
-    """Per recorded trial: (n result events, first cost, last cost, cost pier recorded).
-
-    Derived from the artifacts themselves -- the stream for the events, the
-    trial's `result.json` for what pier wrote down -- so these tests compare the
-    README against data rather than against another copy of the README.
-    """
-    measured: dict[str, tuple[int, float, float, float | None]] = {}
-    for result_path in sorted(RUNS_DIR.glob("*/*/result.json")):
-        trial_dir = result_path.parent
-        costs = [
-            event["total_cost_usd"]
-            for event in collect.iter_stream_events(
-                trial_dir / "agent" / "claude-code.txt"
-            )
-            if event.get("type") == "result" and event.get("total_cost_usd") is not None
-        ]
-        if not costs:
-            continue
-        recorded = (
-            json.loads(result_path.read_text()).get("agent_result") or {}
-        ).get("cost_usd")
-        measured[f"{trial_dir.parent.name}/{trial_dir.name}"] = (
-            len(costs),
-            costs[0],
-            costs[-1],
-            recorded,
-        )
-    return measured
 
 
 def error_reasons_the_code_produces() -> set[str]:
@@ -160,13 +129,13 @@ class SupersededDisclaimerTests(unittest.TestCase):
 
     def test_the_one_trial_per_recorded_job_claim_is_true(self) -> None:
         # The narrowed disclaimer's factual basis: no multi-task run exists.
-        if not RUNS_DIR.exists():
-            self.skipTest(f"recorded runs not present at {RUNS_DIR}")
+        # Re-derived from the committed corpus of recorded trials, whose keys
+        # are `<job-dir>/<trial-dir>` -- one entry per recorded trial. If any
+        # job had held two, two entries would share a job-dir prefix.
         self.assertIn("hold exactly one trial each", readme())
-        for job_dir in sorted(p for p in RUNS_DIR.iterdir() if p.is_dir()):
-            with self.subTest(job=job_dir.name):
-                trials = list(job_dir.glob("*/result.json"))
-                self.assertEqual(len(trials), 1)
+        job_dirs = [record["trial"].split("/")[0] for record in recorded_final_messages()]
+        self.assertTrue(job_dirs, "corpus lists no recorded trials")
+        self.assertEqual(len(job_dirs), len(set(job_dirs)))
 
     def test_no_superseded_blanket_disclaimer_remains(self) -> None:
         text = readme()
@@ -184,127 +153,169 @@ class SupersededDisclaimerTests(unittest.TestCase):
         self.assertIn("recorded under `runs/`", section)
 
 
-@unittest.skipUnless(RUNS_DIR.exists(), f"recorded runs not present at {RUNS_DIR}")
 class MeasuredCostClaimTests(unittest.TestCase):
-    """Defect 1: the cost table and the generalization drawn from it."""
+    """Defect 1: the cost table and the generalization drawn from it.
 
-    # Each README row, as (README label, events, first, last, understatement).
-    # `None` understatement means the row claims the recorded cost was correct.
-    TABLE_ROWS = {
-        "do-in-steps__sonnet-sonnet/cattrs-partial-structuring-recov__ZsbwRdJ": (22, 0.392, 26.530, 68),
-        "_preflight-do-in-steps/cattrs-partial-structuring-recov__9ryVMmH": (11, 0.140, 1.804, 13),
-        "_preflight/abs-stepped-slices__HyQJyYy": (1, 1.865, 1.865, None),
-    }
+    WHAT MOVED, AND WHY
+    --------------------
+    This class used to re-derive each cost-table row from the artifacts under
+    `runs/` and compare them. That comparison could not survive being detached
+    from `runs/`: its whole content was "the README's figures equal these
+    particular recordings' figures", and without the recordings there is
+    nothing left to compare against -- a version of it built on constructed
+    fixtures would be asserting that a number the fixture states matches a
+    number the README states, which is a tautology dressed as a measurement.
 
-    def test_every_table_row_matches_the_artifacts(self) -> None:
-        measured = recorded_trial_costs()
-        self.assertEqual(sorted(measured), sorted(self.TABLE_ROWS))
+    So the artifact half is gone, and with it the guarantee that the three
+    quoted dollar figures still match the streams they were read from. That
+    was a documentation-accuracy check against unreproducible measurements,
+    not a unit test, and it had already stopped holding: the trial the top row
+    names is no longer among the recordings in this tree.
 
-        for trial, (events, first, last, understatement) in self.TABLE_ROWS.items():
-            with self.subTest(trial=trial):
-                n_events, actual_first, actual_last, recorded = measured[trial]
-                self.assertEqual(n_events, events)
-                self.assertEqual(round(actual_first, 3), first)
-                self.assertEqual(round(actual_last, 3), last)
+    What remains is everything about the table that does NOT need the
+    recordings -- that it is present, internally consistent, and still says
+    what the code does. `collect.py`'s cost behaviour, the actual rule the
+    bottom test is about, is pinned directly on a staged trial rather than on
+    a recording.
+    """
+
+    def cost_section(self) -> str:
+        return readme_section("Cost and time — read this before `--mode full`")
+
+    def table_rows(self) -> list[str]:
+        """The cost table's data rows -- `| \\`<job-dir>/...\\` | n | ... |`."""
+        return [
+            line
+            for line in self.cost_section().splitlines()
+            if line.startswith("| `") and "→" in line
+        ]
+
+    def test_the_cost_table_is_still_present_with_its_rows(self) -> None:
+        # Guards every assertion below: a table that lost its rows would make
+        # the per-row checks vacuously true.
+        rows = self.table_rows()
+        self.assertGreaterEqual(len(rows), 3)
+
+    def test_every_table_row_is_internally_consistent(self) -> None:
+        # Each row states an event count, a first→last pair and a verdict. The
+        # verdict has to follow from the pair: equal figures mean the recorded
+        # cost was correct, and a rise means it was understated by the ratio
+        # the row itself quotes. A row can drift out of agreement with its own
+        # numbers without anyone noticing; this is what catches that.
+        for row in self.table_rows():
+            with self.subTest(row=row[:48]):
+                figures = [float(match) for match in re.findall(r"\$(\d+\.\d+)", row)]
+                self.assertEqual(len(figures), 3, "expected first, last and recorded")
+                first, last, recorded = figures
+
                 # Pier recorded the FIRST event -- the defect being fixed.
-                self.assertEqual(recorded, actual_first)
-                if understatement is None:
-                    self.assertEqual(recorded, actual_last)
+                self.assertEqual(recorded, first)
+
+                if first == last:
+                    self.assertIn("correct", row)
                 else:
-                    self.assertEqual(round(actual_last / recorded), understatement)
+                    self.assertIn(f"understated {round(last / first)}x", row)
 
-    def test_the_table_rows_appear_in_the_readme_with_these_numbers(self) -> None:
-        section = readme_section("Cost and time — read this before `--mode full`")
-        for trial, (events, first, last, understatement) in self.TABLE_ROWS.items():
-            with self.subTest(trial=trial):
-                # Match on `<job-dir>/` including the slash: `_preflight` is a
-                # prefix of `_preflight-do-in-steps`, so a prefix match would
-                # find the wrong row.
-                job_dir_name = trial.split("/")[0]
-                row = next(
-                    (
-                        line
-                        for line in section.splitlines()
-                        if line.startswith(f"| `{job_dir_name}/")
-                    ),
-                    None,
-                )
-                self.assertIsNotNone(row, f"no cost-table row for {job_dir_name}/")
-                self.assertIn(f"| {events} |", row)
-                self.assertIn(f"${first:.3f}", row)
-                self.assertIn(f"${last:.3f}", row)
-                expected_verdict = (
-                    "correct" if understatement is None else f"understated {understatement}x"
-                )
-                self.assertIn(expected_verdict, row)
+    def test_the_single_event_row_is_the_one_called_correct(self) -> None:
+        # The bounded claim's own evidence: the README says single-`result`-
+        # event trials were always correct, so exactly the rows reporting one
+        # event may be the rows calling the recorded figure correct.
+        for row in self.table_rows():
+            with self.subTest(row=row[:48]):
+                n_events = int(re.search(r"\|\s*(\d+)\s*\|", row).group(1))
+                self.assertEqual(n_events == 1, "correct" in row)
 
-    def test_the_bounded_generalization_holds_for_every_recorded_trial(self) -> None:
-        # The README's claim, in code: multi-event streams were understated,
-        # single-event ones were always correct. This is the assertion whose
-        # universally-quantified predecessor was false.
+    def test_the_generalization_stays_bounded_rather_than_universal(self) -> None:
+        # The sentence whose universally-quantified predecessor was false.
+        # Pinned verbatim because the failure mode is prose drifting back to
+        # "every cost was understated", which the table below it disproves.
         self.assertIn(
             "any trial whose stream carries more than one `result` event was understated "
             "the same way, and single-`result`-event trials were always correct",
             readme(),
         )
-        for trial, (n_events, first, last, recorded) in recorded_trial_costs().items():
-            with self.subTest(trial=trial):
-                if n_events == 1:
-                    self.assertEqual(recorded, last)
-                else:
-                    self.assertEqual(recorded, first)
-                    self.assertNotEqual(recorded, last)
 
     def test_collect_still_reports_the_recorded_cost_as_the_readme_says(self) -> None:
-        # "Trials already recorded in runs/ keep their original, understated
-        # figure" -- true only while collect.py reads result.json instead of
-        # re-deriving from the stream.
+        # "Trials already recorded in runs/ keep whatever figure pier wrote at
+        # the time" -- true only while collect.py reads the cost out of
+        # result.json instead of re-deriving it from the stream. Staged with
+        # the two deliberately DISAGREEING, which is the whole point: a
+        # collector that re-derived would report the stream's larger total and
+        # silently restate figures for runs already on disk.
         self.assertIn(
             "**Trials already recorded in `runs/` keep whatever figure pier wrote at the time**",
             readme(),
         )
-        arm_meta = {
-            "arm_id": "do-in-steps__sonnet-sonnet",
-            "orchestrator_tier": "sonnet",
-            "impl_tier": "sonnet",
-            "skill": "do-in-steps",
-            "is_vanilla": True,  # skips the plugin-load check; irrelevant to cost
-            "cek_ref": "cek@test",
-        }
-        trial_dir = RUNS_DIR / "do-in-steps__sonnet-sonnet" / "cattrs-partial-structuring-recov__ZsbwRdJ"
-        record = collect.build_trial_record(trial_dir, arm_meta)
-        n_events, first, last, recorded = recorded_trial_costs()[
-            "do-in-steps__sonnet-sonnet/cattrs-partial-structuring-recov__ZsbwRdJ"
-        ]
-        self.assertEqual(record.cost_usd, recorded)
-        self.assertNotEqual(record.cost_usd, last)
+        recorded_cost, stream_total = 0.392, 26.530
+
+        with tempfile.TemporaryDirectory() as tmp:
+            trial_dir = Path(tmp) / "trial-1"
+            (trial_dir / "agent").mkdir(parents=True)
+            (trial_dir / "agent" / "claude-code.txt").write_text(
+                "\n".join(
+                    json.dumps({"type": "result", "subtype": "success", "total_cost_usd": cost})
+                    for cost in (recorded_cost, 12.0, stream_total)
+                )
+            )
+            (trial_dir / "result.json").write_text(
+                json.dumps(
+                    {
+                        "task_name": "datacurve/task-1",
+                        "task_checksum": "checksum-1",
+                        "verifier_result": {"rewards": {"reward": 0, "f2p": 0.0, "p2p": 1.0}},
+                        "exception_info": None,
+                        "agent_info": {"version": "1.0.0"},
+                        "agent_result": {"cost_usd": recorded_cost},
+                    }
+                )
+            )
+            record = collect.build_trial_record(
+                trial_dir,
+                {
+                    "arm_id": "do-in-steps__sonnet-sonnet",
+                    "orchestrator_tier": "sonnet",
+                    "impl_tier": "sonnet",
+                    "skill": "do-in-steps",
+                    "is_vanilla": True,  # skips the plugin-load check; irrelevant to cost
+                    "cek_ref": "cek@test",
+                },
+            )
+
+        self.assertEqual(record.cost_usd, recorded_cost)
+        self.assertNotEqual(record.cost_usd, stream_total)
 
 
-@unittest.skipUnless(RUNS_DIR.exists(), f"recorded runs not present at {RUNS_DIR}")
 class QuotedTranscriptTests(unittest.TestCase):
-    """The README quotes recorded agent prose; it must be verbatim and current."""
+    """The README quotes recorded agent prose; it must be verbatim and current.
+
+    Checked against `tests/fixtures/recorded-final-messages.txt` -- the
+    committed copy of every recorded trial's closing prose -- rather than
+    against `runs/` itself, so the quote stays grounded in a checkout that
+    does not have the recordings. The fixture is verbatim (see that
+    directory's README), which is what makes "verbatim" checkable here.
+    """
 
     QUESTION_TRIAL = "_preflight-do-in-steps/cattrs-partial-structuring-recov__9ryVMmH"
     QUOTED = "Which approach would you prefer? Or shall I continue with the current orchestration pace?"
 
     def test_the_quoted_final_message_is_verbatim(self) -> None:
         self.assertIn(self.QUOTED, readme())
-        trial_dir = RUNS_DIR / Path(self.QUESTION_TRIAL)
-        final_message = collect.find_stream_log_final_message(trial_dir)
-        self.assertIsNotNone(final_message)
-        self.assertTrue(final_message.strip().endswith(self.QUOTED))
+        recorded = next(
+            record
+            for record in recorded_final_messages()
+            if record["trial"] == self.QUESTION_TRIAL
+        )
+        self.assertTrue(recorded["closing_region"].strip().endswith(self.QUOTED))
 
     def test_the_readmes_claim_about_the_heuristic_is_true(self) -> None:
-        # "…while the other two recorded trials … are correctly left alone".
-        verdicts = {}
-        for result_path in sorted(RUNS_DIR.glob("*/*/result.json")):
-            trial_dir = result_path.parent
-            key = f"{trial_dir.parent.name}/{trial_dir.name}"
-            verdicts[key] = collect.message_ends_in_question(
-                collect.find_stream_log_final_message(trial_dir)
-            )
-        self.assertTrue(verdicts.pop(self.QUESTION_TRIAL))
-        self.assertEqual(set(verdicts.values()), {False})
+        # "…while the other recorded trials … are correctly left alone": the
+        # quoted trial is the only recording the heuristic fires on.
+        caught = {
+            record["trial"]
+            for record in recorded_final_messages()
+            if collect.message_ends_in_question(record["closing_region"])
+        }
+        self.assertEqual(caught, {self.QUESTION_TRIAL})
 
 
 class DocumentedStatusContractTests(unittest.TestCase):

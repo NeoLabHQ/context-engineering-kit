@@ -187,6 +187,90 @@ class Fable5FormattingTests(unittest.TestCase):
         self.assertIn("run-to-run", rendered)
 
 
+class LocalAttemptsColumnTests(unittest.TestCase):
+    """`format_local_attempts` -- the "local" column of the Fable 5 table.
+
+    The pool it summarises is opportunistic: whichever (model, skill) cells
+    happen to have been measured for a task, which is not a harness-level
+    rate. Printed as a bare "1 of 2" beside Fable 5's whole-benchmark figure
+    it would read as this harness scoring 50%, a claim nobody measured -- so
+    the arms are named as part of the figure.
+
+    Built from constructed cells rather than the committed `results.json`,
+    whose pool composition changes with every trial recorded; what is under
+    test is the formatting rule, not how many trials have been run so far.
+    """
+
+    def cell(self, *, model: str, skill: str, resolved: int, attempts: int = 1) -> dict[str, Any]:
+        return make_cell(
+            task="task-low",
+            model=model,
+            skill=skill,
+            measured=make_measured(
+                n_resolved=resolved, n_attempts=attempts, pass_at_1=resolved / attempts
+            ),
+        )
+
+    def test_the_column_counts_trials_rather_than_quoting_a_rate(self) -> None:
+        # A rate hides its denominator; "0 of 2" cannot.
+        cells = [
+            self.cell(model="haiku", skill="do-and-judge", resolved=0),
+            self.cell(model="sonnet", skill="do-in-steps", resolved=0),
+        ]
+        rendered = report.format_local_attempts(cells, "task-low")
+        self.assertTrue(rendered.startswith("0 of 2 attempts"), rendered)
+        self.assertNotIn("%", rendered)
+
+    def test_the_column_names_the_arms_it_pooled(self) -> None:
+        cells = [
+            self.cell(model="haiku", skill="do-and-judge", resolved=1),
+            self.cell(model="sonnet", skill="do-in-steps", resolved=0),
+        ]
+        self.assertEqual(
+            report.format_local_attempts(cells, "task-low"),
+            "1 of 2 attempts across haiku/do-and-judge and sonnet/do-in-steps",
+        )
+
+    def test_a_lone_attempt_is_named_in_the_singular(self) -> None:
+        cells = [self.cell(model="sonnet", skill="do-in-steps", resolved=1)]
+        self.assertEqual(
+            report.format_local_attempts(cells, "task-low"),
+            "1 of 1 attempt across sonnet/do-in-steps",
+        )
+
+    def test_a_task_nothing_measured_is_a_dash_rather_than_a_zero(self) -> None:
+        # The load-bearing absence: "0 of 0" would read as a measured failure.
+        self.assertEqual(report.format_local_attempts([], "task-low"), "—")
+
+    def test_only_the_named_tasks_cells_are_pooled(self) -> None:
+        # Cells for another task must not leak into this task's denominator.
+        cells = [
+            self.cell(model="haiku", skill="do-and-judge", resolved=1),
+            make_cell(
+                task="task-other",
+                model="sonnet",
+                skill="do-in-steps",
+                measured=make_measured(n_resolved=1, n_attempts=1),
+            ),
+        ]
+        self.assertEqual(
+            report.format_local_attempts(cells, "task-low"),
+            "1 of 1 attempt across haiku/do-and-judge",
+        )
+
+    def test_an_unmeasured_cell_never_joins_the_pool(self) -> None:
+        # An absent cell has no attempts to contribute; counting it would
+        # inflate the denominator with a trial that never ran.
+        cells = [
+            self.cell(model="haiku", skill="do-and-judge", resolved=1),
+            make_cell(task="task-low", model="sonnet", skill="vanilla", state="deliberately_skipped"),
+        ]
+        self.assertEqual(
+            report.format_local_attempts(cells, "task-low"),
+            "1 of 1 attempt across haiku/do-and-judge",
+        )
+
+
 class Fable5ComparisonTableTests(unittest.TestCase):
     def setUp(self) -> None:
         self.results = real_results()
@@ -207,28 +291,6 @@ class Fable5ComparisonTableTests(unittest.TestCase):
         row = next(r for r in rows if r["task"] == "kombu-single-active-consumer-priority")
         self.assertEqual(row["fable5_pooled"], "13/20")
         self.assertEqual(row["fable5_headline"], "4/4")
-
-    def test_the_local_column_counts_trials_rather_than_quoting_a_rate(self) -> None:
-        rows = report.fable5_comparison_rows(
-            self.baseline, self.results["cells"], self.results["schedule"]
-        )
-        row = next(r for r in rows if r["task"] == "cattrs-partial-structuring-recovery")
-        # Two measured cells there, both single trials, neither resolved.
-        self.assertTrue(row["local"].startswith("0 of 2 attempts"), row["local"])
-        self.assertNotIn("%", row["local"])
-
-    def test_the_local_column_names_the_arms_it_pooled(self) -> None:
-        # The pool is opportunistic -- different models under different
-        # skills -- so a bare count beside Fable 5's whole-benchmark figure
-        # would read as a harness-level rate nobody measured.
-        rows = report.fable5_comparison_rows(
-            self.baseline, self.results["cells"], self.results["schedule"]
-        )
-        row = next(r for r in rows if r["task"] == "abs-stepped-slices")
-        self.assertEqual(
-            row["local"],
-            "1 of 2 attempts across haiku/do-and-judge and sonnet/do-in-steps",
-        )
 
     def test_a_task_with_no_local_measurement_says_so_rather_than_showing_zero(self) -> None:
         rows = report.fable5_comparison_rows(

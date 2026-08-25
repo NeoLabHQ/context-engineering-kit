@@ -16,6 +16,14 @@ That used to mean the cost fix itself went untested under the project's default
 `stream_cost.py`, which imports nothing but stdlib `json`, and
 `tests/test_stream_cost.py` covers it unconditionally. What skips here is only
 the file-opening shell and the MRO check.
+
+NO `runs/`
+-----------
+Every transcript these tests read is written into a temp directory -- either
+composed here or staged from the committed fixture
+`tests/fixtures/recorded-result-events.txt`. Nothing reads the gitignored
+`runs/` tree, so `pier` being installed is the only thing that decides whether
+these run.
 """
 
 from __future__ import annotations
@@ -25,22 +33,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from . import BENCHMARK_DIR
 from .test_stream_cost import (
     RECORDED_FIRST_EVENT_COST_USD,
     RECORDED_TOTAL_COST_USD,
+    recorded_result_event_lines,
     result_line,
 )
 
 PIER_AVAILABLE = importlib.util.find_spec("pier") is not None
-
-RECORDED_AGENT_LOGS_DIR = (
-    BENCHMARK_DIR
-    / "runs"
-    / "do-in-steps__sonnet-sonnet"
-    / "cattrs-partial-structuring-recov__ZsbwRdJ"
-    / "agent"
-)
 
 
 @unittest.skipUnless(PIER_AVAILABLE, "pier is not installed in this interpreter")
@@ -104,24 +104,40 @@ class IoShellTests(unittest.TestCase):
 
 
 @unittest.skipUnless(PIER_AVAILABLE, "pier is not installed in this interpreter")
-@unittest.skipUnless(
-    RECORDED_AGENT_LOGS_DIR.exists(), f"recorded run not present at {RECORDED_AGENT_LOGS_DIR}"
-)
-class RecordedRunEndToEndTests(unittest.TestCase):
-    """Override vs upstream, both reading the real 6 MB recorded transcript."""
+class OverrideVersusUpstreamTests(unittest.TestCase):
+    """Override vs upstream, both reading the same transcript.
+
+    The comparison used to read the real 6 MB recording under `runs/`. It is
+    staged from `tests/fixtures/recorded-result-events.txt` instead -- the
+    committed, verbatim copy of that stream's `result` events -- because the
+    recording is gitignored and the trial it came from is no longer in this
+    tree, so the original form of this test could only ever skip.
+
+    Nothing about what it proves depends on the other 6 MB: the two
+    implementations differ only in WHICH `result` event they believe, and the
+    fixture is exactly the sequence of those events.
+    """
 
     def test_the_override_reports_the_full_total_where_upstream_does_not(self) -> None:
         from agent import ClaudeCodeSadd
         from pier.agents.installed.claude_code import ClaudeCode
 
-        self.assertEqual(
-            ClaudeCodeSadd(logs_dir=RECORDED_AGENT_LOGS_DIR)._parse_total_cost_from_stream_json(),
-            RECORDED_TOTAL_COST_USD,
-        )
-        self.assertEqual(
-            ClaudeCode(logs_dir=RECORDED_AGENT_LOGS_DIR)._parse_total_cost_from_stream_json(),
-            RECORDED_FIRST_EVENT_COST_USD,
-        )
+        with tempfile.TemporaryDirectory() as tmp:
+            logs_dir = Path(tmp)
+            (logs_dir / "claude-code.txt").write_text(
+                "\n".join(recorded_result_event_lines()) + "\n", encoding="utf-8"
+            )
+
+            # The override reads the largest cumulative total in the stream...
+            self.assertEqual(
+                ClaudeCodeSadd(logs_dir=logs_dir)._parse_total_cost_from_stream_json(),
+                RECORDED_TOTAL_COST_USD,
+            )
+            # ...where upstream stops at the first event, 68x too little.
+            self.assertEqual(
+                ClaudeCode(logs_dir=logs_dir)._parse_total_cost_from_stream_json(),
+                RECORDED_FIRST_EVENT_COST_USD,
+            )
 
 
 if __name__ == "__main__":

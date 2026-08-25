@@ -302,90 +302,129 @@ class FilesystemGateTests(unittest.TestCase):
             self.assertEqual(list(collect.iter_stream_events(trial_dir / "absent.txt")), [])
 
 
-RUNS_DIR = BENCHMARK_DIR / "runs"
+RECORDED_MESSAGES_FIXTURE = (
+    BENCHMARK_DIR / "tests" / "fixtures" / "recorded-final-messages.txt"
+)
+
+# The one recorded trial whose closing prose really is an abandonment: the
+# agent hit budget pressure, offered a numbered menu ("Should I: 1… 2… 3…")
+# and ended its turn asking the operator to choose, with no stdin for anyone
+# to answer through. Exactly the failure this signal exists for, observed
+# rather than imagined.
+RECORDED_ABANDONMENT_TRIAL = (
+    "_preflight-do-in-steps/cattrs-partial-structuring-recov__9ryVMmH"
+)
 
 
-@unittest.skipUnless(RUNS_DIR.exists(), f"recorded runs not present at {RUNS_DIR}")
+def recorded_final_messages() -> list[dict]:
+    """Every record in the committed closing-prose corpus, in file order."""
+    return [
+        json.loads(line)
+        for line in RECORDED_MESSAGES_FIXTURE.read_text(encoding="utf-8").splitlines()
+        if line.startswith("{")
+    ]
+
+
 class RecordedFinalMessageTests(unittest.TestCase):
-    """The question heuristic, run over the real agent prose in `runs/`.
+    """The question heuristic, run over real agent prose nobody composed for it.
 
-    This is where the rule earns its keep on writing no one composed for it.
-    One of the three recorded trials really does end on the abandonment this
-    whole change exists for, and the other two end on prose that must NOT trip
-    it -- including one closing on a bolded status line and a quoted judge
-    verdict that itself contains a full stop and quotation marks.
+    This is where the rule earns its keep on writing that was not written to
+    exercise it. The corpus is `tests/fixtures/recorded-final-messages.txt`:
+    the closing region of every trial's final `result` message, verbatim, from
+    the recordings this harness has actually produced. It is committed rather
+    than read from `runs/` for the same reason the cost and rate-limit
+    fixtures are (see that directory's README) -- `runs/` is a gitignored,
+    unreproducible artifact, and a test that skips without it proves nothing.
 
-    Every recorded final message is classified explicitly, and the test fails
-    if `runs/` gains or loses a trial, so a new recording cannot slip through
-    unclassified.
+    The corpus spans the shapes that make this rule hard: bolded status lines
+    ending in a full stop, bulleted follow-up notes, a session-limit banner,
+    prose carrying backticked paths and parentheses -- and the one real
+    abandonment, which must be the only positive.
     """
 
-    # The verdict the heuristic gives for each recorded trial's final `result`
-    # message, with the closing prose line that decides it:
-    #
-    # _preflight/…HyQJyYy   False
-    #   "**Status: Ready for merge. All requirements met. Feature complete and
-    #    correct.**" -- markdown emphasis stripped, ends in a full stop.
-    #
-    # _preflight-do-in-steps/…9ryVMmH   True
-    #   "Which approach would you prefer? Or shall I continue with the current
-    #    orchestration pace?" -- a real recorded abandonment: the agent hit
-    #   budget pressure, offered a numbered menu ("Should I: 1… 2… 3…") and
-    #   ended its turn asking the operator to choose, with no stdin for anyone
-    #   to answer through. Exactly the failure Fix 2's prompt contract and this
-    #   signal exist for, observed rather than imagined.
-    #
-    # do-in-steps__sonnet-sonnet/…ZsbwRdJ   False
-    #   "Meta-judge for Step 6 is done. Waiting on the implementation agent to
-    #    finish the final gap-fill work." -- a progress note; that trial is
-    #   caught by the missing-patch signal instead.
-    EXPECTED_VERDICTS = {
-        "_preflight/abs-stepped-slices__HyQJyYy": False,
-        "_preflight-do-in-steps/cattrs-partial-structuring-recov__9ryVMmH": True,
-        "do-in-steps__sonnet-sonnet/cattrs-partial-structuring-recov__ZsbwRdJ": False,
-    }
+    def setUp(self) -> None:
+        self.records = recorded_final_messages()
 
-    def test_every_recorded_final_message_is_classified_explicitly(self) -> None:
-        seen = {}
-        for result_path in sorted(RUNS_DIR.glob("*/*/result.json")):
-            trial_dir = result_path.parent
-            trial_key = f"{trial_dir.parent.name}/{trial_dir.name}"
-            final_message = collect.find_stream_log_final_message(trial_dir)
-            seen[trial_key] = collect.message_ends_in_question(final_message)
+    def test_the_corpus_covers_the_recordings_it_claims_to(self) -> None:
+        # Guards every assertion below: a truncated or empty corpus would make
+        # the negative tests vacuously true.
+        self.assertGreaterEqual(len(self.records), 23)
+        for record in self.records:
+            with self.subTest(trial=record["trial"]):
+                self.assertTrue(record["closing_region"].strip())
 
-        # A new recording is not a silent pass: it has to be classified here.
-        self.assertEqual(
-            sorted(seen), sorted(self.EXPECTED_VERDICTS),
-            "runs/ gained or lost a trial -- classify its final message above",
+    def test_every_recorded_final_message_is_classified_as_recorded(self) -> None:
+        # The rule is re-run over the prose here rather than trusting the
+        # `ends_in_question` field, so this fails if the heuristic's verdict
+        # on real writing ever changes.
+        for record in self.records:
+            with self.subTest(trial=record["trial"]):
+                self.assertEqual(
+                    collect.message_ends_in_question(record["closing_region"]),
+                    record["ends_in_question"],
+                )
+
+    def test_exactly_one_recorded_trial_is_an_abandonment(self) -> None:
+        # The false-positive guard, stated as a set rather than a count: 22 of
+        # these 23 messages are ordinary sign-offs, and branding any of them
+        # abandoned would be the expensive direction of this heuristic's error.
+        caught = {
+            record["trial"]
+            for record in self.records
+            if collect.message_ends_in_question(record["closing_region"])
+        }
+        self.assertEqual(caught, {RECORDED_ABANDONMENT_TRIAL})
+
+    def test_the_recorded_abandonment_reaches_the_incompleteness_reason(self) -> None:
+        # The positive case, threaded through the rule that consumes it: a
+        # patched trial closing on this prose is `final_message_is_question`,
+        # so this fails if the heuristic stops catching real abandonment
+        # (rather than passing because a patch happened to be missing).
+        message = next(
+            record["closing_region"]
+            for record in self.records
+            if record["trial"] == RECORDED_ABANDONMENT_TRIAL
         )
-        for trial_key, expected in self.EXPECTED_VERDICTS.items():
-            with self.subTest(trial=trial_key):
-                self.assertEqual(seen[trial_key], expected)
-
-    def test_the_recorded_abandonment_is_caught_on_its_own_prose(self) -> None:
-        # The positive case, isolated: feed only the recorded message to the
-        # rule, so this fails if the heuristic ever stops catching real
-        # abandonment prose (rather than passing because a patch was missing).
-        trial_dir = RUNS_DIR / "_preflight-do-in-steps" / "cattrs-partial-structuring-recov__9ryVMmH"
-        final_message = collect.find_stream_log_final_message(trial_dir)
-        self.assertIsNotNone(final_message)
-        self.assertTrue(collect.message_ends_in_question(final_message))
         self.assertEqual(
             collect.incompleteness_reason_from_signals(
-                has_model_patch=True, final_message=final_message
+                has_model_patch=True, final_message=message
             ),
             "final_message_is_question",
         )
 
-    def test_the_recorded_trials_all_trip_the_missing_patch_signal(self) -> None:
-        # Precedence on real data: none of the three committed anything, so the
-        # patch check answers first even for the trial that also ends on a
-        # question.
-        for result_path in sorted(RUNS_DIR.glob("*/*/result.json")):
-            trial_dir = result_path.parent
-            with self.subTest(trial=trial_dir.name):
+    def test_a_patchless_recorded_trial_reports_the_patch_first(self) -> None:
+        # Precedence on real data: where a recording left no patch, the
+        # non-heuristic signal answers even when the prose also ends in a
+        # question. The abandonment above is exactly that overlap.
+        patchless = [record for record in self.records if not record["has_model_patch"]]
+        self.assertTrue(patchless, "corpus has no patchless recording to check")
+        for record in patchless:
+            with self.subTest(trial=record["trial"]):
                 self.assertEqual(
-                    collect.find_trial_incompleteness_reason(trial_dir), "no_model_patch"
+                    collect.incompleteness_reason_from_signals(
+                        has_model_patch=False,
+                        final_message=record["closing_region"],
+                    ),
+                    "no_model_patch",
+                )
+
+    def test_a_recorded_sign_off_with_a_patch_is_not_incomplete(self) -> None:
+        # The other end of the same rule: the ordinary recorded endings must
+        # leave a patched trial alone, or every finished trial in the corpus
+        # would be branded abandoned.
+        signed_off = [
+            record
+            for record in self.records
+            if record["has_model_patch"] and not record["ends_in_question"]
+        ]
+        self.assertTrue(signed_off, "corpus has no completed recording to check")
+        for record in signed_off:
+            with self.subTest(trial=record["trial"]):
+                self.assertIsNone(
+                    collect.incompleteness_reason_from_signals(
+                        has_model_patch=True,
+                        final_message=record["closing_region"],
+                    )
                 )
 
 
