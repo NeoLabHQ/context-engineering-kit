@@ -22,7 +22,7 @@ Execute task implementation steps using automated LLM-as-Judge quality verificat
 | Argument | Format | Default | Description |
 |----------|--------|---------|-------------|
 | `task-file` | Path or filename | Auto-detect | Task file name or path (e.g., `add-validation.feature.md`). Auto-selects from `in-progress/` or `todo/` if only one task exists. |
-| `--model` | `opus\|sonnet\|haiku` | Unset | Model for all sub-agents — implementation agents and `sdd:code-reviewer`. Overrides every model in the task specification file. When omitted, step models come from the Parallelization Overview and reviewer models from the Phase Overview. |
+| `--model` | `fable\|opus\|sonnet\|haiku` | Unset | Model for all sub-agents — implementation agents and `sdd:code-reviewer`. Overrides every model in the task specification file. When omitted, step models come from the Parallelization Overview and reviewer models from the Phase Overview. |
 | `--target-quality` | `--target-quality X.X` | `4.0` | The single quality threshold applied to every implementation phase review. There is no separate standard/critical value and no comma-separated form. |
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum fix→re-review cycles per implementation phase. Set to `unlimited` for no limit. |
 | `--human-in-the-loop` | `--human-in-the-loop [Phase 1,Phase 3,...]` | None | Implementation **phases** after whose review to pause. If no phases are specified, the process pauses after every implementation phase. |
