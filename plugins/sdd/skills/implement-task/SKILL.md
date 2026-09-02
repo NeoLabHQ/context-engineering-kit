@@ -1,7 +1,7 @@
 ---
 name: implement-task
 description: Implement a task step by step with automated LLM-as-Judge verification at the end of each phase
-argument-hint: Task file [--continue] [--refine] [--human-in-the-loop] [--target-quality] [--max-iterations] [--skip-reviews] [--model opus|sonnet|haiku] [--strict]
+argument-hint: Task file [--continue] [--refine] [--human-in-the-loop] [--target-quality] [--max-iterations] [--skip-reviews] [--model fable|opus|sonnet|haiku] [--strict]
 ---
 
 # Implement Task with Verification
@@ -43,7 +43,7 @@ Parse the following arguments from `$ARGUMENTS`:
 | `--target-quality` | `--target-quality X.X` | `4.0` | Single target threshold value (out of 5.0) applied to every implementation phase review. |
 | `--max-iterations` | `--max-iterations N` | `3` | Maximum fix→re-review cycles per implementation phase. Default is 3 iterations. Set to `unlimited` for no limit. |
 | `--skip-reviews` | `--skip-reviews` | `false` | Skip all phase reviews - steps proceed without quality gates. |
-| `--model` | `opus\|sonnet\|haiku` | Unset | Model for **all** sub-agents (implementation agents AND `sdd:code-reviewer`) that **overrides** every model in the task file; when omitted, step models come from the Parallelization Overview and reviewer models from the Phase Overview. |
+| `--model` | `fable\|opus\|sonnet\|haiku` | Unset | Model for **all** sub-agents (implementation agents AND `sdd:code-reviewer`) that **overrides** every model in the task file; when omitted, step models come from the Parallelization Overview and reviewer models from the Phase Overview. |
 | `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - a phase is marked PASS ONLY when `combined_score >= THRESHOLD`, otherwise iterate until `MAX_ITERATIONS` is reached. |
 
 ### Configuration Resolution
@@ -58,7 +58,7 @@ TASK_FILE = first argument that is a file path or filename
 THRESHOLD = --target-quality value || 4.0
 
 # Initialize other defaults
-MODEL_OVERRIDE = --model value (opus|sonnet|haiku) || none  # none = no override; models come from the task file
+MODEL_OVERRIDE = --model value (fable|opus|sonnet|haiku) || none  # none = no override; models come from the task file
 MAX_ITERATIONS = --max-iterations || 3  # default is 3 iterations
 HUMAN_IN_THE_LOOP_PHASES = --human-in-the-loop || [] (empty = none, "*" = all implementation phases)
 SKIP_REVIEWS = --skip-reviews || false
@@ -785,7 +785,7 @@ Before dispatching a single fix, reason **explicitly and in writing** through:
 2. **Depth** — is this a local defect inside a step, or did the phase come out structurally wrong (`blast_radius.requires_phase_rework`)?
 3. **Coupling** — does fixing the affected steps force rewriting the unaffected ones? If yes, the unit of repair is the phase, not the step.
 4. **Severity** — High/Critical findings that break an acceptance criterion the phase owns, or Low/Medium nitpicks?
-5. **Ceiling** — does the failure look like the implementing model ran out of capability? If a model already failed once on the same finding, dispatching it again at the same tier will fail again. Escalate.
+5. **Ceiling** — does the failure look like the implementing model ran out of capability? If a model already failed once on the same finding, dispatching it again at the same tier will fail again. Escalate. The ladder is `haiku` → `sonnet` → `opus` → `fable`; `fable` is the last rung, so work that has already failed at `fable` goes back to the user, not to another dispatch.
 
 Then decide three things:
 
@@ -1636,7 +1636,7 @@ Rubrics:
 ```
 
 - The **phase identifier** is `Phase N` (a title may follow: `#### Phase 1: Foundation`). This exact identifier is what you pass to the reviewer.
-- `Reviewer model:` is one of `haiku`, `sonnet`, `opus`. It is the model of that phase's single review dispatch.
+- `Reviewer model:` is one of `haiku`, `sonnet`, `opus`, `fable`. It is the model of that phase's single review dispatch.
 - The `Checklist items:` and `Rubrics:` lists scope the reviewer's scoring. **They are the reviewer's input, not yours** — it reads them from the task file itself. Never paste them into a prompt.
 
 ### Sub-Task Files
@@ -1648,7 +1648,7 @@ One per step, at `.specs/sub-tasks/<task-name>/<NN>-<step-slug>.md`, where `<tas
 
 **Task File:** `.specs/tasks/todo/<task-name>.md`
 **Phase:** Phase N
-**Model:** haiku | sonnet | opus
+**Model:** haiku | sonnet | opus | fable
 **Agent:** [agent type]
 **Depends on:** [step names or None]
 **Parallel with:** [step names or None]

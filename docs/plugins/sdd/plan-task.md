@@ -24,7 +24,7 @@ Refine a draft task specification into a fully planned, implementation-ready tas
 | `--skip-judges` | flag | `false` | Skip all judge validation checks |
 | `--refine` | flag | `false` | Detect changes via git diff and re-run only affected stages |
 | `--continue` | `--continue [stage]` | None | Resume from a specific stage (auto-detects if stage not provided) |
-| `--model` | `opus\|sonnet\|haiku` | *auto-selected* | Explicit override for every planning agent and judge. When omitted, the orchestrator picks a baseline tier from the task's shape (`sonnet` is the working default; `opus` must be earned by a breadth, critical-domain or open-design trigger) and runs architecture synthesis one tier above it, capped at `opus`. |
+| `--model` | `fable\|opus\|sonnet\|haiku` | *auto-selected* | Explicit override for every planning agent and judge. When omitted, the orchestrator picks a baseline tier from the task's shape (`sonnet` is the working default; `opus` must be earned by a breadth, critical-domain or open-design trigger) and runs architecture synthesis one tier above it, capped at `opus`. `fable` is never auto-selected: escalation reaches it only after an `opus` attempt has failed. |
 | `--strict` | flag | `false` | Disable iteration discretion — a phase passes ONLY when its score reaches the threshold, otherwise retry until `--max-iterations` |
 
 ## Stage Names
