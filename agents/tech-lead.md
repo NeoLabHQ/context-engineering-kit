@@ -27,7 +27,7 @@ Use a scratchpad-first approach: think deeply and analyze everything in a scratc
 
 - **Task File**: Path to the task file (e.g., `.specs/tasks/draft/<task-name>.md`)
   - Contains: Initial User Prompt, Description, Acceptance Criteria, Architecture Overview
-- **Available agents** (optional): the launch prompt MAY list the agents available in this project (e.g. `sdd:developer`, `review:bug-hunter`, plus the general agents `opus`, `sonnet`, `haiku`). If it does, you MUST use ONLY agents from that list. If it does not, use the [Agent Selection Guide](#agent-selection-guide) below.
+- **Available agents** (optional): the launch prompt MAY list the agents available in this project (e.g. `sdd:developer`, `review:bug-hunter`, plus the general agents `fable`, `opus`, `sonnet`, `haiku`). If it does, you MUST use ONLY agents from that list. If it does not, use the [Agent Selection Guide](#agent-selection-guide) below.
 - **Model Selection Policy** (optional): the launch prompt MAY paste a per-step model tier policy. If it does, apply it. If it does not, use the [Model Selection Guide](#model-selection-guide) below.
 
 ## CRITICAL: Load Context
@@ -741,7 +741,7 @@ Model choice is not a formality — it is the single biggest factor in whether a
 
 **Selection Rules**
 
-**Tier default:** `sonnet`/`haiku` cover the majority of steps. `opus` is reserved and opt-in — it MUST be *earned* by a trigger in the table below, never picked because you are unsure or "to be safe."
+**Tier default:** `sonnet`/`haiku` cover the majority of steps. `opus` is reserved and opt-in — it MUST be *earned* by a trigger in the table below, never picked because you are unsure or "to be safe." `fable` sits above `opus` and is never pre-assigned to a step or a reviewer: no row below selects it. It is reserved for implementation-time escalation after `opus` has failed, or for an explicit `--model fable`.
 
 | Step shape | Tier | Examples |
 |---|---|---|
@@ -762,6 +762,7 @@ When this skill runs outside the Anthropic model context, map the tier to the ne
 | `haiku` | Fast and cheap; mechanical work | `gemini-flash-lite`, `gemma` class, `gpt-oss` class, small open-weight models |
 | `sonnet` | Balanced workhorse; most planning phases | `gemini-pro` class and full `gemini-flash` (**not** the `-lite` variant, which is `haiku`-tier), `GPT-5-mini` class, large `Qwen` / `DeepSeek` class |
 | `opus` | Frontier reasoning; critical or complex work | whatever the provider sells as its extended / deliberate-reasoning tier — currently `GPT-5.5`, deep-think modes, `Kimi K3` class, any model whose advantage is longer deliberation rather than throughput |
+| `fable` | Ceiling; reached only by escalation or explicit request | Anthropic's Claude Fable, the tier above Opus. On another provider, the deliberate-reasoning edition it sells *above* its `opus`-class model (`-pro`, `-ultra`, deep-think variants); if the provider has no such tier, map `fable` to the same model as `opus` and the ladder ends there |
 
 The mapping is by **capability tier, not by name** — exact names drift as vendors ship new models. Every rule above is expressed in tiers, so on another provider: map tier → your model of that class, then apply the selection, weighting, pairing and escalation rules unchanged.
 
@@ -783,7 +784,7 @@ Each step has an implementation model. Each **phase** additionally has a **revie
 - Take the HIGHEST implementation tier in the phase as the baseline, then decide whether to go one tier up.
 - Go one tier up (the usual case) when the phase mixes concerns, crosses a contract, or its checklist items are the essential ones.
 - Stay at the same tier when the phase is small, uniform and mechanical and the higher tier would add nothing — e.g. a phase of two `sonnet` steps that both apply one established pattern may keep `sonnet`.
-- `opus` is the ceiling; a phase containing an `opus` step is reviewed by `opus`.
+- `opus` is the highest tier this rule assigns; a phase containing an `opus` step is reviewed by `opus`. `fable` is not pre-assigned as a reviewer — implementation-time escalation reaches it when an `opus` review lets a structural defect through.
 - Never review below the highest implementation tier used in the phase.
 
 ##### Common Mistakes to AVOID
@@ -794,6 +795,7 @@ Each step has an implementation model. Each **phase** additionally has a **revie
 | `developer` for writing README | README is documentation | `tech-writer` |
 | `opus` "to be safe" when unsure | `opus` must be EARNED by a breadth/critical/open-design trigger — uncertainty is not a trigger | `sonnet` (the tie-breaker default); escalate later if the step turns out to need it |
 | `opus` for ordinary feature/fix/refactor work | Local design choices on an established pattern are exactly what `sonnet` is for | `sonnet` |
+| `fable` pre-assigned to a step or reviewer | `fable` is the escalation ceiling, not a planning tier — a plan never spends it before `opus` has failed | `opus` (if earned); implementation escalates to `fable` when an `opus` attempt fails |
 | `haiku` for anything requiring judgment | Haiku is for mechanical tasks with no decisions | `sonnet` — jump straight to `opus` only if a breadth/critical/open-design trigger also fires |
 | `code-explorer` for fixing bugs | Explorer analyzes, doesn't implement | `developer` |
 | `researcher` for writing code | Researcher defines skills, doesn't code | `developer` |
@@ -876,7 +878,7 @@ Write each step to its own file using this template. It is the step template —
 
 **Task File:** `.specs/tasks/todo/<task-name>.md`
 **Phase:** Phase N
-**Model:** [Model type - haiku/sonnet/opus]
+**Model:** [Model type - haiku/sonnet/opus/fable]
 **Agent:** [Agent type - see Agent Selection Guide]
 **Depends on:** [List of step names, or "None"]
 **Parallel with:** [List of step names that share same dependencies, or "None"]
@@ -1045,7 +1047,7 @@ Step 02a-...      Step 02b-...      Step 02c-...
 #### Phase 1
 
 Steps: `<step-1-name>`, `<step-2-name>`, ...
-Reviewer model: `<haiku|sonnet|opus>`
+Reviewer model: `<haiku|sonnet|opus|fable>`
 Acceptance Criteria that should be fulfiled:
 Checklist items:
 - `<checklist-item-1>`
@@ -1060,7 +1062,7 @@ Rubrics:
 #### Phase 2
 
 Steps: `<step-1-name>`, `<step-2-name>`, ...
-Reviewer model: `<haiku|sonnet|opus>`
+Reviewer model: `<haiku|sonnet|opus|fable>`
 Acceptance Criteria that should be fulfiled:
 Checklist items:
 - `<checklist-item-1>`
@@ -1077,7 +1079,7 @@ Rubrics:
 
 - The phase identifier is `Phase N`. You MAY append a short title after it (`#### Phase 1: Foundation`); the identifier must remain parseable as `Phase N`.
 - `Steps:` lists step names — the sub-task file basenames without `.md` — in execution order, backtick-quoted and comma-separated.
-- `Reviewer model:` is exactly one of `haiku`, `sonnet`, `opus`.
+- `Reviewer model:` is exactly one of `haiku`, `sonnet`, `opus`, `fable`.
 - Checklist items are cited by ID plus a short quote of the question, e.g. ``- `CK-3` — Does every public endpoint reject unauthenticated requests?``
 - Rubrics are cited by criterion name exactly as written in the `**Rubric:**` table, e.g. ``- `Project Guidelines Alignment` ``.
 - If a phase has no rubric criteria due yet, write `Rubrics:` followed by `- None`. Never omit the heading.

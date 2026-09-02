@@ -47,7 +47,7 @@ Parse the following arguments from `$ARGUMENTS`:
 | `--human-in-the-loop` | `--human-in-the-loop phase1,phase2,...` | None | Phases after which to pause for human verification. |
 | `--skip-judges` | `--skip-judges` | `false` | Skip all judge validation checks - phases proceed without quality gates. |
 | `--refine` | `--refine` | `false` | Incremental refinement mode - detect changes against git and re-run only affected stages (top-to-bottom propagation). |
-| `--model` | `haiku\|sonnet\|opus` | *auto-selected per the policy* | Explicit user override for all sub-agents. When omitted, resolve each phase's tier per the [Model Selection Policy](#model-selection-policy). See [Role Pairing](#role-pairing) for the override's effect and the [Escalation Rule](#escalation-rule) for how escalation interacts with it. |
+| `--model` | `haiku\|sonnet\|opus\|fable` | *auto-selected per the policy* | Explicit user override for all sub-agents. When omitted, resolve each phase's tier per the [Model Selection Policy](#model-selection-policy). See [Role Pairing](#role-pairing) for the override's effect and the [Escalation Rule](#escalation-rule) for how escalation interacts with it. |
 | `--strict` | `--strict` | `false` | Disable the [Iteration Discretion Rule](#iteration-discretion-rule) - a phase passes ONLY when `score >= THRESHOLD`, otherwise retry until `MAX_ITERATIONS` is reached. |
 
 ### Stage Names (for `--included-stages` / `--skip`)
@@ -372,7 +372,7 @@ This rule governs the `**Decision Logic:**` block of every phase:
 
 Picking the model is the **single highest-leverage decision** you make — more than any prompt wording, it decides whether the plan comes back correct and how long the run takes. You MUST NOT treat it as a formality: name the tier and give a one-line justification before dispatching **each** phase agent. Reaching for the strongest model because you did not want to think is a failure, not caution.
 
-**Tier default:** `sonnet` is the working default, and `sonnet`/`haiku` cover the majority of runs. `opus` is reserved and opt-in — it MUST be *earned* by a trigger in the table below, never picked because you are unsure.
+**Tier default:** `sonnet` is the working default, and `sonnet`/`haiku` cover the majority of runs. `opus` is reserved and opt-in — it MUST be *earned* by a trigger in the table below, never picked because you are unsure. `fable` sits above `opus` and is never selected by the table: it is reached only through the [Escalation Rule](#escalation-rule) after `opus` has failed, or through an explicit `--model fable`.
 
 ### Selection Rules
 
@@ -397,7 +397,7 @@ Assess the **overall task being planned** — the draft task file's title and ty
 | Phase 3: Architecture Synthesis | **Heavy** — the only phase that makes open design decisions rather than applying settled ones; three inputs are synthesized here and every later phase, plus the implementation itself, inherits the result | **one tier above `BASELINE_TIER`**, capped at `opus` |
 | Phases 2a, 2b, 2c, 4 | Standard | `BASELINE_TIER` |
 
-Every model-assigned phase appears in exactly ONE row, so each resolves to exactly ONE tier. The cap means an `opus` baseline leaves all phases at `opus`. [Promotion](#promote-task) is a file move you perform yourself — no sub-agent, no tier. See [Role Pairing](#role-pairing) for the `--model` override.
+Every model-assigned phase appears in exactly ONE row, so each resolves to exactly ONE tier. The cap means an `opus` baseline leaves all phases at `opus`. `fable` is deliberately outside the cap: it is spent only after `opus` has failed (Escalation Rule) or on explicit request (`--model fable`), never pre-emptively. [Promotion](#promote-task) is a file move you perform yourself — no sub-agent, no tier. See [Role Pairing](#role-pairing) for the `--model` override.
 
 **Not to be confused with the per-step tiers inside the plan.** The tiers above govern the *planning* agents you launch. The `Model:` recorded in each sub-task file and the `Reviewer model:` recorded for each phase are decided by Phase 4 for the *implementation* run, from the per-step policy Phase 4's launch prompt carries — they are independent of `BASELINE_TIER`.
 
@@ -414,7 +414,7 @@ Bump **BOTH the phase agent and its judge** one tier for the next iteration of t
 1. **Low first-iteration quality** — a low score, or judge issues showing the model misunderstood the phase rather than merely missing details.
 2. **The user complains** that quality is too low or the results are wrong — at any point, including after a reported PASS or a finished run.
 
-Ladder: `haiku` → `sonnet` → `opus`. `opus` is the **ceiling** — there is no further tier. If `opus`-tier work still fails, report it and escalate to the **user**; never loop.
+Ladder: `haiku` → `sonnet` → `opus` → `fable`. `fable` is the **ceiling** — there is no further tier, and escalation is the only automatic path onto it. If `fable`-tier work still fails, report it and escalate to the **user**; never loop.
 
 - **Sole exception — hold the tier (the ONLY statement of this rule, trigger (1) only):** when trigger (1) fires but the judge's issues are a specific, fixable defect rather than a capability gap (narrow, precisely specified problems the model clearly understood), you MAY hold the tier and re-launch the phase at the SAME tier with the judge's exact feedback instead of bumping. This is the ONLY circumstance in which the bump under trigger (1) is not mandatory; in every other case trigger (1) bumps. Trigger (2) has NO such exception — it always bumps immediately, per the carve-out below.
 - **Explicit `--model` carve-out (the ONLY statement of this rule):** an explicit `--model` is a user override, so trigger (1) MUST NOT silently overrule it — report the low-quality evidence, *propose* the bump, and re-launch at the user's tier unless they approve. Trigger (2) IS that approval, so it bumps immediately.
@@ -433,6 +433,7 @@ When this skill runs outside the Anthropic model context, map the tier to the ne
 | `haiku` | Fast and cheap; mechanical work | `gemini-flash-lite`, `gemma` class, `gpt-oss` class, small open-weight models |
 | `sonnet` | Balanced workhorse; most planning phases | `gemini-pro` class and full `gemini-flash` (**not** the `-lite` variant, which is `haiku`-tier), `GPT-5-mini` class, large `Qwen` / `DeepSeek` class |
 | `opus` | Frontier reasoning; critical or complex work | whatever the provider sells as its extended / deliberate-reasoning tier — currently `GPT-5.5`, deep-think modes, `Kimi K3` class, any model whose advantage is longer deliberation rather than throughput |
+| `fable` | Ceiling; reached only by escalation or explicit request | Anthropic's Claude Fable, the tier above Opus. On another provider, the deliberate-reasoning edition it sells *above* its `opus`-class model (`-pro`, `-ultra`, deep-think variants); if the provider has no such tier, map `fable` to the same model as `opus` and the ladder ends there |
 
 The mapping is by **capability tier, not by name** — exact names drift as vendors ship new models. Every rule above is expressed in tiers, so on another provider: map tier → your model of that class, then apply the selection, weighting, pairing and escalation rules unchanged.
 
@@ -927,7 +928,7 @@ Launch agent:
 
   Task File: <TASK_FILE>
 
-  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: fable, opus, sonnet, haiku}
 
   Assign each step's model tier per this policy:
   {paste the Selection Rules table plus its Precedence and Tie-breaker paragraphs from the orchestrator's Model Selection Policy verbatim, applied per implementation step; drop the cross-reference links, which do not resolve outside that file}
@@ -992,7 +993,7 @@ Launch judge:
   `## Acceptance Criteria`, written by an earlier phase). Verification is PHASE-level: each phase names
   one reviewer model; there are no per-step verification sections.
 
-  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: opus, sonnet, haiku}
+  Use agents only from this list: {list ALL available agents with plugin prefix if available, e.g. sdd:developer, review:bug-hunter. Also include general agents: fable, opus, sonnet, haiku}
 
   ### Rubric
   1. Step Quality (weight: 0.15)
@@ -1034,7 +1035,7 @@ Launch judge:
 
   7. Agent/Model Selection Correctness (weight: 0.08)
      - Are agent types appropriate for what each step OUTPUTS, and drawn only from the provided available agents list?
-     - Does each step's `**Model:**` follow the per-step model policy — `opus` earned by a breadth, critical-domain or open-design trigger rather than picked to be safe, `haiku` only for mechanical work?
+     - Does each step's `**Model:**` follow the per-step model policy — `opus` earned by a breadth, critical-domain or open-design trigger rather than picked to be safe, `haiku` only for mechanical work, `fable` never pre-assigned (it is the implementation-time escalation ceiling, not a planning tier)?
      - 1=Wrong agents/tiers, 2=Mostly appropriate, 3=Acceptable, 4=Optimal selection, 5=Perfect selection
 
   8. Phase Design (weight: 0.15)
