@@ -78,7 +78,6 @@ In order to use this hook, you need to have `bun` installed. However, it is not 
 ## What's Next?
 
 * [**User Guides**](guides/) - Complete guides to using the marketplace
-  * [Project Setup](guides/project-setup.md)
   * [Feature Development](guides/feature-development.md)
   * [Spec-Driven Development](guides/spec-driven-development.md)
   * [PR Review](guides/pr-review.md)
